@@ -155,8 +155,8 @@ const ResultCard: React.FC<Props> = ({
 				style={cardStyle}
 			>
 				<div className="absolute inset-0 rounded-xl border-2 border-border/80 transition-all duration-300 group-hover:border-accent/60 group-hover:shadow-[0_0_10px_rgba(153,102,255,0.6),0_0_10px_rgba(255,102,170,0.5)]"></div>
-				<div className="relative rounded-xl backdrop-blur-sm hover:opacity-80 overflow-hidden transition-all duration-300">
-					<div className="absolute inset-0 bg-gradient-to-r from-surface/95 via-surface/95 to-surface/80 z-0" />
+				<div className="relative rounded-xl backdrop-blur-xs overflow-hidden transition-all duration-300 group-hover:backdrop-blur-none">
+					<div className="absolute inset-0 bg-gradient-to-r from-surface/50 via-surface/60 to-surface/20 z-0 group-hover:opacity-50 transition-all duration-300" />
 
 					<div className={`${card.banner()} relative z-10`}>
 						<button
