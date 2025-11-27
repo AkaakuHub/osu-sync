@@ -1,0 +1,16 @@
+{
+  "name": "osu-sync",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "pnpm lefthook install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.22.0",
+  "devDependencies": {
+    "lefthook": "^2.0.4"
+  }
+}

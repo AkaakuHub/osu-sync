@@ -1,0 +1,12 @@
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      run: cd ui && pnpm run format
+      stage_fixed: true
+    lint:
+      run: cd ui && pnpm run lint
+      stage_fixed: true
+    knip:
+      run: cd ui && pnpm run knip
+      stage_fixed: true

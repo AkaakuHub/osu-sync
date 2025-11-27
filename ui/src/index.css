@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@layer base {
+	body {
+		background:
+			radial-gradient(circle at 10% 20%, rgba(81, 19, 145, 0.45), transparent 55%),
+			radial-gradient(circle at 80% 0%, rgba(7, 121, 228, 0.35), transparent 45%),
+			radial-gradient(circle at 50% 100%, rgba(255, 107, 160, 0.25), transparent 40%), #050510;
+		min-height: 100vh;
+		user-select: text;
+		-webkit-user-select: text;
+	}
+
+	#root,
+	.selectable-text {
+		user-select: text;
+		-webkit-user-select: text;
+	}
+}

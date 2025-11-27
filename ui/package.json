@@ -1,0 +1,37 @@
+{
+	"name": "osu-sync-ui",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
+		"lint:unused": "knip",
+		"format": "biome format --write .",
+		"lint": "biome lint --write .",
+		"knip": "knip"
+	},
+	"dependencies": {
+		"@tanstack/react-query": "^5.59.14",
+		"howler": "^2.2.4",
+		"lucide-react": "^0.554.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"tailwind-merge": "^3.4.0",
+		"tailwind-variants": "^3.2.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.7",
+		"@tailwindcss/vite": "^4.1.13",
+		"@types/howler": "^2.2.12",
+		"@types/react": "^18.3.12",
+		"@types/react-dom": "^18.3.1",
+		"@vitejs/plugin-react": "^4.3.3",
+		"knip": "^5.70.2",
+		"react-virtuoso": "^4.7.10",
+		"tailwindcss": "4.1.13",
+		"typescript": "^5.6.3",
+		"vite": "^7.1.6"
+	}
+}

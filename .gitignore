@@ -1,0 +1,31 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+
+# UV
+.uv_cache/
+
+# Node / pnpm / frontend
+node_modules/
+pnpm-lock.yaml
+.yarn/
+.pnpm-store/
+src/ui/dist/
+src/ui/.vite/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build artifacts
+*.log
+*.tmp
+
