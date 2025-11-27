@@ -54,13 +54,23 @@ class DownloadManager:
         self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
         self._client = httpx.AsyncClient(follow_redirects=True, timeout=60)
 
-    def enqueue(self, set_ids: List[int]) -> List[DownloadTask]:
+    def enqueue(self, set_ids: List[int], metadata: Optional[Dict[int, Dict[str, str]]] = None) -> List[DownloadTask]:
         new_tasks: List[DownloadTask] = []
         for set_id in set_ids:
             if set_id in self._tasks and self._tasks[set_id].status in {"queued", "running"}:
                 continue
             url = self.url_template.format(set_id=set_id)
             task = DownloadTask(set_id=set_id, url=url)
+            # Use provided metadata first, then fall back to index
+            if metadata and set_id in metadata:
+                task.artist = metadata[set_id].get("artist")
+                task.title = metadata[set_id].get("title")
+            elif self.index and set_id in self.index.metadata:
+                index_metadata = self.index.metadata[set_id]
+                if len(index_metadata) >= 4:
+                    _, artist, title, creator = index_metadata
+                    task.artist = artist
+                    task.title = title
             self._tasks[set_id] = task
             self._queue.put_nowait(task)
             new_tasks.append(task)
@@ -161,8 +171,21 @@ class DownloadManager:
         queued = [t for t in self._tasks.values() if t.status == "queued"]
         running = [t for t in self._tasks.values() if t.status == "running"]
         finished = [t for t in self._tasks.values() if t.status in {"completed", "failed", "skipped"}]
+
+        # Backfill metadata for existing tasks
+        all_tasks = queued + running + finished
+        for task in all_tasks:
+            if (not task.artist or not task.title) and self.index and task.set_id in self.index.metadata:
+                metadata = self.index.metadata[task.set_id]
+                if len(metadata) >= 4:
+                    _, artist, title, creator = metadata
+                    if not task.artist:
+                        task.artist = artist
+                    if not task.title:
+                        task.title = title
+
         return {
-            "queued": [t.set_id for t in queued],
+            "queued": [self._serialize_task(t) for t in queued],
             "running": [self._serialize_task(t) for t in running],
             "done": [self._serialize_task(t) for t in finished],
         }

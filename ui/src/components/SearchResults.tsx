@@ -75,7 +75,18 @@ const SearchResults: React.FC<Props> = ({
 	);
 
 	const triggerDownload = async (setId: number) => {
-		await apiClient.post("/download", { set_ids: [setId] });
+		// Find the search result for this set_id to get metadata
+		const searchResult = data?.results?.find((r) => r.set_id === setId);
+		const metadata = searchResult
+			? {
+					[setId]: {
+						artist: searchResult.artist,
+						title: searchResult.title,
+					},
+				}
+			: undefined;
+
+		await apiClient.post("/download", { set_ids: [setId], metadata });
 		client.invalidateQueries({ queryKey: ["queue"] });
 		onQueueUpdate();
 	};
@@ -199,7 +210,7 @@ const SearchResults: React.FC<Props> = ({
 					: 0;
 				return { label: `Downloading ${pct}%`, disabled: true, variant: "secondary" };
 			}
-			if (queueState.queued.has(setId)) {
+			if (Array.from(queueState.queued).some((entry) => entry.set_id === setId)) {
 				return { label: "Queued", disabled: true, variant: "secondary" };
 			}
 			if (queueState.failed.has(setId)) {

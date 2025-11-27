@@ -1,7 +1,7 @@
 import type { QueueStatus } from "../../hooks/useApiClient";
 
 export type QueueDerivedState = {
-	queued: Set<number>;
+	queued: Set<QueueStatus["queued"][number]>;
 	runningEntries: Map<number, QueueStatus["running"][number]>;
 	completed: Set<number>;
 	skipped: Set<number>;

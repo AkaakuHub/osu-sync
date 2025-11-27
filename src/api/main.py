@@ -245,7 +245,7 @@ def create_app() -> FastAPI:
         missing = [s for s in req.set_ids if not app.state.index.owned(s)]
         if not missing:
             return QueueStatus(**app.state.downloader.status())
-        app.state.downloader.enqueue(missing)
+        app.state.downloader.enqueue(missing, req.metadata)
         return QueueStatus(**app.state.downloader.status())
 
     @api.post("/search/filter", response_model=SearchResponse)

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -50,6 +50,7 @@ class SearchResponse(BaseModel):
 
 class DownloadRequest(BaseModel):
     set_ids: List[int]
+    metadata: Optional[Dict[int, Dict[str, str]]] = None  # set_id -> {artist, title}
 
 
 class QueueEntry(BaseModel):
@@ -69,7 +70,7 @@ class QueueEntry(BaseModel):
 
 
 class QueueStatus(BaseModel):
-    queued: List[int]
+    queued: List[QueueEntry]
     running: List[QueueEntry]
     done: List[QueueEntry]
 

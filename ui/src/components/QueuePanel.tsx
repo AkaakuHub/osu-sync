@@ -62,6 +62,11 @@ function QueuePanel({ data }: Props) {
 		return `${formatBytes(value)}/s`;
 	};
 
+	const formatDisplayName = (entry: QueueEntry) => {
+		const { set_id, artist, title } = entry;
+		return `${set_id} ${artist} - ${title}`;
+	};
+
 	const runningEntries = useMemo<RunningWithProjection[]>(() => {
 		if (!data?.running) return [];
 		const now = Date.now() / 1000;
@@ -108,9 +113,7 @@ function QueuePanel({ data }: Props) {
 										className="space-y-2 p-3 bg-surface-variant/30 rounded-lg border border-border"
 									>
 										<div className="flex items-center justify-between text-xs font-medium">
-											<span className="font-mono text-sm">
-												{task.display_name ?? `${task.set_id}`}
-											</span>
+											<span className="font-mono text-sm">{formatDisplayName(task)}</span>
 											<span>
 												{`${Math.min(100, Math.round((task.projectedProgress ?? 0) * 100))}%`}
 											</span>
@@ -149,12 +152,14 @@ function QueuePanel({ data }: Props) {
 							<p className="text-sm text-muted-foreground pl-4">No downloads queued</p>
 						) : (
 							<div className="space-y-2 pl-4">
-								{data.queued.map((setId) => (
+								{data.queued.map((queueEntry) => (
 									<div
-										key={setId}
+										key={queueEntry.set_id}
 										className="flex items-center justify-between p-3 bg-surface-variant/50 rounded-lg border border-border/50"
 									>
-										<span className="font-mono text-sm font-medium">{setId}</span>
+										<span className="font-mono text-sm font-medium">
+											{formatDisplayName(queueEntry)}
+										</span>
 										<Badge variant="secondary">Queued</Badge>
 									</div>
 								))}
@@ -181,9 +186,7 @@ function QueuePanel({ data }: Props) {
 										className="flex items-center justify-between p-3 bg-surface-variant/50 rounded-lg border border-border/50"
 									>
 										<div className="flex items-center gap-2">
-											<span className="font-mono text-sm font-medium">
-												{d.display_name ?? `${d.set_id}`}
-											</span>
+											<span className="font-mono text-sm font-medium">{formatDisplayName(d)}</span>
 											{d.message && (
 												<span className="text-xs text-text-secondary">{d.message}</span>
 											)}

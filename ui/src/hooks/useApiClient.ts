@@ -95,7 +95,7 @@ export interface QueueEntry {
 }
 
 export interface QueueStatus {
-	queued: number[];
+	queued: QueueEntry[];
 	running: QueueEntry[];
 	done: QueueEntry[];
 }
