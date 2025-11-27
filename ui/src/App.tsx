@@ -39,13 +39,13 @@ function App() {
 	];
 
 	return (
-		<div className="h-[720px] w-full overflow-hidden bg-surface">
+		<div className="min-h-screen w-full overflow-hidden bg-surface">
 			{/* Scan Progress Overlay */}
 			<ScanProgress />
 
-			<div className="h-full flex flex-col p-6">
+			<div className="h-screen flex flex-col p-4">
 				{/* App Header */}
-				<header className="mb-2 flex-shrink-0">
+				<header className="mb-3 flex-shrink-0">
 					<h1 className="text-xl font-bold text-text">osu! sync</h1>
 				</header>
 

@@ -5,6 +5,7 @@ import { Languages } from "lucide-react";
 import { apiClient, type QueueStatus, type SearchResponse } from "../hooks/useApiClient";
 import ResultList from "./search/ResultList";
 import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
+import Button from "./ui/Button";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
 import type { PreviewableItem } from "./search/ResultCard";
 
@@ -14,9 +15,11 @@ type Props = {
 	queue?: QueueStatus;
 	searchData?: SearchResponse;
 	isLoading?: boolean;
+	currentPage?: number;
+	setCurrentPage?: (page: number) => void;
 };
 
-const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searchData }) => {
+const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searchData, currentPage = 1, setCurrentPage }) => {
 	const client = useQueryClient();
 	const [showUnicode, setShowUnicode] = React.useState(false);
 	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
@@ -224,8 +227,9 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 	}
 
 	return (
-		<div className="space-y-5 pb-3">
-			<div className="flex items-center justify-between">
+		<div className="h-full flex flex-col pb-3">
+			{/* Results Header */}
+			<div className="flex items-center justify-between mb-3">
 				<div className="flex items-center gap-3">
 					<h2 className="text-lg font-semibold">Results</h2>
 					<span className="text-xs text-text-secondary bg-surface-variant/70 px-2 py-1 rounded-md border border-border">
@@ -240,24 +244,51 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 						{showUnicode ? "Unicode" : "Normal"}
 					</button>
 				</div>
+
+				{/* Pagination */}
+				{data.total > 20 && (
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={currentPage <= 1}
+							onClick={() => setCurrentPage?.(Math.max(1, currentPage - 1))}
+						>
+							←
+						</Button>
+						<span className="text-xs text-text px-2 py-1 bg-surface-variant/50 rounded">
+							Page {currentPage} / {Math.ceil(data.total / 20)}
+						</span>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={currentPage >= Math.ceil(data.total / 20)}
+							onClick={() => setCurrentPage?.(currentPage + 1)}
+						>
+							→
+						</Button>
+					</div>
+				)}
 			</div>
 
 			{filtered.length === 0 ? (
-				<div className="text-center py-12 rounded-2xl border border-dashed border-border bg-surface/60">
+				<div className="flex-1 text-center py-12 rounded-2xl border border-dashed border-border bg-surface/60 flex items-center justify-center">
 					<p className="text-muted-foreground">No beatmaps matching the criteria were found.</p>
 				</div>
 			) : (
-				<ResultList
-					items={filtered}
-					showUnicode={showUnicode}
-					previewingId={previewingId}
-					isLoadingPreview={isLoadingPreview}
-					playbackProgress={playbackProgress}
-					queueState={queueState}
-					togglePreview={togglePreview}
-					triggerDownload={triggerDownload}
-					getActionState={getActionState}
-				/>
+				<div className="flex-1 min-h-0">
+					<ResultList
+						items={filtered}
+						showUnicode={showUnicode}
+						previewingId={previewingId}
+						isLoadingPreview={isLoadingPreview}
+						playbackProgress={playbackProgress}
+						queueState={queueState}
+						togglePreview={togglePreview}
+						triggerDownload={triggerDownload}
+						getActionState={getActionState}
+					/>
+				</div>
 			)}
 
 			<PreviewPlayer
