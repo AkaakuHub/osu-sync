@@ -166,7 +166,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup() -> None:
         # DBから既存データを読み込み（即時完了）
-        await app.state.index._load_from_osu_db()
+        await app.state.index._load_hybrid()
         # バックグラウンドスキャンを完全非同期で実行（サーバー起動をブロックしない）
         asyncio.create_task(app.state.index._start_background_scan())
         await app.state.downloader.start_workers()

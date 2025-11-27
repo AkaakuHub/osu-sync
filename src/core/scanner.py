@@ -31,52 +31,60 @@ class SongIndex:
 
     async def refresh(self) -> None:
         """
-        osu!.dbから楽曲情報を読み込む。
+        osu!.db + .oszファイルから楽曲情報をハイブリッドで読み込む。
         """
-        await self._load_from_osu_db()
+        await self._load_hybrid()
 
-    async def _load_from_osu_db(self) -> None:
-        """osu!.dbから楽曲情報を読み込む"""
-        if not self.osu_db_path or not Path(self.osu_db_path).exists():
-            print(f"osu!.db not found at {self.osu_db_path}")
-            async with self._state_lock:
-                self._owned = set()
-                self._metadata = {}
-            return
+    async def _load_hybrid(self) -> None:
+        """osu!.dbと.oszファイルのハイブリッド読み込み"""
+        osu_owned, osu_metadata = set(), {}
+        osz_owned, osz_metadata = set(), {}
 
+        # 1. osu!.dbから読み込み
+        if self.osu_db_path and Path(self.osu_db_path).exists():
+            try:
+                self._scan_task = asyncio.create_task(self._parse_osu_db())
+                osu_owned, osu_metadata = await self._scan_task
+            except Exception as e:
+                print(f"Error parsing osu!.db: {e}")
+        else:
+            print(f"osu!.db not found at {self.osu_db_path}, using .osz files only")
+
+        # 2. .oszファイルから読み込み
         try:
-            # バックグラウンドでosu!.dbを解析
-            self._scan_task = asyncio.create_task(self._parse_osu_db())
-            await self._scan_task
+            self._scan_task = asyncio.create_task(self._scan_osz_fast())
+            osz_owned, osz_metadata = await self._scan_task
         except Exception as e:
-            print(f"Error parsing osu!.db: {e}")
-            async with self._state_lock:
-                self._owned = set()
-                self._metadata = {}
+            print(f"Error scanning .osz files: {e}")
+
+        # 3. マージ（osu!.dbのメタデータを優先）
+        async with self._state_lock:
+            self._owned = osu_owned.union(osz_owned)
+            # osu!.dbのメタデータを優先し、.oszで補完
+            self._metadata = {**osz_metadata, **osu_metadata}
+
+        print(f"Hybrid scan complete: {len(self._owned)} sets total "
+              f"(osu!.db: {len(osu_owned)}, .osz: {len(osz_owned)})")
 
     async def _start_background_scan(self) -> None:
-        """バックグラウンドでスキャンを開始"""
+        """バックグラウンドでハイブリッドスキャンを開始"""
         # 既に進行中なら新しいスキャンは開始しない
         if self._scan_task and not self._scan_task.done():
             return
 
-        self._scan_task = asyncio.create_task(self._parse_osu_db())
+        self._scan_task = asyncio.create_task(self._load_hybrid())
 
-    async def _parse_osu_db(self) -> None:
+    async def _parse_osu_db(self) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
         """osu!.dbを解析してメタデータを抽出"""
         async with self._state_lock:
             if self._scanning:
-                return
+                return set(), {}
             self._scanning = True
 
         try:
             # 同期処理なのでスレッドで実行
             owned, metadata = await asyncio.to_thread(self._parse_osu_db_sync)
-
-            # 結果を反映
-            async with self._state_lock:
-                self._owned = owned
-                self._metadata = metadata
+            return owned, metadata
         finally:
             async with self._state_lock:
                 self._scanning = False
@@ -130,6 +138,62 @@ class SongIndex:
             raise
 
         return owned, metadata
+
+    async def _scan_osz_fast(self) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
+        """ファイル名からのみ.oszを高速スキャン - O(1) per file"""
+        owned: Set[int] = set()
+        metadata: Dict[int, Tuple[int, str, str, str]] = {}
+
+        if not self.songs_dir or not self.songs_dir.exists():
+            print(f"Songs directory not found at {self.songs_dir}")
+            return owned, metadata
+
+        # 別スレッドで実行
+        return await asyncio.to_thread(self._scan_osz_sync, owned, metadata)
+
+    def _scan_osz_sync(self, owned: Set[int], metadata: Dict[int, Tuple[int, str, str, str]]) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
+        """同期版.oszスキャン"""
+        osz_files = list(self.songs_dir.rglob("*.osz"))
+        print(f"Scanning {len(osz_files)} .osz files...")
+
+        for osz_path in osz_files:
+            filename = osz_path.name
+            # "123456 Artist - Title.osz" → 123456
+            match = re.match(r'^(\d+)', filename)
+            if match:
+                set_id = int(match.group(1))
+                if set_id <= 0:
+                    continue
+
+                owned.add(set_id)
+
+                # osu!.dbにない場合のみファイル名からメタデータ抽出
+                if set_id not in metadata:
+                    artist, title = self._extract_metadata_from_filename(filename)
+                    metadata[set_id] = (set_id, artist, title, "")  # creatorはファイル名から抽出不可
+
+        print(f"Found {len(owned)} unique sets from .osz files")
+        return owned, metadata
+
+    def _extract_metadata_from_filename(self, filename: str) -> Tuple[str, str]:
+        """ファイル名からアーティストとタイトルを抽出"""
+        # "123456 Artist - Title.osz" → ("Artist", "Title")
+        if filename.endswith('.osz'):
+            filename = filename[:-4]  # .oszを削除
+
+        # 最初の数字部分を削除
+        filename = re.sub(r'^\d+\s*', '', filename, count=1)
+
+        # " - " で分割
+        if ' - ' in filename:
+            parts = filename.split(' - ', 1)
+            if len(parts) == 2:
+                artist = parts[0].strip()
+                title = parts[1].strip()
+                return artist, title
+
+        # 分割できない場合は全体をタイトルとして扱う
+        return "", filename.strip()
 
     async def force_refresh_sync(self) -> None:
         """同期で強制リフレッシュ"""
