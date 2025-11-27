@@ -82,6 +82,8 @@ const SearchResults: React.FC<Props> = ({
 					[setId]: {
 						artist: searchResult.artist,
 						title: searchResult.title,
+						artist_unicode: searchResult.artist_unicode,
+						title_unicode: searchResult.title_unicode,
 					},
 				}
 			: undefined;

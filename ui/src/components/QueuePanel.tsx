@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Languages } from "lucide-react";
 import { apiClient, type QueueEntry, type QueueStatus } from "../hooks/useApiClient";
 import Badge from "./ui/Badge";
 import Button from "./ui/Button";
@@ -12,6 +13,7 @@ type RunningWithProjection = RunningEntry & { projectedProgress: number };
 
 function QueuePanel({ data }: Props) {
 	const [ticker, setTicker] = useState(0);
+	const [showUnicode, setShowUnicode] = useState(false);
 
 	useEffect(() => {
 		const id = setInterval(() => {
@@ -63,8 +65,20 @@ function QueuePanel({ data }: Props) {
 	};
 
 	const formatDisplayName = (entry: QueueEntry) => {
-		const { set_id, artist, title } = entry;
-		return `${set_id} ${artist} - ${title}`;
+		const { set_id, artist, title, artist_unicode, title_unicode } = entry;
+		if (showUnicode) {
+			const displayArtist = artist_unicode || artist;
+			const displayTitle = title_unicode || title;
+			return `${set_id} ${displayArtist} - ${displayTitle}`;
+		} else {
+			return `${set_id} ${toNFKC(artist)} - ${toNFKC(title)}`;
+		}
+	};
+
+	// Unicode conversion helper
+	const toNFKC = (text: string | null | undefined) => {
+		if (!text) return text;
+		return text.normalize("NFKC");
 	};
 
 	const runningEntries = useMemo<RunningWithProjection[]>(() => {
@@ -89,7 +103,17 @@ function QueuePanel({ data }: Props) {
 
 	return (
 		<div className="space-y-6">
-			<h2 className="text-lg font-semibold">Download Queue</h2>
+			<div className="flex items-center justify-between">
+				<h2 className="text-lg font-semibold">Download Queue</h2>
+				<button
+					onClick={() => setShowUnicode((prev) => !prev)}
+					className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"
+					title={showUnicode ? "Display in Normal" : "Display in Unicode"}
+				>
+					<Languages className="w-3.5 h-3.5" />
+					{showUnicode ? "Unicode" : "Normal"}
+				</button>
+			</div>
 
 			{!data ? (
 				<div className="text-center py-8">

@@ -28,6 +28,8 @@ class DownloadTask:
     display_name: Optional[str] = None
     artist: Optional[str] = None
     title: Optional[str] = None
+    artist_unicode: Optional[str] = None
+    title_unicode: Optional[str] = None
     created_at: float = field(default_factory=time.time)
 
 
@@ -65,6 +67,8 @@ class DownloadManager:
             if metadata and set_id in metadata:
                 task.artist = metadata[set_id].get("artist")
                 task.title = metadata[set_id].get("title")
+                task.artist_unicode = metadata[set_id].get("artist_unicode")
+                task.title_unicode = metadata[set_id].get("title_unicode")
             elif self.index and set_id in self.index.metadata:
                 index_metadata = self.index.metadata[set_id]
                 if len(index_metadata) >= 4:
@@ -205,6 +209,8 @@ class DownloadManager:
             "display_name": task.display_name,
             "artist": task.artist,
             "title": task.title,
+            "artist_unicode": task.artist_unicode,
+            "title_unicode": task.title_unicode,
         }
 
     def _find_existing_archive(self, set_id: int) -> Optional[Path]:

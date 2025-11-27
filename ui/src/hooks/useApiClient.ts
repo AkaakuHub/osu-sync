@@ -87,6 +87,8 @@ export interface QueueEntry {
 	display_name?: string | null;
 	artist?: string | null;
 	title?: string | null;
+	artist_unicode?: string | null;
+	title_unicode?: string | null;
 	progress?: number | null;
 	bytes_downloaded: number;
 	total_bytes?: number | null;

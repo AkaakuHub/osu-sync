@@ -50,7 +50,7 @@ class SearchResponse(BaseModel):
 
 class DownloadRequest(BaseModel):
     set_ids: List[int]
-    metadata: Optional[Dict[int, Dict[str, str]]] = None  # set_id -> {artist, title}
+    metadata: Optional[Dict[int, Dict[str, str]]] = None  # set_id -> {artist, title, artist_unicode, title_unicode}
 
 
 class QueueEntry(BaseModel):
@@ -62,6 +62,8 @@ class QueueEntry(BaseModel):
     display_name: Optional[str] = None
     artist: Optional[str] = None
     title: Optional[str] = None
+    artist_unicode: Optional[str] = None
+    title_unicode: Optional[str] = None
     progress: Optional[float] = None
     bytes_downloaded: int = 0
     total_bytes: Optional[int] = None
