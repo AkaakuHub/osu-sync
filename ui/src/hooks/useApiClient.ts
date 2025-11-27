@@ -43,6 +43,7 @@ export const apiClient = new ApiClient();
 apiClient.setBaseUrl("http://127.0.0.1:8000/api");
 
 // Types
+export type BeatmapStatus = "graveyard" | "wip" | "pending" | "ranked" | "approved" | "qualified" | "loved";
 interface SearchResult {
 	set_id: number;
 	artist: string;
@@ -52,7 +53,7 @@ interface SearchResult {
 	creator: string;
 	favourite_count: number;
 	play_count: number;
-	status: string;
+	status: BeatmapStatus;
 	owned: boolean;
 	cover_url?: string | null;
 	preview_url?: string | null;

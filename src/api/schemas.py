@@ -1,6 +1,18 @@
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel
+
+
+class BeatmapStatus(str, Enum):
+    """osu! beatmap status following official definitions"""
+    GRAVEYARD = "graveyard"  # -2
+    WIP = "wip"              # -1
+    PENDING = "pending"      # 0
+    RANKED = "ranked"        # 1
+    APPROVED = "approved"    # 2
+    QUALIFIED = "qualified"  # 3
+    LOVED = "loved"          # 4
 
 
 class DifficultyInfo(BaseModel):
@@ -18,7 +30,7 @@ class SearchResult(BaseModel):
     creator: str
     favourite_count: int
     play_count: int
-    status: str
+    status: BeatmapStatus
     owned: bool
     cover_url: Optional[str] = None
     preview_url: Optional[str] = None

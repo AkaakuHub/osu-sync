@@ -56,16 +56,28 @@ const cardStyles = tv({
 	},
 	variants: {
 		status: {
-			ranked: { badge: "bg-gradient-to-r from-emerald-500 to-green-600 text-white" },
-			approved: { badge: "bg-gradient-to-r from-blue-500 to-cyan-600 text-white" },
-			qualified: { badge: "bg-gradient-to-r from-purple-500 to-indigo-600 text-white" },
-			loved: { badge: "bg-gradient-to-r from-pink-500 to-rose-600 text-white" },
-			pending: { badge: "bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900" },
-			wip: { badge: "bg-gradient-to-r from-orange-400 to-red-500 text-slate-900" },
+			graveyard: { badge: "text-white" },
+			wip: { badge: "text-white" },
+			pending: { badge: "text-slate-900" },
+			ranked: { badge: "text-white" },
+			approved: { badge: "text-white" },
+			qualified: { badge: "text-white" },
+			loved: { badge: "text-white" },
 		},
 	},
 	defaultVariants: { status: "ranked" },
 });
+
+// osu! official status colors
+const statusColors = {
+	graveyard: "#999999",
+	wip: "#FF6666",
+	pending: "#FFD700",
+	ranked: "#00CC66",
+	approved: "#0099FF",
+	qualified: "#9966FF",
+	loved: "#FF00AA",
+};
 
 const ResultCard: React.FC<Props> = ({
 	item,
@@ -187,40 +199,44 @@ const ResultCard: React.FC<Props> = ({
 										<span>{formatDate(item.ranked_date)}</span>
 									</div>
 								</div>
-
-									<div className={card.statItem()}>
-									<span className={card.badge()}>{item.status?.toUpperCase()}</span>
-								{difficulties.length > 0 && (
-									<div
-										className="flex gap-1 overflow-x-auto scrollbar-hide"
-										style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-										onMouseEnter={() => setIsHovered(true)}
-										onMouseLeave={() => setIsHovered(false)}
+								<div className={card.statItem()}>
+									<span
+										className={card.badge()}
+										style={{ backgroundColor: statusColors[statusKey] }}
 									>
-										{difficulties.map((d, idx) => (
-											<div
-												key={idx}
-												className="h-[15px] w-[11px] rounded-full flex-shrink-0 relative"
-												title={`${d.label} - ★${d.rating}`}
-											>
+										{item.status?.toUpperCase()}
+									</span>
+									{difficulties.length > 0 && (
+										<div
+											className="flex gap-1 overflow-x-auto scrollbar-hide"
+											style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+											onMouseEnter={() => setIsHovered(true)}
+											onMouseLeave={() => setIsHovered(false)}
+										>
+											{difficulties.map((d, idx) => (
 												<div
-													className="absolute inset-0 rounded-full"
-													style={{
-														background: "none",
-														borderColor: difficultyColor(d.value),
-														borderWidth: "2px",
-													}}
-												/>
-												<div
-													className="absolute inset-[4px] rounded-full"
-													style={{
-														backgroundColor: difficultyColor(d.value),
-													}}
-												/>
-											</div>
-										))}
-									</div>
-								)}
+													key={idx}
+													className="h-[15px] w-[11px] rounded-full flex-shrink-0 relative"
+													title={`${d.label} - ★${d.rating}`}
+												>
+													<div
+														className="absolute inset-0 rounded-full"
+														style={{
+															background: "none",
+															borderColor: difficultyColor(d.value),
+															borderWidth: "2px",
+														}}
+													/>
+													<div
+														className="absolute inset-[4px] rounded-full"
+														style={{
+															backgroundColor: difficultyColor(d.value),
+														}}
+													/>
+												</div>
+											))}
+										</div>
+									)}
 								</div>
 								{failureMessage && (
 									<p className="text-xs text-rose-300">Failed: {failureMessage}</p>

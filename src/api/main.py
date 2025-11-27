@@ -16,6 +16,7 @@ from core.filter_schema import FilterRequest
 from api.osu_client import OsuApiClient
 from core.scanner import SongIndex
 from api.schemas import (
+    BeatmapStatus,
     DownloadRequest,
     IndexSummary,
     OpenPathRequest,
@@ -126,6 +127,25 @@ def create_app() -> FastAPI:
                     }
                 )
 
+        # Map osu! API status to our BeatmapStatus enum
+        osu_status = item.get("status", "")
+        if osu_status == "graveyard":
+            status = BeatmapStatus.GRAVEYARD
+        elif osu_status == "wip":
+            status = BeatmapStatus.WIP
+        elif osu_status == "pending":
+            status = BeatmapStatus.PENDING
+        elif osu_status == "ranked":
+            status = BeatmapStatus.RANKED
+        elif osu_status == "approved":
+            status = BeatmapStatus.APPROVED
+        elif osu_status == "qualified":
+            status = BeatmapStatus.QUALIFIED
+        elif osu_status == "loved":
+            status = BeatmapStatus.LOVED
+        else:
+            status = BeatmapStatus.PENDING  # fallback
+
         return SearchResult(
             set_id=set_id,
             artist=item.get("artist", ""),
@@ -135,7 +155,7 @@ def create_app() -> FastAPI:
             creator=item.get("creator", ""),
             favourite_count=item.get("favourite_count", 0),
             play_count=item.get("play_count", 0),
-            status=item.get("status", ""),
+            status=status,
             owned=app.state.index.owned(set_id),
             cover_url=cover_url,
             preview_url=item.get("preview_url"),
