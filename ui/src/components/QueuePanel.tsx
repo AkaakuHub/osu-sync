@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Languages } from "lucide-react";
+import toast from "react-hot-toast";
 import { apiClient, type QueueEntry, type QueueStatus } from "../hooks/useApiClient";
 import Badge from "./ui/Badge";
 import Button from "./ui/Button";
@@ -28,6 +29,7 @@ function QueuePanel({ data }: Props) {
 			await apiClient.post("/local/open", { path });
 		} catch (error) {
 			console.error("Failed to open path", error);
+			toast.error("ファイルやフォルダを開けませんでした");
 		}
 	};
 
