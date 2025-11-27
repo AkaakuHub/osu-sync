@@ -103,11 +103,40 @@ const ResultCard: React.FC<Props> = ({
 	failureMessage,
 }) => {
 	const [isHovered, setIsHovered] = useState(false);
+	const [isHoveringOverPanel, setIsHoveringOverPanel] = useState(false);
 
 	const statusKey =
 		(item.status?.toLowerCase() as keyof typeof cardStyles.variants.status) || "ranked";
 	const card = cardStyles({ status: statusKey });
 	const cardStyle = buildBackground(item.cover_url);
+
+	// ホバー状態の管理 - 難易度ラベルまたはパネルにカーソルがある場合に表示
+	const shouldShowHover = isHovered || isHoveringOverPanel;
+
+	const handleDifficultyMouseEnter = () => {
+		setIsHovered(true);
+	};
+
+	const handleDifficultyMouseLeave = () => {
+		// 難易度ラベルから離れた場合も、ホバーパネルにすぐ移動できるように少し待つ
+		setTimeout(() => {
+			if (!isHoveringOverPanel) {
+				setIsHovered(false);
+			}
+		}, 50);
+	};
+
+	const handleHoverPanelMouseEnter = () => {
+		setIsHoveringOverPanel(true);
+		// パネルに来たら必ず表示状態にする
+		setIsHovered(true);
+	};
+
+	const handleHoverPanelMouseLeave = () => {
+		setIsHoveringOverPanel(false);
+		// パネルから完全に離れたら消す
+		setIsHovered(false);
+	};
 
 	const buttonClass =
 		action.variant === "danger"
@@ -121,7 +150,10 @@ const ResultCard: React.FC<Props> = ({
 
 	return (
 		<div className="relative m-1.5 p-1 group">
-			<div className={card.base()} style={cardStyle}>
+			<div
+				className={card.base()}
+				style={cardStyle}
+			>
 				<div className="absolute inset-0 rounded-xl border-2 border-border/80 transition-all duration-300 group-hover:border-accent/60 group-hover:shadow-[0_0_10px_rgba(153,102,255,0.6),0_0_10px_rgba(255,102,170,0.5)]"></div>
 				<div className="relative rounded-xl backdrop-blur-sm hover:opacity-80 overflow-hidden transition-all duration-300">
 					<div className="absolute inset-0 bg-gradient-to-r from-surface/95 via-surface/95 to-surface/80 z-0" />
@@ -221,8 +253,8 @@ const ResultCard: React.FC<Props> = ({
 										<div
 											className="flex gap-1 overflow-x-auto scrollbar-hide"
 											style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-											onMouseEnter={() => setIsHovered(true)}
-											onMouseLeave={() => setIsHovered(false)}
+											onMouseEnter={handleDifficultyMouseEnter}
+											onMouseLeave={handleDifficultyMouseLeave}
 										>
 											{difficulties.map((d, idx) => (
 												<div
@@ -271,27 +303,29 @@ const ResultCard: React.FC<Props> = ({
 			{/* カード外側の下に配置されるコンパクトな難易度リスト */}
 			{difficulties.length > 0 && (
 				<div
-					className={`absolute left-0 right-0 z-20 mt-1 ${!isHovered ? "pointer-events-none" : ""}`}
+					className={`absolute left-0 right-0 z-20 mt-[-14px] ${!shouldShowHover ? "pointer-events-none" : ""}`}
 					style={{
-						maxHeight: isHovered ? "200px" : "0",
-						opacity: isHovered ? 1 : 0,
+						maxHeight: shouldShowHover ? "150px" : "0", // 5行分の高さに固定
+						opacity: shouldShowHover ? 1 : 0,
 						transition: "all 0.3s ease-out",
 					}}
+					onMouseEnter={handleHoverPanelMouseEnter}
+					onMouseLeave={handleHoverPanelMouseLeave}
 				>
 					<div className="bg-surface/95 backdrop-blur-md rounded-lg border border-border shadow-2xl p-2">
-						<div className="grid grid-cols-2 gap-1">
+						<div className="grid grid-cols-2 gap-1 max-h-[130px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-surface/50">
 							{difficulties.map((d, idx) => {
 								const bgColor = difficultyColor(d.rating);
 								const textColor = getContrastColor(bgColor);
 								return (
 									<div
 										key={idx}
-										className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold min-w-0"
+										className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold min-w-0 hover:bg-black/10 transition-colors"
 										style={{
 											backgroundColor: bgColor,
 											color: textColor
 										}}
-										title={`${d.label} - ★${d.rating}`}
+										title={`${d.label} - ★${d.rating.toFixed(2)}`}
 									>
 										<div
 											className="w-4 h-4 bg-black/20 rounded-full flex items-center justify-center flex-shrink-0"
@@ -301,7 +335,7 @@ const ResultCard: React.FC<Props> = ({
 										</div>
 										<span className="flex items-center gap-1 min-w-0">
 											<span className="text-[10px] opacity-90">★</span>
-											<span className="font-bold">{d.rating}</span>
+											<span className="font-bold">{d.rating.toFixed(2)}</span>
 											<span className="opacity-80 truncate max-w-[60px]">{d.label}</span>
 										</span>
 									</div>
