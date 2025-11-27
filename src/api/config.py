@@ -46,6 +46,10 @@ class Settings:
         default_songs = os.path.expanduser("~/AppData/Local/osu!/Songs")
         self.songs_dir: str = os.getenv("OSU_SONGS_DIR", data.get("songs_dir", default_songs))
 
+        # osu!.db のパス
+        default_osu_db = os.path.expanduser("~/AppData/Local/osu!/osu!.db")
+        self.osu_db_path: str = os.getenv("OSU_DB_PATH", data.get("osu_db_path", default_osu_db))
+
         # DLに使うミラー。公式DLにはクッキーが要るため、まずはBeatconnectを既定。
         self.download_url_template: str = os.getenv(
             "OSU_DOWNLOAD_URL_TEMPLATE", data.get("download_url_template", "https://beatconnect.io/b/{set_id}")
@@ -60,7 +64,6 @@ class Settings:
 
     def persist(self, payload: Dict[str, object]) -> None:
         """UI から更新された設定を保存し、インメモリ値も差し替える。"""
-        saved = self.store.save(payload)
         self.__init__()  # reload values from file/env
 
     @staticmethod

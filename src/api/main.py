@@ -78,7 +78,7 @@ def create_app() -> FastAPI:
             return {"message": "ui/dist がまだありません。`npm install && npm run build` を実行してください。"}
 
     # 共有状態
-    app.state.index = SongIndex(settings.songs_dir, set(settings.scan_extensions))
+    app.state.index = SongIndex(osu_db_path=settings.osu_db_path, songs_dir=settings.songs_dir)
     app.state.downloader = DownloadManager(
         songs_dir=settings.songs_dir,
         url_template=settings.download_url_template,
@@ -166,7 +166,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup() -> None:
         # DBから既存データを読み込み（即時完了）
-        await app.state.index._load_from_db()
+        await app.state.index._load_from_osu_db()
         # バックグラウンドスキャンを完全非同期で実行（サーバー起動をブロックしない）
         asyncio.create_task(app.state.index._start_background_scan())
         await app.state.downloader.start_workers()
@@ -317,7 +317,7 @@ def create_app() -> FastAPI:
         filtered = {k: v for k, v in payload.items() if k in allowed}
         settings.persist(filtered)
         # 反映
-        app.state.index = SongIndex(settings.songs_dir, set(settings.scan_extensions))
+        app.state.index = SongIndex(osu_db_path=settings.osu_db_path, songs_dir=settings.songs_dir)
         await app.state.index.refresh()
         app.state.downloader = DownloadManager(
             songs_dir=settings.songs_dir,

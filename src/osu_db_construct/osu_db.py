@@ -1,220 +1,312 @@
-from construct import (
-    Struct, LazyBound, Array, Const, Flag, Switch, Default,
-    If, Int8ub, Int16ul, Int32ul, Int64ul, Float64l, Float32l, this
-)
-from osu_string import osu_string
-from array_adapter import ArrayAdapter
+# This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
-osu_db__timing_point = Struct(
-    'bpm' / Float64l,
-    'offset' / Float64l,
-    'not_inherited' / Flag,
-)
+import kaitaistruct
+from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 
-osu_db__beatmap = Struct(
-    'len_beatmap' / Default(If(this._root.osu_version < 20191106, Int32ul), 0),
-    'artist_name' / LazyBound(lambda: osu_string),
-    'artist_name_unicode' / LazyBound(lambda: osu_string),
-    'song_title' / LazyBound(lambda: osu_string),
-    'song_title_unicode' / LazyBound(lambda: osu_string),
-    'creator_name' / LazyBound(lambda: osu_string),
-    'difficulty' / LazyBound(lambda: osu_string),
-    'audio_file_name' / LazyBound(lambda: osu_string),
-    'md5_hash' / LazyBound(lambda: osu_string),
-    'osu_file_name' / LazyBound(lambda: osu_string),
-    'ranked_status' / Int8ub,
-    'num_hitcircles' / Int16ul,
-    'num_sliders' / Int16ul,
-    'num_spinners' / Int16ul,
-    'last_modification_time' / Int64ul,
-    'approach_rate' / Switch(this._root.osu_version < 20140609, {True: Int8ub, False: Float32l, }),
-    'circle_size' / Switch(this._root.osu_version < 20140609, {True: Int8ub, False: Float32l, }),
-    'hp_drain' / Switch(this._root.osu_version < 20140609, {True: Int8ub, False: Float32l, }),
-    'overall_difficulty' / Switch(
-        this._root.osu_version < 20140609, {True: Int8ub, False: Float32l, }),
-    'slider_velocity' / Float64l,
-    'star_rating_osu' / If(
-        this._root.osu_version >= 20140609,
-        Switch(this._root.osu_version <= 20250107, {
-            True: LazyBound(lambda: osu_db__int_double_pairs),
-            False: LazyBound(lambda: osu_db__int_float_pairs), })),
-    'star_rating_taiko' / If(
-        this._root.osu_version >= 20140609,
-        Switch(this._root.osu_version <= 20250107, {
-            True: LazyBound(lambda: osu_db__int_double_pairs),
-            False: LazyBound(lambda: osu_db__int_float_pairs), })),
-    'star_rating_ctb' / If(
-        this._root.osu_version >= 20140609,
-        Switch(this._root.osu_version <= 20250107, {
-            True: LazyBound(lambda: osu_db__int_double_pairs),
-            False: LazyBound(lambda: osu_db__int_float_pairs), })),
-    'star_rating_mania' / If(
-        this._root.osu_version >= 20140609,
-        Switch(this._root.osu_version <= 20250107, {
-            True: LazyBound(lambda: osu_db__int_double_pairs),
-            False: LazyBound(lambda: osu_db__int_float_pairs), })),
-    'drain_time' / Int32ul,
-    'total_time' / Int32ul,
-    'audio_preview_start_time' / Int32ul,
-    'timing_points' / LazyBound(lambda: osu_db__timing_points),
-    'difficulty_id' / Int32ul,
-    'beatmap_id' / Int32ul,
-    'thread_id' / Int32ul,
-    'grade_osu' / Int8ub,
-    'grade_taiko' / Int8ub,
-    'grade_ctb' / Int8ub,
-    'grade_mania' / Int8ub,
-    'local_beatmap_offset' / Int16ul,
-    'stack_leniency' / Float32l,
-    'gameplay_mode' / Int8ub,
-    'song_source' / LazyBound(lambda: osu_string),
-    'song_tags' / LazyBound(lambda: osu_string),
-    'online_offset' / Int16ul,
-    'song_title_font' / LazyBound(lambda: osu_string),
-    'is_unplayed' / Flag,
-    'last_played_time' / Int64ul,
-    'is_osz2' / Flag,
-    'folder_name' / LazyBound(lambda: osu_string),
-    'last_check_repo_time' / Int64ul,
-    'ignore_sound' / Flag,
-    'ignore_skin' / Flag,
-    'disable_storyboard' / Flag,
-    'disable_video' / Flag,
-    'visual_override' / Flag,
-    'unknown_short' / Default(If(this._root.osu_version < 20140609, Int16ul), 0),
-    'last_modification_time_int' / Int32ul,
-    'mania_scroll_speed' / Int8ub,
-)
 
-osu_db__timing_points = Struct(
-    'num_points' / Int32ul,
-    'points' / Array(this.num_points, LazyBound(lambda: osu_db__timing_point)),
-)
+if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 9):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
-osu_db__int_double_pair = Struct(
-    'magic1' / Const(b"\x08"),
-    'mods' / Int32ul,
-    'magic2' / Const(b"\x0d"),
-    'rating' / Float64l,
-)
+from . import vlq_base128_le
+class OsuDb(KaitaiStruct):
+    """osu!.db file format in rhythm game osu!,
+    the legacy DB file structure used in the old osu stable client (not lazer).
+    
+    DB files are in the `osu-stable` installation directory:
+    Windows: `%localappdata%\osu!`
+    Mac OSX: `/Applications/osu!.app/Contents/Resources/drive_c/Program Files/osu!/`
+    
+    Unless otherwise specified, all numerical types are stored little-endian.
+    Integer values, including bytes, are all unsigned.
+    UTF-8 characters are stored in their canonical form, with the higher-order byte first.
+    
+    osu!.db contains a cached version of information about all currently installed beatmaps.
+    Deleting this file will force osu! to rebuild the cache from scratch.
+    This may be useful since it may fix certain discrepancies, such as beatmaps
+    that had been deleted from the Songs folder but are still showing up in-game.
+    Unsurprisingly, due to its central role in the internal management of beatmaps
+    and the amount of data that is cached, osu!.db is the largest of the .db files.
+    
+    .. seealso::
+       Source - https://github.com/ppy/osu/wiki/Legacy-database-file-structure
+    """
+    def __init__(self, _io, _parent=None, _root=None):
+        self._io = _io
+        self._parent = _parent
+        self._root = _root if _root else self
+        self._read()
 
-osu_db__int_double_pairs = Struct(
-    'num_pairs' / Int32ul,
-    'pairs' / Array(this.num_pairs, LazyBound(lambda: osu_db__int_double_pair)),
-)
+    def _read(self):
+        self.osu_version = self._io.read_u4le()
+        self.folder_count = self._io.read_u4le()
+        self.account_unlocked = OsuDb.Bool(self._io, self, self._root)
+        self.account_unlock_date = self._io.read_u8le()
+        self.player_name = OsuDb.String(self._io, self, self._root)
+        self.num_beatmaps = self._io.read_u4le()
+        self.beatmaps = []
+        for i in range(self.num_beatmaps):
+            self.beatmaps.append(OsuDb.Beatmap(self._io, self, self._root))
 
-osu_db__int_float_pair = Struct(
-    'magic1' / Const(b"\x08"),
-    'mods' / Int32ul,
-    'magic2' / Const(b"\x0c"),
-    'rating' / Float32l,
-)
+        self.user_permissions = self._io.read_u4le()
 
-osu_db__int_float_pairs = Struct(
-    'num_pairs' / Int32ul,
-    'pairs' / Array(this.num_pairs, LazyBound(lambda: osu_db__int_float_pair)),
-)
+    class TimingPoint(KaitaiStruct):
+        """Consists of a Double, signifying the BPM, another Double,
+        signifying the offset into the song, in milliseconds, and a Boolean;
+        if false, then this timing point is inherited.
+        See https://osu.ppy.sh/wiki/osu!_File_Formats/Osu_(file_format)
+        for more information regarding timing points.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
 
-osu_db = Struct(
-    'osu_version' / Int32ul,
-    'folder_count' / Int32ul,
-    'account_unlocked' / Flag,
-    'account_unlock_date' / Int64ul,
-    'player_name' / LazyBound(lambda: osu_string),
-    'num_beatmaps' / Int32ul,
-    'beatmaps' / Array(this.num_beatmaps, LazyBound(lambda: osu_db__beatmap)),
-    'user_permissions' / Int32ul,
-)
+        def _read(self):
+            self.bpm = self._io.read_f8le()
+            self.offset = self._io.read_f8le()
+            self.not_inherited = OsuDb.Bool(self._io, self, self._root)
 
-osu_db__timing_points = ArrayAdapter(
-    osu_db__timing_points, {"points": "num_points"}, only_one_field=True)
-osu_db__int_double_pairs = ArrayAdapter(
-    osu_db__int_double_pairs, {"pairs": "num_pairs"}, only_one_field=True)
-osu_db__int_float_pairs = ArrayAdapter(
-    osu_db__int_float_pairs, {"pairs": "num_pairs"}, only_one_field=True)
-osu_db = ArrayAdapter(osu_db, {"beatmaps": "num_beatmaps"})
 
-if __name__ == "__main__":
-    import unittest
-    from path_util import get_osu_dir
+    class String(KaitaiStruct):
+        """Has three parts; a single byte which will be either 0x00, indicating that
+        the next two parts are not present, or 0x0b (decimal 11), indicating that
+        the next two parts are present.
+        If it is 0x0b, there will then be a ULEB128, representing the byte length
+        of the following string, and then the string itself, encoded in UTF-8.
+        See https://en.wikipedia.org/wiki/UTF-8.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
 
-    file_path = get_osu_dir() / "osu!.db"
-    with open(file_path, "rb") as file:
-        data = file.read()
+        def _read(self):
+            self.is_present = self._io.read_u1()
+            if self.is_present == 11:
+                self.len_str = vlq_base128_le.VlqBase128Le(self._io)
 
-    class OsuTestCase(unittest.TestCase):
-        def test_round_trip(self):
-            parsed = osu_db.parse(data)
-            built = osu_db.build(parsed)
-            self.assertEqual(data, built)
+            if self.is_present == 11:
+                self.value = (self._io.read_bytes(self.len_str.value)).decode(u"UTF-8")
 
-        def test_build_dummy(self):
-            test_data = dict(
-                osu_version=20250108,
-                folder_count=100,
-                account_unlocked=True,
-                account_unlock_date=0,
-                player_name="player",
-                beatmaps=[dict(
-                    artist_name="artist",
-                    artist_name_unicode="artist ♪",
-                    song_title="song",
-                    song_title_unicode="song ♪",
-                    creator_name="creator",
-                    difficulty="Expert",
-                    audio_file_name="audio.mp3",
-                    md5_hash="deadbeef",
-                    osu_file_name="song [Expert].osu",
-                    ranked_status=4,
-                    num_hitcircles=100,
-                    num_sliders=100,
-                    num_spinners=100,
-                    last_modification_time=1000000,
-                    approach_rate=9.2,
-                    circle_size=4.2,
-                    hp_drain=7.2,
-                    overall_difficulty=8.2,
-                    slider_velocity=2.4,
-                    star_rating_osu=[dict(mods=0, rating=5.3)],
-                    star_rating_taiko=[],
-                    star_rating_ctb=[],
-                    star_rating_mania=[],
-                    drain_time=75,
-                    total_time=80000,
-                    audio_preview_start_time=50000,
-                    timing_points=[dict(bpm=600, offset=5000, not_inherited=True)],
-                    difficulty_id=1200000,
-                    beatmap_id=600000,
-                    thread_id=0,
-                    grade_osu=9,
-                    grade_taiko=9,
-                    grade_ctb=9,
-                    grade_mania=9,
-                    local_beatmap_offset=0,
-                    stack_leniency=0.2,
-                    gameplay_mode=0,
-                    song_source="source",
-                    song_tags="TagA TagB",
-                    online_offset=0,
-                    song_title_font="",
-                    is_unplayed=True,
-                    last_played_time=0,
-                    is_osz2=False,
-                    folder_name="600000 artist - song",
-                    last_check_repo_time=1000000,
-                    ignore_sound=False,
-                    ignore_skin=False,
-                    disable_storyboard=False,
-                    disable_video=False,
-                    visual_override=False,
-                    last_modification_time_int=0,
-                    mania_scroll_speed=0,
-                )],
-                user_permissions=1
-            )
-            built = osu_db.build(test_data)
-            parsed = osu_db.parse(built)
-            built_again = osu_db.build(parsed)
-            self.assertEqual(built, built_again)
 
-    unittest.main()
+
+    class Beatmap(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            if self._root.osu_version < 20191106:
+                self.len_beatmap = self._io.read_u4le()
+
+            self.artist_name = OsuDb.String(self._io, self, self._root)
+            self.artist_name_unicode = OsuDb.String(self._io, self, self._root)
+            self.song_title = OsuDb.String(self._io, self, self._root)
+            self.song_title_unicode = OsuDb.String(self._io, self, self._root)
+            self.creator_name = OsuDb.String(self._io, self, self._root)
+            self.difficulty = OsuDb.String(self._io, self, self._root)
+            self.audio_file_name = OsuDb.String(self._io, self, self._root)
+            self.md5_hash = OsuDb.String(self._io, self, self._root)
+            self.osu_file_name = OsuDb.String(self._io, self, self._root)
+            self.ranked_status = self._io.read_u1()
+            self.num_hitcircles = self._io.read_u2le()
+            self.num_sliders = self._io.read_u2le()
+            self.num_spinners = self._io.read_u2le()
+            self.last_modification_time = self._io.read_u8le()
+            _on = self._root.osu_version < 20140609
+            if _on == True:
+                self.approach_rate = self._io.read_u1()
+            elif _on == False:
+                self.approach_rate = self._io.read_f4le()
+            _on = self._root.osu_version < 20140609
+            if _on == True:
+                self.circle_size = self._io.read_u1()
+            elif _on == False:
+                self.circle_size = self._io.read_f4le()
+            _on = self._root.osu_version < 20140609
+            if _on == True:
+                self.hp_drain = self._io.read_u1()
+            elif _on == False:
+                self.hp_drain = self._io.read_f4le()
+            _on = self._root.osu_version < 20140609
+            if _on == True:
+                self.overall_difficulty = self._io.read_u1()
+            elif _on == False:
+                self.overall_difficulty = self._io.read_f4le()
+            self.slider_velocity = self._io.read_f8le()
+            if self._root.osu_version >= 20140609:
+                _on = self._root.osu_version <= 20250107
+                if _on == True:
+                    self.star_rating_osu = OsuDb.IntDoublePairs(self._io, self, self._root)
+                elif _on == False:
+                    self.star_rating_osu = OsuDb.IntFloatPairs(self._io, self, self._root)
+
+            if self._root.osu_version >= 20140609:
+                _on = self._root.osu_version <= 20250107
+                if _on == True:
+                    self.star_rating_taiko = OsuDb.IntDoublePairs(self._io, self, self._root)
+                elif _on == False:
+                    self.star_rating_taiko = OsuDb.IntFloatPairs(self._io, self, self._root)
+
+            if self._root.osu_version >= 20140609:
+                _on = self._root.osu_version <= 20250107
+                if _on == True:
+                    self.star_rating_ctb = OsuDb.IntDoublePairs(self._io, self, self._root)
+                elif _on == False:
+                    self.star_rating_ctb = OsuDb.IntFloatPairs(self._io, self, self._root)
+
+            if self._root.osu_version >= 20140609:
+                _on = self._root.osu_version <= 20250107
+                if _on == True:
+                    self.star_rating_mania = OsuDb.IntDoublePairs(self._io, self, self._root)
+                elif _on == False:
+                    self.star_rating_mania = OsuDb.IntFloatPairs(self._io, self, self._root)
+
+            self.drain_time = self._io.read_u4le()
+            self.total_time = self._io.read_u4le()
+            self.audio_preview_start_time = self._io.read_u4le()
+            self.timing_points = OsuDb.TimingPoints(self._io, self, self._root)
+            self.difficulty_id = self._io.read_u4le()
+            self.beatmap_id = self._io.read_u4le()
+            self.thread_id = self._io.read_u4le()
+            self.grade_osu = self._io.read_u1()
+            self.grade_taiko = self._io.read_u1()
+            self.grade_ctb = self._io.read_u1()
+            self.grade_mania = self._io.read_u1()
+            self.local_beatmap_offset = self._io.read_u2le()
+            self.stack_leniency = self._io.read_f4le()
+            self.gameplay_mode = self._io.read_u1()
+            self.song_source = OsuDb.String(self._io, self, self._root)
+            self.song_tags = OsuDb.String(self._io, self, self._root)
+            self.online_offset = self._io.read_u2le()
+            self.song_title_font = OsuDb.String(self._io, self, self._root)
+            self.is_unplayed = OsuDb.Bool(self._io, self, self._root)
+            self.last_played_time = self._io.read_u8le()
+            self.is_osz2 = OsuDb.Bool(self._io, self, self._root)
+            self.folder_name = OsuDb.String(self._io, self, self._root)
+            self.last_check_repo_time = self._io.read_u8le()
+            self.ignore_sound = OsuDb.Bool(self._io, self, self._root)
+            self.ignore_skin = OsuDb.Bool(self._io, self, self._root)
+            self.disable_storyboard = OsuDb.Bool(self._io, self, self._root)
+            self.disable_video = OsuDb.Bool(self._io, self, self._root)
+            self.visual_override = OsuDb.Bool(self._io, self, self._root)
+            if self._root.osu_version < 20140609:
+                self.unknown_short = self._io.read_u2le()
+
+            self.last_modification_time_int = self._io.read_u4le()
+            self.mania_scroll_speed = self._io.read_u1()
+
+
+    class TimingPoints(KaitaiStruct):
+        """An Int indicating the number of following Timing points, then the aforementioned Timing points."""
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.num_points = self._io.read_u4le()
+            self.points = []
+            for i in range(self.num_points):
+                self.points.append(OsuDb.TimingPoint(self._io, self, self._root))
+
+
+
+    class Bool(KaitaiStruct):
+        """0x00 for false, everything else is true."""
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.byte = self._io.read_u1()
+
+        @property
+        def value(self):
+            if hasattr(self, '_m_value'):
+                return self._m_value
+
+            self._m_value = (False if self.byte == 0 else True)
+            return getattr(self, '_m_value', None)
+
+
+    class IntDoublePair(KaitaiStruct):
+        """The first byte is 0x08, followed by an Int, then 0x0d, followed by a Double.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.magic1 = self._io.read_bytes(1)
+            if not self.magic1 == b"\x08":
+                raise kaitaistruct.ValidationNotEqualError(b"\x08", self.magic1, self._io, u"/types/int_double_pair/seq/0")
+            self.mods = self._io.read_u4le()
+            self.magic2 = self._io.read_bytes(1)
+            if not self.magic2 == b"\x0D":
+                raise kaitaistruct.ValidationNotEqualError(b"\x0D", self.magic2, self._io, u"/types/int_double_pair/seq/2")
+            self.rating = self._io.read_f8le()
+
+
+    class IntDoublePairs(KaitaiStruct):
+        """An Int indicating the number of following Int-Double pairs, then the aforementioned pairs."""
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.num_pairs = self._io.read_u4le()
+            self.pairs = []
+            for i in range(self.num_pairs):
+                self.pairs.append(OsuDb.IntDoublePair(self._io, self, self._root))
+
+
+
+    class IntFloatPair(KaitaiStruct):
+        """The first byte is 0x08, followed by an Int, then 0x0c, followed by a Float.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.magic1 = self._io.read_bytes(1)
+            if not self.magic1 == b"\x08":
+                raise kaitaistruct.ValidationNotEqualError(b"\x08", self.magic1, self._io, u"/types/int_float_pair/seq/0")
+            self.mods = self._io.read_u4le()
+            self.magic2 = self._io.read_bytes(1)
+            if not self.magic2 == b"\x0C":
+                raise kaitaistruct.ValidationNotEqualError(b"\x0C", self.magic2, self._io, u"/types/int_float_pair/seq/2")
+            self.rating = self._io.read_f4le()
+
+
+    class IntFloatPairs(KaitaiStruct):
+        """An Int indicating the number of following Int-Float pairs, then the aforementioned pairs."""
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.num_pairs = self._io.read_u4le()
+            self.pairs = []
+            for i in range(self.num_pairs):
+                self.pairs.append(OsuDb.IntFloatPair(self._io, self, self._root))
+
+
+
+
