@@ -185,9 +185,7 @@ function QueuePanel({ data }: Props) {
 												{d.display_name ?? `${d.set_id}`}
 											</span>
 											{d.message && (
-												<span className="text-xs text-text-secondary">
-													{d.message}
-												</span>
+												<span className="text-xs text-text-secondary">{d.message}</span>
 											)}
 										</div>
 										<div className="flex items-center gap-2">

@@ -42,9 +42,7 @@ const PreviewPlayer: React.FC<Props> = ({
 						<div className="text-xs font-medium text-surface-foreground truncate">
 							{currentTrack.title}
 						</div>
-						<div className="text-[10px] text-text-secondary truncate">
-							{currentTrack.artist}
-						</div>
+						<div className="text-[10px] text-text-secondary truncate">{currentTrack.artist}</div>
 					</div>
 				</div>
 				{/* Mini Progress Bar */}

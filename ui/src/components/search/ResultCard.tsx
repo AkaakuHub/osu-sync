@@ -36,8 +36,8 @@ function getContrastColor(hexColor: string): string {
 	const b = parseInt(hexColor.slice(5, 7), 16);
 
 	// 輝度を計算（YIQ formula）
-	const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-	return yiq >= 148 ? '#000000' : '#FFFFFF';
+	const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+	return yiq >= 148 ? "#000000" : "#FFFFFF";
 }
 
 const cardStyles = tv({
@@ -145,18 +145,14 @@ const ResultCard: React.FC<Props> = ({
 				? "bg-surface-variant/40 text-text-secondary border border-border hover:bg-surface-variant/60"
 				: "bg-osu-pink text-surface-foreground hover:bg-osu-pink/90 shadow-lg";
 
-	const difficulties = (item.difficulties ?? [])
-		.sort((a, b) => a.rating - b.rating)
+	const difficulties = (item.difficulties ?? []).sort((a, b) => a.rating - b.rating);
 
 	return (
 		<div className="relative m-1.5 p-1 group">
-			<div
-				className={card.base()}
-				style={cardStyle}
-			>
+			<div className={card.base()} style={cardStyle}>
 				<div className="absolute inset-0 rounded-xl border-2 border-border/80 transition-all duration-300 group-hover:border-accent/60 group-hover:shadow-[0_0_10px_rgba(153,102,255,0.6),0_0_10px_rgba(255,102,170,0.5)]"></div>
 				<div className="relative rounded-xl backdrop-blur-xs overflow-hidden transition-all duration-300 group-hover:backdrop-blur-none">
-					<div className="absolute inset-0 bg-gradient-to-r from-surface/50 via-surface/60 to-surface/20 z-0 group-hover:opacity-50 transition-all duration-300" />
+					<div className="absolute inset-0 bg-gradient-to-r from-surface/50 via-surface/60 to-surface/20 z-0 group-hover:opacity-80 transition-all duration-300" />
 
 					<div className={`${card.banner()} relative z-10`}>
 						<button
@@ -281,9 +277,7 @@ const ResultCard: React.FC<Props> = ({
 										</div>
 									)}
 								</div>
-								{failureMessage && (
-									<p className="text-xs text-error">Failed: {failureMessage}</p>
-								)}
+								{failureMessage && <p className="text-xs text-error">Failed: {failureMessage}</p>}
 							</div>
 
 							<div className="flex items-end">
@@ -320,18 +314,20 @@ const ResultCard: React.FC<Props> = ({
 								return (
 									<div
 										key={idx}
-										className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold min-w-0 hover:bg-black/10 transition-colors"
+										className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold min-w-0 hover:bg-surface-variant/50 transition-colors"
 										style={{
 											backgroundColor: bgColor,
-											color: textColor
+											color: textColor,
 										}}
 										title={`${d.label} - ★${d.rating.toFixed(2)}`}
 									>
 										<div
-											className="w-4 h-4 bg-black/20 rounded-full flex items-center justify-center flex-shrink-0"
+											className="w-4 h-4 bg-surface-variant/50 rounded-full flex items-center justify-center flex-shrink-0"
 											style={{ backgroundColor: `${textColor}30` }}
 										>
-											<span className="text-[9px] font-bold" style={{ color: textColor }}>{idx + 1}</span>
+											<span className="text-[9px] font-bold" style={{ color: textColor }}>
+												{idx + 1}
+											</span>
 										</div>
 										<span className="flex items-center gap-1 min-w-0">
 											<span className="text-[10px] opacity-90">★</span>

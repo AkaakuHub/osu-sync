@@ -19,7 +19,14 @@ type Props = {
 	setCurrentPage?: (page: number) => void;
 };
 
-const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searchData, currentPage = 1, setCurrentPage }) => {
+const SearchResults: React.FC<Props> = ({
+	ownedOnly,
+	onQueueUpdate,
+	queue,
+	searchData,
+	currentPage = 1,
+	setCurrentPage,
+}) => {
 	const client = useQueryClient();
 	const [showUnicode, setShowUnicode] = React.useState(false);
 	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
@@ -123,11 +130,11 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 					id: item.set_id,
 					title: item.title,
 					artist: item.artist,
-					preview: item.preview_url || '',
+					preview: item.preview_url || "",
 				});
 
 				const howl = new Howl({
-					src: [item.preview_url || ''],
+					src: [item.preview_url || ""],
 					volume: 0.7,
 					html5: true,
 					preload: true, // プリロードを有効化

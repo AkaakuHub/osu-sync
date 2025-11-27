@@ -5,15 +5,17 @@ const button = tv({
 	base: "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50 shadow-sm hover:shadow-md",
 	variants: {
 		variant: {
-			primary: "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/50 shadow-lg hover:shadow-xl",
+			primary:
+				"bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/50 shadow-lg hover:shadow-xl",
 			secondary:
 				"bg-surface text-surface-foreground hover:bg-surface-variant border border-border focus-visible:ring-accent/50",
-			ghost:
-				"hover:bg-surface/50 text-text hover:text-text-secondary focus-visible:ring-accent/30",
+			ghost: "hover:bg-surface/50 text-text hover:text-text-secondary focus-visible:ring-accent/30",
 			outline:
 				"border border-border bg-transparent hover:bg-surface/50 text-text focus-visible:ring-primary/30",
-			success: "bg-success text-success-foreground hover:bg-success/90 focus-visible:ring-success/50",
-			warning: "bg-warning text-warning-foreground hover:bg-warning/90 focus-visible:ring-warning/50",
+			success:
+				"bg-success text-success-foreground hover:bg-success/90 focus-visible:ring-success/50",
+			warning:
+				"bg-warning text-warning-foreground hover:bg-warning/90 focus-visible:ring-warning/50",
 			error: "bg-error text-error-foreground hover:bg-error/90 focus-visible:ring-error/50",
 			osu: "bg-gradient-to-r from-accent to-osu-pink text-osu-foreground hover:from-accent/90 hover:to-osu-pink/90 focus-visible:ring-accent/50 shadow-lg hover:shadow-xl",
 		},
@@ -32,7 +34,15 @@ const button = tv({
 const Button = React.forwardRef<
 	HTMLButtonElement,
 	React.ButtonHTMLAttributes<HTMLButtonElement> & {
-		variant?: "primary" | "secondary" | "ghost" | "outline" | "success" | "warning" | "error" | "osu";
+		variant?:
+			| "primary"
+			| "secondary"
+			| "ghost"
+			| "outline"
+			| "success"
+			| "warning"
+			| "error"
+			| "osu";
 		size?: "sm" | "md" | "lg";
 		isLoading?: boolean;
 		children: React.ReactNode;

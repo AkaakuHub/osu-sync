@@ -2,13 +2,13 @@
 
 @theme {
 	/* Semantic Colors - Inspired by osu! and modern design systems */
-	--color-primary: #00CC66; /* osu! ranked green */
+	--color-primary: #00cc66; /* osu! ranked green */
 	--color-primary-foreground: #ffffff;
 
 	--color-secondary: #64748b; /* slate-500 */
 	--color-secondary-foreground: #ffffff;
 
-	--color-accent: #9966FF; /* osu! qualified purple */
+	--color-accent: #9966ff; /* osu! qualified purple */
 	--color-accent-foreground: #ffffff;
 
 	--color-success: #10b981; /* emerald-500 */
@@ -41,17 +41,17 @@
 
 	/* osu! Status Colors */
 	--color-status-graveyard: #999999;
-	--color-status-wip: #FF6666;
-	--color-status-pending: #FFD700;
-	--color-status-ranked: #00CC66;
-	--color-status-approved: #0099FF;
-	--color-status-qualified: #9966FF;
-	--color-status-loved: #FF00AA;
+	--color-status-wip: #ff6666;
+	--color-status-pending: #ffd700;
+	--color-status-ranked: #00cc66;
+	--color-status-approved: #0099ff;
+	--color-status-qualified: #9966ff;
+	--color-status-loved: #ff00aa;
 
 	/* OSU-specific accent colors */
-	--color-osu-pink: #FF66AA;
-	--color-osu-blue: #4A90E2;
-	--color-osu-purple: #AA66CC;
+	--color-osu-pink: #ff66aa;
+	--color-osu-blue: #4a90e2;
+	--color-osu-purple: #aa66cc;
 	--color-osu-foreground: #ffffff;
 }
 
@@ -61,8 +61,7 @@
 		background:
 			radial-gradient(circle at 10% 20%, rgba(153, 102, 255, 0.15), transparent 55%),
 			radial-gradient(circle at 80% 0%, rgba(0, 204, 102, 0.1), transparent 45%),
-			radial-gradient(circle at 50% 100%, rgba(255, 102, 170, 0.08), transparent 40%),
-			#0f172a; /* slate-900 */
+			radial-gradient(circle at 50% 100%, rgba(255, 102, 170, 0.08), transparent 40%), #0f172a; /* slate-900 */
 		min-height: 100vh;
 		user-select: text;
 		-webkit-user-select: text;

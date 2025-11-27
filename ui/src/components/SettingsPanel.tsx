@@ -116,12 +116,8 @@ export default function SettingsPanel() {
 
 			{/* Status Messages */}
 			<div className="mt-3 h-4 flex items-center justify-center">
-				{mutation.isError && (
-					<span className="text-xs text-error">Failed to save</span>
-				)}
-				{mutation.isSuccess && (
-					<span className="text-xs text-success">Settings saved</span>
-				)}
+				{mutation.isError && <span className="text-xs text-error">Failed to save</span>}
+				{mutation.isSuccess && <span className="text-xs text-success">Settings saved</span>}
 			</div>
 
 			{/* Help Link */}

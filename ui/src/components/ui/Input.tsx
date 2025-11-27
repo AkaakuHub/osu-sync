@@ -6,7 +6,8 @@ const input = tv({
 	variants: {
 		variant: {
 			default: "",
-			search: "h-14 text-lg px-6 py-4 bg-surface-variant/50 border-border/50 focus-visible:bg-surface focus-visible:border-primary/50 shadow-lg hover:shadow-xl",
+			search:
+				"h-14 text-lg px-6 py-4 bg-surface-variant/50 border-border/50 focus-visible:bg-surface focus-visible:border-primary/50 shadow-lg hover:shadow-xl",
 		},
 		error: {
 			true: "border-error focus-visible:ring-error/50",

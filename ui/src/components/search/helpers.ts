@@ -128,12 +128,3 @@ export const difficultyColor = (rating: string | number) => {
 
 	return interpolateColor(colors[i], colors[i + 1], t);
 };
-
-export const formatTime = (sec: number) => {
-	if (!Number.isFinite(sec)) return "--:--";
-	const m = Math.floor(sec / 60);
-	const s = Math.floor(sec % 60)
-		.toString()
-		.padStart(2, "0");
-	return `${m}:${s}`;
-};
