@@ -30,10 +30,10 @@ type Props = {
 
 const cardStyles = tv({
 	slots: {
-		base: "group relative overflow-hidden rounded-xl border-slate-700/60 bg-slate-900/80 shadow-lg backdrop-blur-md transition-all duration-200 hover:-translate-y-[1px] hover:shadow-2xl",
+		base: "group relative rounded-xl bg-slate-900/80 shadow-lg backdrop-blur-md transition-all duration-300",
 		banner: "relative flex gap-3",
 		thumbnail: "rounded-lg object-cover ring-2 ring-slate-800/70 shadow-xl shrink-0",
-		content: "flex-1 min-w-0 flex flex-col gap-2 px-1 py-3",
+		content: "flex-1 min-w-0 px-2 py-2 grid grid-cols-[1fr_auto] gap-3",
 		header: "flex items-start gap-3",
 		titleSection: "flex-1 min-w-0",
 		title: "text-lg font-bold text-white leading-tight truncate",
@@ -110,9 +110,10 @@ const ResultCard: React.FC<Props> = ({
 		.slice(0, 6);
 
 	return (
-		<div className="relative m-1.5">
-			<div className="relative overflow-hidden">
-				<div className={card.base()} style={cardStyle}>
+		<div className="relative m-1.5 p-1 group">
+			<div className={card.base()} style={cardStyle}>
+				<div className="absolute inset-0 rounded-xl border-2 border-slate-700/80 transition-all duration-300 group-hover:border-pink-400 group-hover:shadow-[0_0_10px_rgba(255,105,180,0.6),0_0_10px_rgba(147,112,219,0.5)]"></div>
+				<div className="relative rounded-xl backdrop-blur-sm hover:opacity-80 overflow-hidden transition-all duration-300">
 					<div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/90 to-slate-900/70 z-0" />
 
 					<div className={`${card.banner()} relative z-10`}>
@@ -171,7 +172,7 @@ const ResultCard: React.FC<Props> = ({
 							</div>
 						</button>
 
-						<div className={`${card.content()} grid grid-cols-[1fr_auto] gap-3`}>
+						<div className={card.content()}>
 							<div className="min-w-0 space-y-1">
 								<div className="flex items-start gap-2">
 									<div className={card.titleSection()}>
