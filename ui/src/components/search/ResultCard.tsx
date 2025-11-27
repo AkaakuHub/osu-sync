@@ -336,7 +336,7 @@ const ResultCard: React.FC<Props> = ({
 										<span className="flex items-center gap-1 min-w-0">
 											<span className="text-[10px] opacity-90">★</span>
 											<span className="font-bold">{d.rating.toFixed(2)}</span>
-											<span className="opacity-80 truncate max-w-[60px]">{d.label}</span>
+											<span className="opacity-80 truncate max-w-[240px]">{d.label}</span>
 										</span>
 									</div>
 								);
