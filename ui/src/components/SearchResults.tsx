@@ -2,6 +2,7 @@ import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Howl } from "howler";
 import { Languages } from "lucide-react";
+import toast from "react-hot-toast";
 import { apiClient, type QueueStatus, type SearchResponse } from "../hooks/useApiClient";
 import ResultList from "./search/ResultList";
 import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
@@ -77,6 +78,10 @@ const SearchResults: React.FC<Props> = ({
 	const triggerDownload = async (setId: number) => {
 		// Find the search result for this set_id to get metadata
 		const searchResult = data?.results?.find((r) => r.set_id === setId);
+		const displayName = searchResult
+			? `${searchResult.artist} - ${searchResult.title}`
+			: `セット ${setId}`;
+
 		const metadata = searchResult
 			? {
 					[setId]: {
@@ -88,9 +93,17 @@ const SearchResults: React.FC<Props> = ({
 				}
 			: undefined;
 
-		await apiClient.post("/download", { set_ids: [setId], metadata });
-		client.invalidateQueries({ queryKey: ["queue"] });
-		onQueueUpdate();
+		try {
+			await apiClient.post("/download", { set_ids: [setId], metadata });
+			client.invalidateQueries({ queryKey: ["queue"] });
+			onQueueUpdate();
+
+			// DL queue追加の通知
+			toast.success(`${displayName}\nAdded to download queue`);
+		} catch (error) {
+			console.error("Failed to add to download queue:", error);
+			toast.error(`${displayName}\nFailed to add to download queue`);
+		}
 	};
 
 	const stopPreview = React.useCallback(() => {

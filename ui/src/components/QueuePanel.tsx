@@ -29,7 +29,7 @@ function QueuePanel({ data }: Props) {
 			await apiClient.post("/local/open", { path });
 		} catch (error) {
 			console.error("Failed to open path", error);
-			toast.error("ファイルやフォルダを開けませんでした");
+			toast.error("Could not open file or folder");
 		}
 	};
 

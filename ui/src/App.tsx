@@ -6,6 +6,7 @@ import SearchPage from "./components/pages/SearchPage";
 import QueuePage from "./components/pages/QueuePage";
 import SettingsPage from "./components/pages/SettingsPage";
 import { ScanProgress } from "./components/ScanProgress";
+import { QueueNotificationManager } from "./components/QueueNotificationManager";
 
 function App() {
 	const [ownedOnly, setOwnedOnly] = useState(false);
@@ -41,8 +42,9 @@ function App() {
 
 	return (
 		<div className="min-h-screen w-full overflow-hidden bg-surface">
-			{/* Scan Progress Overlay */}
+			{/* Background Managers */}
 			<ScanProgress />
+			<QueueNotificationManager />
 
 			<div className="h-screen flex flex-col p-4">
 				{/* App Header */}
