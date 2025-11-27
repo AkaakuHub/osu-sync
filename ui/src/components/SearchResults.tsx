@@ -25,7 +25,6 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 	const progressTimer = React.useRef<number | null>(null);
 	const [playbackProgress, setPlaybackProgress] = React.useState(0);
 	const [duration, setDuration] = React.useState(0);
-	const [elapsed, setElapsed] = React.useState(0);
 	const [currentTrack, setCurrentTrack] = React.useState<CurrentTrack | null>(null);
 
 	const data = searchData;
@@ -83,7 +82,6 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 		}
 		setPlaybackProgress(0);
 		setDuration(0);
-		setElapsed(0);
 		setPreviewingId(null);
 		setIsLoadingPreview(false);
 		setCurrentTrack(null);
@@ -98,7 +96,16 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 				return;
 			}
 
-			stopPreview();
+			// Stop current preview without clearing the current track state
+			if (howlRef.current) {
+				howlRef.current.stop();
+				howlRef.current.unload();
+				howlRef.current = null;
+			}
+			if (progressTimer.current) {
+				window.clearInterval(progressTimer.current);
+				progressTimer.current = null;
+			}
 			setPreviewingId(item.set_id);
 			setIsLoadingPreview(true);
 			setCurrentTrack({
@@ -132,7 +139,6 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 					progressTimer.current = window.setInterval(() => {
 						const position = howl.seek() as number;
 						const dur = howl.duration() || 0;
-						setElapsed(position);
 						setDuration(dur);
 						setPlaybackProgress(dur ? Math.min(position / dur, 1) : 0);
 					}, 200);
@@ -161,7 +167,6 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 		if (!howlRef.current || !duration || fraction < 0 || fraction > 1) return;
 		const target = duration * fraction;
 		howlRef.current.seek(target);
-		setElapsed(target);
 		setPlaybackProgress(fraction);
 	};
 
@@ -190,9 +195,16 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 
 	const handlePlayerToggle = React.useCallback(() => {
 		if (!currentTrack) return;
-		if (previewingId === currentTrack.id) {
-			stopPreview();
+
+		if (previewingId === currentTrack.id && howlRef.current) {
+			// Toggle pause/play for current track
+			if (howlRef.current.playing()) {
+				howlRef.current.pause();
+			} else {
+				howlRef.current.play();
+			}
 		} else if (currentTrack.preview) {
+			// Start new preview
 			togglePreview({
 				set_id: currentTrack.id,
 				title: currentTrack.title,
@@ -200,7 +212,7 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 				preview_url: currentTrack.preview,
 			});
 		}
-	}, [currentTrack, previewingId, stopPreview, togglePreview]);
+	}, [currentTrack, previewingId, togglePreview]);
 
 	if (!data) {
 		return (
@@ -252,8 +264,6 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 				currentTrack={currentTrack}
 				previewingId={previewingId}
 				playbackProgress={playbackProgress}
-				duration={duration}
-				elapsed={elapsed}
 				onToggle={handlePlayerToggle}
 				onSeek={seekTo}
 			/>
