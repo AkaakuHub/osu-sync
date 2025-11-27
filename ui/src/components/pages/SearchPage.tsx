@@ -1,17 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { apiClient, type IndexSummary, type QueueStatus, type SearchResponse } from "../../hooks/useApiClient";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import Toggle from "../ui/Toggle";
 import SearchResults from "../SearchResults";
 
 type Props = {
 	ownedOnly: boolean;
 	setOwnedOnly: (value: boolean) => void;
+	searchQuery?: string;
+	setSearchQuery?: (query: string) => void;
 };
 
-const SearchPage: React.FC<Props> = ({ ownedOnly, setOwnedOnly }) => {
-	const [searchQuery, setSearchQuery] = useState("");
+const SearchPage: React.FC<Props> = ({ ownedOnly, setOwnedOnly, searchQuery: propSearchQuery, setSearchQuery: propSetSearchQuery }) => {
+	const [internalSearchQuery, setInternalSearchQuery] = useState("");
+	const searchQuery = propSearchQuery ?? internalSearchQuery;
+	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 
 	const {
 		data: searchResults,
@@ -42,44 +48,42 @@ const SearchPage: React.FC<Props> = ({ ownedOnly, setOwnedOnly }) => {
 	});
 
 	return (
-		<div className="min-h-screen bg-surface">
+		<div className="h-full flex flex-col bg-surface">
 			{/* Compact Status Bar */}
-			<div className="fixed top-4 right-4 z-50">
-				<div className="bg-surface-variant/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-3 py-2">
-					<div className="flex items-center gap-3 text-xs">
-						<div className="flex items-center gap-1">
+			<div className="bg-surface-variant/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-4 py-3 m-4">
+				<div className="flex items-center justify-between">
+					<div className="flex items-center gap-4 text-sm">
+						<div className="flex items-center gap-2">
 							<span className="text-text-muted">Owned:</span>
 							<span className="font-medium text-text">{index?.owned_sets ?? "-"}</span>
 						</div>
-						<div className="flex items-center gap-1">
+						<div className="flex items-center gap-2">
 							<span className="text-text-muted">Meta:</span>
 							<span className="font-medium text-text">{index?.with_metadata ?? "-"}</span>
 						</div>
-						<div className="flex items-center gap-1">
-							<input
-								type="checkbox"
-								className="w-3 h-3 rounded border-border text-primary focus:ring-primary/30 bg-surface/50"
-								checked={ownedOnly}
-								onChange={(e) => setOwnedOnly(e.target.checked)}
-							/>
-							<span className="text-text text-xs cursor-pointer">Owned</span>
-							<Button
-								variant="ghost"
-								onClick={() => refetchIndex()}
-								disabled={indexLoading}
-								size="sm"
-								className="text-xs px-1 py-0 h-5"
-							>
-								Rescan
-							</Button>
-						</div>
+					</div>
+					<div className="flex items-center gap-3">
+						<Toggle
+							checked={ownedOnly}
+							onChange={setOwnedOnly}
+							label="Owned"
+						/>
+						<Button
+							variant="ghost"
+							onClick={() => refetchIndex()}
+							disabled={indexLoading}
+							size="sm"
+							className="text-xs px-2 py-1 h-6"
+						>
+							<RotateCcw className="w-3 h-3" />
+						</Button>
 					</div>
 				</div>
 			</div>
 
-			{/* Floating Search Bar - Left Bottom */}
-			<div className="fixed bottom-4 left-4 z-50">
-				<div className="bg-surface-variant/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-3 w-80">
+			{/* Search Bar */}
+			<div className="px-4 pb-3">
+				<div className="bg-surface-variant/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-4">
 					<Input
 						placeholder="Search by artist, title, or creator..."
 						value={searchQuery}
@@ -89,18 +93,15 @@ const SearchPage: React.FC<Props> = ({ ownedOnly, setOwnedOnly }) => {
 				</div>
 			</div>
 
-			{/* Main Content */}
-			<div className="min-h-screen">
-				{/* Search Results */}
-				<div className="p-4">
-					<SearchResults
-						ownedOnly={ownedOnly}
-						onQueueUpdate={refetchQueue}
-						queue={queue}
-						searchData={searchResults}
-						isLoading={searchLoading}
-					/>
-				</div>
+			{/* Search Results */}
+			<div className="flex-1 min-h-0 px-4 pb-4 overflow-hidden">
+				<SearchResults
+					ownedOnly={ownedOnly}
+					onQueueUpdate={refetchQueue}
+					queue={queue}
+					searchData={searchResults}
+					isLoading={searchLoading}
+				/>
 			</div>
 		</div>
 	);

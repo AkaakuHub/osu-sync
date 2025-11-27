@@ -18,9 +18,9 @@ const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
 	const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id || "");
 
 	return (
-		<div className={`w-full ${className}`}>
+		<div className={`w-full h-full flex flex-col ${className}`}>
 			{/* Tab Headers */}
-			<div className="border-b border-border">
+			<div className="flex-shrink-0 border-b border-border">
 				<nav className="-mb-px flex space-x-8">
 					{tabs.map((tab) => (
 						<button
@@ -40,7 +40,9 @@ const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
 			</div>
 
 			{/* Tab Content */}
-			<div className="mt-2">{tabs.find((tab) => tab.id === activeTab)?.content}</div>
+			<div className="flex-1 min-h-0 mt-2">
+				{tabs.find((tab) => tab.id === activeTab)?.content}
+			</div>
 		</div>
 	);
 };

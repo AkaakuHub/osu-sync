@@ -8,13 +8,21 @@ import { ScanProgress } from "./components/ScanProgress";
 
 function App() {
 	const [ownedOnly, setOwnedOnly] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
 
 	const tabs = [
 		{
 			id: "search",
 			label: "Search",
 			icon: <Search className="w-4 h-4" />,
-			content: <SearchPage ownedOnly={ownedOnly} setOwnedOnly={setOwnedOnly} />,
+			content: (
+				<SearchPage
+					ownedOnly={ownedOnly}
+					setOwnedOnly={setOwnedOnly}
+					searchQuery={searchQuery}
+					setSearchQuery={setSearchQuery}
+				/>
+			),
 		},
 		{
 			id: "queue",
@@ -31,18 +39,20 @@ function App() {
 	];
 
 	return (
-		<div className="min-h-screen">
+		<div className="h-[720px] w-full overflow-hidden bg-surface">
 			{/* Scan Progress Overlay */}
 			<ScanProgress />
 
-			<div className="p-6">
+			<div className="h-full flex flex-col p-6">
 				{/* App Header */}
-				<header className="mb-2">
+				<header className="mb-2 flex-shrink-0">
 					<h1 className="text-xl font-bold text-text">osu! sync</h1>
 				</header>
 
 				{/* Tab Navigation */}
-				<Tabs tabs={tabs} defaultTab="search" />
+				<div className="flex-1 min-h-0">
+					<Tabs tabs={tabs} defaultTab="search" />
+				</div>
 			</div>
 		</div>
 	);

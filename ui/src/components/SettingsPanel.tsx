@@ -3,7 +3,6 @@ import { useState } from "react";
 import { apiClient, type Settings } from "../hooks/useApiClient";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
-import Badge from "./ui/Badge";
 
 const fetchSettings = () => apiClient.get<Settings>("/settings");
 const saveSettings = (payload: Partial<Settings & { osu_client_secret: string }>) =>
@@ -27,63 +26,47 @@ export default function SettingsPanel() {
 	if (!data) return <div className="text-sm text-muted-foreground">Loading...</div>;
 
 	return (
-		<div className="space-y-6">
-			<h2 className="text-lg font-semibold">Settings</h2>
-
-			<div className="space-y-4">
-				{/* osu! API */}
+		<div className="h-full flex flex-col p-4">
+			{/* Compact Form Layout */}
+			<div className="grid grid-cols-2 gap-4 text-sm">
+				{/* Column 1 */}
 				<div className="space-y-3">
-					<h3 className="text-sm font-medium">osu! API</h3>
-
-					<div className="space-y-2">
-						<label className="block text-sm font-medium">Client ID</label>
+					<div className="space-y-1">
+						<label className="text-text-secondary text-xs font-medium">Client ID</label>
 						<Input
 							type="number"
 							defaultValue={data.osu_client_id ?? ""}
 							onChange={(e) => update("osu_client_id", Number(e.target.value))}
-							placeholder="Enter Client ID"
+							placeholder="ID"
+							className="text-xs"
 						/>
 					</div>
 
-					<div className="space-y-2">
-						<label className="block text-sm font-medium">Client Secret</label>
+					<div className="space-y-1">
+						<label className="text-text-secondary text-xs font-medium">Client Secret</label>
 						<Input
 							type="password"
-							placeholder={data.osu_client_secret_set ? "********" : "Enter Client Secret"}
+							placeholder={data.osu_client_secret_set ? "••••••••" : "Secret"}
 							onChange={(e) => update("osu_client_secret", e.target.value)}
+							className="text-xs"
 						/>
 					</div>
 
-					<div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-						<p>
-							Get OAuth credentials from{" "}
-							<a
-								className="text-primary hover:underline"
-								href="https://osu.ppy.sh/home/account/edit#new-oauth-application"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								osu! Account Settings
-							</a>
-						</p>
-					</div>
-				</div>
-
-				{/* Local */}
-				<div className="space-y-3">
-					<h3 className="text-sm font-medium">Local</h3>
-
-					<div className="space-y-2">
-						<label className="block text-sm font-medium">Songs Directory</label>
+					<div className="space-y-1">
+						<label className="text-text-secondary text-xs font-medium">Songs Dir</label>
 						<Input
 							defaultValue={data.songs_dir}
 							onChange={(e) => update("songs_dir", e.target.value)}
-							placeholder="Path to osu! Songs folder"
+							placeholder="/path/to/songs"
+							className="text-xs"
 						/>
 					</div>
+				</div>
 
-					<div className="space-y-2">
-						<label className="block text-sm font-medium">Download URL Template</label>
+				{/* Column 2 */}
+				<div className="space-y-3">
+					<div className="space-y-1">
+						<label className="text-text-secondary text-xs font-medium">Download URL</label>
 						<Input
 							className="font-mono text-xs"
 							defaultValue={data.download_url_template}
@@ -91,26 +74,21 @@ export default function SettingsPanel() {
 							placeholder="https://.../d/{set_id}"
 						/>
 					</div>
-				</div>
 
-				{/* Performance */}
-				<div className="space-y-3">
-					<h3 className="text-sm font-medium">Performance</h3>
-
-					<div className="grid grid-cols-2 gap-4">
-						<div className="space-y-2">
-							<label className="block text-sm font-medium">Max Concurrency</label>
+					<div className="grid grid-cols-2 gap-2">
+						<div className="space-y-1">
+							<label className="text-text-secondary text-xs font-medium">Concurrency</label>
 							<Input
 								type="number"
 								min="1"
 								max="10"
 								defaultValue={data.max_concurrency}
 								onChange={(e) => update("max_concurrency", Number(e.target.value))}
+								className="text-xs"
 							/>
 						</div>
-
-						<div className="space-y-2">
-							<label className="block text-sm font-medium">Requests/min</label>
+						<div className="space-y-1">
+							<label className="text-text-secondary text-xs font-medium">Req/min</label>
 							<Input
 								type="number"
 								min="10"
@@ -118,34 +96,47 @@ export default function SettingsPanel() {
 								step="10"
 								defaultValue={data.requests_per_minute}
 								onChange={(e) => update("requests_per_minute", Number(e.target.value))}
+								className="text-xs"
 							/>
 						</div>
 					</div>
-				</div>
 
-				{/* Save */}
-				<div className="space-y-3">
-					<Button
-						className="w-full"
-						onClick={() => mutation.mutate(form)}
-						disabled={mutation.isPending}
-						isLoading={mutation.isPending}
+					<div className="pt-2">
+						<Button
+							className="w-full text-xs py-2"
+							onClick={() => mutation.mutate(form)}
+							disabled={mutation.isPending}
+							isLoading={mutation.isPending}
+						>
+							Save
+						</Button>
+					</div>
+				</div>
+			</div>
+
+			{/* Status Messages */}
+			<div className="mt-3 h-4 flex items-center justify-center">
+				{mutation.isError && (
+					<span className="text-xs text-error">Failed to save</span>
+				)}
+				{mutation.isSuccess && (
+					<span className="text-xs text-success">Settings saved</span>
+				)}
+			</div>
+
+			{/* Help Link */}
+			<div className="mt-auto pt-3 border-t border-border/30">
+				<p className="text-xs text-text-muted text-center">
+					Get OAuth credentials from{" "}
+					<a
+						className="text-primary hover:underline"
+						href="https://osu.ppy.sh/home/account/edit#new-oauth-application"
+						target="_blank"
+						rel="noopener noreferrer"
 					>
-						Save Settings
-					</Button>
-
-					{mutation.isError && (
-						<Badge variant="error" className="text-sm p-2">
-							Failed to save
-						</Badge>
-					)}
-
-					{mutation.isSuccess && (
-						<Badge variant="success" className="text-sm p-2">
-							Settings saved
-						</Badge>
-					)}
-				</div>
+						osu! Account Settings
+					</a>
+				</p>
 			</div>
 		</div>
 	);
