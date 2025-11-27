@@ -171,7 +171,6 @@ const ResultCard: React.FC<Props> = ({
 										</p>
 										<p className={card.creator()}>{item.creator}</p>
 									</div>
-									<span className={card.badge()}>{item.status?.toUpperCase()}</span>
 								</div>
 
 								<div className={card.stats()}>
@@ -189,6 +188,8 @@ const ResultCard: React.FC<Props> = ({
 									</div>
 								</div>
 
+									<div className={card.statItem()}>
+									<span className={card.badge()}>{item.status?.toUpperCase()}</span>
 								{difficulties.length > 0 && (
 									<div
 										className="flex gap-1 overflow-x-auto scrollbar-hide"
@@ -220,7 +221,7 @@ const ResultCard: React.FC<Props> = ({
 										))}
 									</div>
 								)}
-
+								</div>
 								{failureMessage && (
 									<p className="text-xs text-rose-300">Failed: {failureMessage}</p>
 								)}
