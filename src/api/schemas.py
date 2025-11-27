@@ -17,7 +17,7 @@ class BeatmapStatus(str, Enum):
 
 class DifficultyInfo(BaseModel):
     label: str
-    rating: str
+    rating: float
     mode: str
 
 

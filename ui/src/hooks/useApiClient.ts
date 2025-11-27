@@ -61,7 +61,7 @@ interface SearchResult {
 	bpm?: number | null;
 	total_length?: number | null;
 	difficulty_count?: number | null;
-	difficulties?: { label: string; rating: string; mode: string }[] | null;
+	difficulties?: { label: string; rating: number; mode: string }[] | null;
 }
 
 export interface SearchResponse {

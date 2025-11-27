@@ -105,9 +105,7 @@ const ResultCard: React.FC<Props> = ({
 				: "bg-gradient-to-r from-success to-accent text-surface-foreground hover:from-success/90 hover:to-accent/90 shadow-lg shadow-success/20";
 
 	const difficulties = (item.difficulties ?? [])
-		.map((d) => ({ ...d, value: parseFloat(d.rating) }))
-		.sort((a, b) => a.value - b.value)
-		.slice(0, 6);
+		.sort((a, b) => a.rating - b.rating)
 
 	return (
 		<div className="relative m-1.5 p-1 group">
@@ -218,20 +216,20 @@ const ResultCard: React.FC<Props> = ({
 												<div
 													key={idx}
 													className="h-[15px] w-[11px] rounded-full flex-shrink-0 relative"
-													title={`${d.label} - ★${d.rating}`}
+													title={`${d.label} - ★${d.rating.toFixed(2)}`}
 												>
 													<div
 														className="absolute inset-0 rounded-full"
 														style={{
 															background: "none",
-															borderColor: difficultyColor(d.value),
+															borderColor: difficultyColor(d.rating),
 															borderWidth: "2px",
 														}}
 													/>
 													<div
 														className="absolute inset-[4px] rounded-full"
 														style={{
-															backgroundColor: difficultyColor(d.value),
+															backgroundColor: difficultyColor(d.rating),
 														}}
 													/>
 												</div>
@@ -274,11 +272,11 @@ const ResultCard: React.FC<Props> = ({
 								<div key={idx} className={card.difficultyItem()}>
 									<div
 										className={card.difficultyIcon()}
-										style={{ backgroundColor: difficultyColor(d.value) }}
+										style={{ backgroundColor: difficultyColor(d.rating) }}
 									>
 										{idx + 1}
 									</div>
-									<span className="text-sm font-semibold text-surface-foreground">★{d.rating}</span>
+									<span className="text-sm font-semibold text-surface-foreground">★{d.rating.toFixed(2)}</span>
 									<span className="text-sm text-text-secondary truncate">{d.label}</span>
 								</div>
 							))}

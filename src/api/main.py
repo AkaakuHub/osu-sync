@@ -3,7 +3,7 @@ import os
 import platform
 import subprocess
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -101,14 +101,11 @@ def create_app() -> FastAPI:
         set_id = item.get("id")
         covers = item.get("covers") or {}
         cover_url = (
-            covers.get("card@2x")
-            or covers.get("cover@2x")
-            or covers.get("card")
-            or covers.get("cover")
+            covers.get("card@2x") or covers.get("cover@2x") or covers.get("card") or covers.get("cover")
         )
         beatmaps = item.get("beatmaps") or []
         total_length = None
-        difficulties: List[Dict[str, str]] = []
+        difficulties: List[Dict[str, Any]] = []
         if beatmaps:
             lengths = [bm.get("total_length") or 0 for bm in beatmaps]
             if any(lengths):
@@ -122,7 +119,7 @@ def create_app() -> FastAPI:
                 difficulties.append(
                     {
                         "label": version,
-                        "rating": f"{difficulty_rating:.1f}",
+                        "rating": difficulty_rating,
                         "mode": mode,
                     }
                 )
