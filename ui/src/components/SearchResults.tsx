@@ -99,7 +99,7 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 				return;
 			}
 
-			// Stop current preview without clearing the current track state
+			// 即時状態更新で遅延を削減
 			if (howlRef.current) {
 				howlRef.current.stop();
 				howlRef.current.unload();
@@ -109,57 +109,67 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searc
 				window.clearInterval(progressTimer.current);
 				progressTimer.current = null;
 			}
-			setPreviewingId(item.set_id);
+
+			// 状態を即時クリアしてから新しいトラックを設定
+			setPreviewingId(null);
+			setPlaybackProgress(0);
+			setDuration(0);
 			setIsLoadingPreview(true);
-			setCurrentTrack({
-				id: item.set_id,
-				title: item.title,
-				artist: item.artist,
-				preview: item.preview_url,
-			});
 
-			const howl = new Howl({
-				src: [item.preview_url],
-				volume: 0.7,
-				html5: true,
-				onend: () => {
-					setPreviewingId(null);
-					setIsLoadingPreview(false);
-					setPlaybackProgress(0);
-					setCurrentTrack(null);
-					if (progressTimer.current) {
-						window.clearInterval(progressTimer.current);
-						progressTimer.current = null;
-					}
-				},
-				onplay: () => {
-					setIsLoadingPreview(false);
-					setPreviewingId(item.set_id);
-					setDuration(howl.duration());
-					if (progressTimer.current) {
-						window.clearInterval(progressTimer.current);
-					}
-					progressTimer.current = window.setInterval(() => {
-						const position = howl.seek() as number;
-						const dur = howl.duration() || 0;
-						setDuration(dur);
-						setPlaybackProgress(dur ? Math.min(position / dur, 1) : 0);
-					}, 200);
-				},
-				onloaderror: () => {
-					setIsLoadingPreview(false);
-					setPreviewingId(null);
-					setCurrentTrack(null);
-				},
-				onplayerror: () => {
-					setIsLoadingPreview(false);
-					setPreviewingId(null);
-					setCurrentTrack(null);
-				},
-			});
+			// 少し遅延して新しいトラックを設定（前の状態が完全にクリアされるのを待つ）
+			setTimeout(() => {
+				setPreviewingId(item.set_id);
+				setCurrentTrack({
+					id: item.set_id,
+					title: item.title,
+					artist: item.artist,
+					preview: item.preview_url || '',
+				});
 
-			howlRef.current = howl;
-			howl.play();
+				const howl = new Howl({
+					src: [item.preview_url || ''],
+					volume: 0.7,
+					html5: true,
+					preload: true, // プリロードを有効化
+					onend: () => {
+						setPreviewingId(null);
+						setIsLoadingPreview(false);
+						setPlaybackProgress(0);
+						setCurrentTrack(null);
+						if (progressTimer.current) {
+							window.clearInterval(progressTimer.current);
+							progressTimer.current = null;
+						}
+					},
+					onplay: () => {
+						setIsLoadingPreview(false);
+						setPreviewingId(item.set_id);
+						setDuration(howl.duration());
+						if (progressTimer.current) {
+							window.clearInterval(progressTimer.current);
+						}
+						progressTimer.current = window.setInterval(() => {
+							const position = howl.seek() as number;
+							const dur = howl.duration() || 0;
+							setDuration(dur);
+							setPlaybackProgress(dur ? Math.min(position / dur, 1) : 0);
+						}, 100); // 頻度を上げてレスポンスを改善
+					},
+					onloaderror: () => {
+						setIsLoadingPreview(false);
+						setPreviewingId(null);
+						setCurrentTrack(null);
+					},
+					onplayerror: () => {
+						setIsLoadingPreview(false);
+						setPreviewingId(null);
+						setCurrentTrack(null);
+					},
+				});
+
+				howlRef.current = howl;
+				howl.play();
+			}, 50); // 50msの遅延で確実なクリアを確保
 		},
 		[previewingId, stopPreview],
 	);

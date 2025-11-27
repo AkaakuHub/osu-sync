@@ -28,6 +28,18 @@ type Props = {
 	failureMessage?: string | null;
 };
 
+// 背景色に基づいてテキスト色（黒or白）を計算する関数
+function getContrastColor(hexColor: string): string {
+	// hexColorからRGB値を抽出
+	const r = parseInt(hexColor.slice(1, 3), 16);
+	const g = parseInt(hexColor.slice(3, 5), 16);
+	const b = parseInt(hexColor.slice(5, 7), 16);
+
+	// 輝度を計算（YIQ formula）
+	const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+	return yiq >= 148 ? '#000000' : '#FFFFFF';
+}
+
 const cardStyles = tv({
 	slots: {
 		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-md transition-all duration-300",
@@ -256,30 +268,45 @@ const ResultCard: React.FC<Props> = ({
 				</div>
 			</div>
 
-			{/* カード外側の下に配置される難易度リスト */}
+			{/* カード外側の下に配置されるコンパクトな難易度リスト */}
 			{difficulties.length > 0 && (
 				<div
 					className={`absolute left-0 right-0 z-20 mt-1 ${!isHovered ? "pointer-events-none" : ""}`}
 					style={{
-						maxHeight: isHovered ? "24rem" : "0",
+						maxHeight: isHovered ? "200px" : "0",
 						opacity: isHovered ? 1 : 0,
 						transition: "all 0.3s ease-out",
 					}}
 				>
-					<div className={card.difficultyContainer()}>
-						<div className={card.difficultyList()}>
-							{difficulties.map((d, idx) => (
-								<div key={idx} className={card.difficultyItem()}>
+					<div className="bg-surface/95 backdrop-blur-md rounded-lg border border-border shadow-2xl p-2">
+						<div className="grid grid-cols-2 gap-1">
+							{difficulties.map((d, idx) => {
+								const bgColor = difficultyColor(d.rating);
+								const textColor = getContrastColor(bgColor);
+								return (
 									<div
-										className={card.difficultyIcon()}
-										style={{ backgroundColor: difficultyColor(d.rating) }}
+										key={idx}
+										className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold min-w-0"
+										style={{
+											backgroundColor: bgColor,
+											color: textColor
+										}}
+										title={`${d.label} - ★${d.rating}`}
 									>
-										{idx + 1}
+										<div
+											className="w-4 h-4 bg-black/20 rounded-full flex items-center justify-center flex-shrink-0"
+											style={{ backgroundColor: `${textColor}30` }}
+										>
+											<span className="text-[9px] font-bold" style={{ color: textColor }}>{idx + 1}</span>
+										</div>
+										<span className="flex items-center gap-1 min-w-0">
+											<span className="text-[10px] opacity-90">★</span>
+											<span className="font-bold">{d.rating}</span>
+											<span className="opacity-80 truncate max-w-[60px]">{d.label}</span>
+										</span>
 									</div>
-									<span className="text-sm font-semibold text-surface-foreground">★{d.rating.toFixed(2)}</span>
-									<span className="text-sm text-text-secondary truncate">{d.label}</span>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					</div>
 				</div>
