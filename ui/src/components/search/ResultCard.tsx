@@ -143,7 +143,7 @@ const ResultCard: React.FC<Props> = ({
 			? "bg-error/20 text-error/90 border border-error/70 hover:bg-error/30"
 			: action.variant === "secondary"
 				? "bg-surface-variant/40 text-text-secondary border border-border hover:bg-surface-variant/60"
-				: "bg-gradient-to-r from-success to-accent text-surface-foreground hover:from-success/90 hover:to-accent/90 shadow-lg shadow-success/20";
+				: "bg-osu-pink text-surface-foreground hover:bg-osu-pink/90 shadow-lg";
 
 	const difficulties = (item.difficulties ?? [])
 		.sort((a, b) => a.rating - b.rating)
@@ -230,7 +230,7 @@ const ResultCard: React.FC<Props> = ({
 
 								<div className={card.stats()}>
 									<div className={card.statItem()}>
-										<Heart className="w-4 h-4 text-accent" />
+										<Heart className="w-4 h-4 text-osu-pink" />
 										<span>{formatNumber(item.favourite_count)}</span>
 									</div>
 									<div className={card.statItem()}>
