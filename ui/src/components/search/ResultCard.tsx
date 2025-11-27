@@ -1,6 +1,6 @@
 import type React from "react";
 import { useState } from "react";
-import { Download, Heart, Music4, Play, Pause, CalendarDays } from "lucide-react";
+import { Download, Heart, Music4, Play, Pause, CalendarDays, ExternalLink } from "lucide-react";
 import { tv } from "tailwind-variants";
 import type { SearchResponse } from "../../hooks/useApiClient";
 import {
@@ -155,6 +155,17 @@ const ResultCard: React.FC<Props> = ({
 					<div className="absolute inset-0 bg-gradient-to-r from-surface/50 via-surface/60 to-surface/20 z-0 group-hover:opacity-80 transition-all duration-300" />
 
 					<div className={`${card.banner()} relative z-10`}>
+						{/* osu!公式サイトへのリンク */}
+						<a
+							href={`https://osu.ppy.sh/beatmapsets/${item.set_id}`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="absolute top-5 right-5 rounded-full group/link"
+							title="Open in osu! website"
+						>
+							<ExternalLink className="w-4 h-4 text-text-muted group-hover/link:text-accent transition-colors" />
+						</a>
+
 						<button
 							type="button"
 							onClick={(e) => {
