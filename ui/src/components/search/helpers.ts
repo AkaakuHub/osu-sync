@@ -21,7 +21,7 @@ export const formatNumber = (value?: number | null) => {
 };
 
 export const formatDate = (value?: string | null) => {
-	if (!value) return "未ランク";
+	if (!value) return "-";
 	try {
 		return new Date(value).toLocaleDateString("en-US", {
 			year: "numeric",
