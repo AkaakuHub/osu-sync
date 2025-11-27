@@ -7,7 +7,7 @@ const StatCard: React.FC<{ label: string; value: string | number }> = ({ label, 
 			<CardContent className="p-4">
 				<div className="flex flex-col min-h-0">
 					<div className="flex-shrink-0">
-						<p className="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
+						<p className="text-sm font-medium text-text-secondary truncate">
 							{label}
 						</p>
 					</div>

@@ -18,7 +18,7 @@ const QueuePage: React.FC = () => {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2">
 					<Download className="w-4 h-4" />
-					<span className="text-lg font-semibold text-slate-900 dark:text-white">
+					<span className="text-lg font-semibold text-text">
 						Download Queue
 					</span>
 				</div>
@@ -28,7 +28,7 @@ const QueuePage: React.FC = () => {
 			</div>
 
 			{/* Queue Panel */}
-			<div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+			<div className="rounded-lg border border-border bg-surface p-2 shadow-sm">
 				<QueuePanel data={queue} />
 			</div>
 		</div>

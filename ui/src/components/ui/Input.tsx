@@ -2,11 +2,18 @@ import React from "react";
 import { tv } from "tailwind-variants";
 
 const input = tv({
-	base: "flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300",
+	base: "flex h-12 w-full rounded-xl border border-border bg-surface px-4 py-3 text-base ring-offset-surface file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 hover:border-border/80 shadow-sm hover:shadow-md",
 	variants: {
-		error: {
-			true: "border-red-500 focus-visible:ring-red-500",
+		variant: {
+			default: "",
+			search: "h-14 text-lg px-6 py-4 bg-surface-variant/50 border-border/50 focus-visible:bg-surface focus-visible:border-primary/50 shadow-lg hover:shadow-xl",
 		},
+		error: {
+			true: "border-error focus-visible:ring-error/50",
+		},
+	},
+	defaultVariants: {
+		variant: "default",
 	},
 });
 
@@ -14,12 +21,13 @@ const Input = React.forwardRef<
 	HTMLInputElement,
 	React.InputHTMLAttributes<HTMLInputElement> & {
 		error?: string;
+		variant?: "default" | "search";
 	}
->(({ className, error, ...props }, ref) => {
+>(({ className, error, variant, ...props }, ref) => {
 	return (
 		<div className="space-y-1">
-			<input className={input({ error: !!error, className })} ref={ref} {...props} />
-			{error && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
+			<input className={input({ error: !!error, variant, className })} ref={ref} {...props} />
+			{error && <p className="text-xs text-error">{error}</p>}
 		</div>
 	);
 });

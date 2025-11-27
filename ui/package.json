@@ -10,7 +10,8 @@
 		"lint:unused": "knip",
 		"format": "biome format --write .",
 		"lint": "biome lint --write .",
-		"knip": "knip"
+		"knip": "knip",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^5.59.14",

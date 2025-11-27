@@ -95,7 +95,7 @@ function QueuePanel({ data }: Props) {
 					{/* Running Downloads */}
 					<div className="space-y-3">
 						<div className="flex items-center gap-2">
-							<div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+							<div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
 							<h3 className="text-sm font-medium">Running</h3>
 						</div>
 						{runningEntries.length === 0 ? (
@@ -105,7 +105,7 @@ function QueuePanel({ data }: Props) {
 								{runningEntries.map((task) => (
 									<div
 										key={task.set_id}
-										className="space-y-2 p-3 bg-muted/30 rounded-lg border border-slate-200"
+										className="space-y-2 p-3 bg-surface-variant/30 rounded-lg border border-border"
 									>
 										<div className="flex items-center justify-between text-xs font-medium">
 											<span className="font-mono text-sm">
@@ -115,9 +115,9 @@ function QueuePanel({ data }: Props) {
 												{`${Math.min(100, Math.round((task.projectedProgress ?? 0) * 100))}%`}
 											</span>
 										</div>
-										<div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+										<div className="h-2 w-full bg-surface-variant rounded-full overflow-hidden">
 											<div
-												className="h-full bg-blue-500 transition-[width] duration-75"
+												className="h-full bg-primary transition-[width] duration-75"
 												style={{
 													width: `${Math.min(100, Math.max(0, (task.projectedProgress ?? 0) * 100))}%`,
 												}}
@@ -139,7 +139,7 @@ function QueuePanel({ data }: Props) {
 					{/* Queued Downloads */}
 					<div className="space-y-3">
 						<div className="flex items-center gap-2">
-							<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+							<div className="w-2 h-2 bg-text-muted rounded-full"></div>
 							<h3 className="text-sm font-medium">Queued</h3>
 							{data.queued.length > 0 && (
 								<span className="text-xs text-muted-foreground">({data.queued.length})</span>
@@ -152,7 +152,7 @@ function QueuePanel({ data }: Props) {
 								{data.queued.map((setId) => (
 									<div
 										key={setId}
-										className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800 rounded-lg"
+										className="flex items-center justify-between p-3 bg-surface-variant/50 rounded-lg border border-border/50"
 									>
 										<span className="font-mono text-sm font-medium">{setId}</span>
 										<Badge variant="secondary">Queued</Badge>
@@ -165,7 +165,7 @@ function QueuePanel({ data }: Props) {
 					{/* Completed Downloads */}
 					<div className="space-y-3">
 						<div className="flex items-center gap-2">
-							<div className="w-2 h-2 bg-green-500 rounded-full"></div>
+							<div className="w-2 h-2 bg-success rounded-full"></div>
 							<h3 className="text-sm font-medium">Completed</h3>
 							{data.done.length > 0 && (
 								<span className="text-xs text-muted-foreground">({data.done.length})</span>
@@ -178,14 +178,14 @@ function QueuePanel({ data }: Props) {
 								{data.done.map((d) => (
 									<div
 										key={d.set_id}
-										className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800 rounded-lg"
+										className="flex items-center justify-between p-3 bg-surface-variant/50 rounded-lg border border-border/50"
 									>
 										<div className="flex items-center gap-2">
 											<span className="font-mono text-sm font-medium">
 												{d.display_name ?? `${d.set_id}`}
 											</span>
 											{d.message && (
-												<span className="text-xs text-slate-500 dark:text-slate-400">
+												<span className="text-xs text-text-secondary">
 													{d.message}
 												</span>
 											)}

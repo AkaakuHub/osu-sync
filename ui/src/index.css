@@ -1,14 +1,72 @@
 @import "tailwindcss";
 
+@theme {
+	/* Semantic Colors - Inspired by osu! and modern design systems */
+	--color-primary: #00CC66; /* osu! ranked green */
+	--color-primary-foreground: #ffffff;
+
+	--color-secondary: #64748b; /* slate-500 */
+	--color-secondary-foreground: #ffffff;
+
+	--color-accent: #9966FF; /* osu! qualified purple */
+	--color-accent-foreground: #ffffff;
+
+	--color-success: #10b981; /* emerald-500 */
+	--color-success-foreground: #ffffff;
+
+	--color-warning: #f59e0b; /* amber-500 */
+	--color-warning-foreground: #0f172a;
+
+	--color-error: #ef4444; /* red-500 */
+	--color-error-foreground: #ffffff;
+
+	--color-destructive: #dc2626; /* red-600 */
+	--color-destructive-foreground: #ffffff;
+
+	/* Surface Colors for backgrounds */
+	--color-surface: #1e293b; /* slate-800 */
+	--color-surface-foreground: #f1f5f9;
+	--color-surface-variant: #334155; /* slate-700 */
+	--color-surface-variant-foreground: #e2e8f0;
+
+	/* Border Colors */
+	--color-border: #475569; /* slate-600 */
+	--color-border-muted: #334155; /* slate-700 */
+
+	/* Text Colors */
+	--color-text: #f8fafc; /* slate-50 */
+	--color-text-secondary: #cbd5e1; /* slate-300 */
+	--color-text-muted: #94a3b8; /* slate-400 */
+	--color-text-disabled: #64748b; /* slate-500 */
+
+	/* osu! Status Colors */
+	--color-status-graveyard: #999999;
+	--color-status-wip: #FF6666;
+	--color-status-pending: #FFD700;
+	--color-status-ranked: #00CC66;
+	--color-status-approved: #0099FF;
+	--color-status-qualified: #9966FF;
+	--color-status-loved: #FF00AA;
+
+	/* OSU-specific accent colors */
+	--color-osu-pink: #FF66AA;
+	--color-osu-blue: #4A90E2;
+	--color-osu-purple: #AA66CC;
+	--color-osu-foreground: #ffffff;
+}
+
 @layer base {
 	body {
+		/* Background matching card aesthetic */
 		background:
-			radial-gradient(circle at 10% 20%, rgba(81, 19, 145, 0.45), transparent 55%),
-			radial-gradient(circle at 80% 0%, rgba(7, 121, 228, 0.35), transparent 45%),
-			radial-gradient(circle at 50% 100%, rgba(255, 107, 160, 0.25), transparent 40%), #050510;
+			radial-gradient(circle at 10% 20%, rgba(153, 102, 255, 0.15), transparent 55%),
+			radial-gradient(circle at 80% 0%, rgba(0, 204, 102, 0.1), transparent 45%),
+			radial-gradient(circle at 50% 100%, rgba(255, 102, 170, 0.08), transparent 40%),
+			#0f172a; /* slate-900 */
 		min-height: 100vh;
 		user-select: text;
 		-webkit-user-select: text;
+		color: var(--color-text);
 	}
 
 	#root,

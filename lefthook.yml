@@ -10,3 +10,6 @@ pre-commit:
     knip:
       run: cd ui && pnpm run knip
       stage_fixed: true
+    check-tailwind-colors:
+      run: python scripts/check-tailwind-colors.py ui/src
+      stage_fixed: true

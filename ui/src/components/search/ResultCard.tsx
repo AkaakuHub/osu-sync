@@ -30,39 +30,39 @@ type Props = {
 
 const cardStyles = tv({
 	slots: {
-		base: "group relative rounded-xl bg-slate-900/80 shadow-lg backdrop-blur-md transition-all duration-300",
+		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-md transition-all duration-300",
 		banner: "relative flex gap-3",
-		thumbnail: "rounded-lg object-cover ring-2 ring-slate-800/70 shadow-xl shrink-0",
+		thumbnail: "rounded-lg object-cover ring-2 ring-border/70 shadow-xl shrink-0",
 		content: "flex-1 min-w-0 px-2 py-2 grid grid-cols-[1fr_auto] gap-3",
 		header: "flex items-start gap-3",
 		titleSection: "flex-1 min-w-0",
-		title: "text-lg font-bold text-white leading-tight truncate",
-		artist: "text-sm font-semibold text-sky-100 leading-tight truncate",
-		creator: "text-xs text-slate-300 leading-tight truncate",
-		stats: "flex flex-wrap items-center gap-3 text-[11px] text-slate-200",
+		title: "text-lg font-bold text-surface-foreground leading-tight truncate",
+		artist: "text-sm font-semibold text-text-secondary leading-tight truncate",
+		creator: "text-xs text-text-muted leading-tight truncate",
+		stats: "flex flex-wrap items-center gap-3 text-[11px] text-text",
 		statItem: "flex items-center gap-1.5",
 		badge: "px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase shadow-sm",
 		difficultyPreview: "inline-flex items-center gap-1",
-		difficultyDot: "h-3 w-3 rounded-full border border-white/20 shadow",
+		difficultyDot: "h-3 w-3 rounded-full border border-surface-foreground/20 shadow",
 		difficultyContainer:
-			"mt-2 overflow-hidden rounded-lg border border-slate-700/60 bg-slate-800/95 backdrop-blur-md shadow-2xl transition-all duration-300 ease-out",
-		difficultyList: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-3 text-sm text-slate-100",
+			"mt-2 overflow-hidden rounded-lg border border-border bg-surface/95 backdrop-blur-md shadow-2xl transition-all duration-300 ease-out",
+		difficultyList: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-3 text-sm text-surface-foreground",
 		difficultyItem:
-			"flex items-center gap-3 rounded-lg px-3 py-2 bg-slate-700/80 border border-slate-600/60 hover:bg-slate-600/80 transition-colors",
+			"flex items-center gap-3 rounded-lg px-3 py-2 bg-surface-variant/80 border border-border hover:bg-surface-variant/60 transition-colors",
 		difficultyIcon:
-			"w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0",
-		difficultyRating: "text-sm font-semibold text-white",
-		difficultyName: "text-sm text-slate-200 truncate",
+			"w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-surface-foreground shrink-0",
+		difficultyRating: "text-sm font-semibold text-surface-foreground",
+		difficultyName: "text-sm text-text-secondary truncate",
 	},
 	variants: {
 		status: {
-			graveyard: { badge: "text-white" },
-			wip: { badge: "text-white" },
-			pending: { badge: "text-slate-900" },
-			ranked: { badge: "text-white" },
-			approved: { badge: "text-white" },
-			qualified: { badge: "text-white" },
-			loved: { badge: "text-white" },
+			graveyard: { badge: "text-surface-foreground" },
+			wip: { badge: "text-surface-foreground" },
+			pending: { badge: "text-surface-foreground" },
+			ranked: { badge: "text-surface-foreground" },
+			approved: { badge: "text-surface-foreground" },
+			qualified: { badge: "text-surface-foreground" },
+			loved: { badge: "text-surface-foreground" },
 		},
 	},
 	defaultVariants: { status: "ranked" },
@@ -99,10 +99,10 @@ const ResultCard: React.FC<Props> = ({
 
 	const buttonClass =
 		action.variant === "danger"
-			? "bg-red-500/20 text-red-300 border border-red-500/70 hover:bg-red-500/30"
+			? "bg-error/20 text-error/90 border border-error/70 hover:bg-error/30"
 			: action.variant === "secondary"
-				? "bg-slate-700/40 text-slate-200 border border-slate-600/60 hover:bg-slate-700/60"
-				: "bg-gradient-to-r from-emerald-500 to-lime-400 text-slate-950 hover:from-emerald-400 hover:to-lime-300 shadow-lg shadow-emerald-500/20";
+				? "bg-surface-variant/40 text-text-secondary border border-border hover:bg-surface-variant/60"
+				: "bg-gradient-to-r from-success to-accent text-surface-foreground hover:from-success/90 hover:to-accent/90 shadow-lg shadow-success/20";
 
 	const difficulties = (item.difficulties ?? [])
 		.map((d) => ({ ...d, value: parseFloat(d.rating) }))
@@ -112,9 +112,9 @@ const ResultCard: React.FC<Props> = ({
 	return (
 		<div className="relative m-1.5 p-1 group">
 			<div className={card.base()} style={cardStyle}>
-				<div className="absolute inset-0 rounded-xl border-2 border-slate-700/80 transition-all duration-300 group-hover:border-pink-400 group-hover:shadow-[0_0_10px_rgba(255,105,180,0.6),0_0_10px_rgba(147,112,219,0.5)]"></div>
+				<div className="absolute inset-0 rounded-xl border-2 border-border/80 transition-all duration-300 group-hover:border-accent/60 group-hover:shadow-[0_0_10px_rgba(153,102,255,0.6),0_0_10px_rgba(255,102,170,0.5)]"></div>
 				<div className="relative rounded-xl backdrop-blur-sm hover:opacity-80 overflow-hidden transition-all duration-300">
-					<div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/90 to-slate-900/70 z-0" />
+					<div className="absolute inset-0 bg-gradient-to-r from-surface/95 via-surface/95 to-surface/80 z-0" />
 
 					<div className={`${card.banner()} relative z-10`}>
 						<button
@@ -138,14 +138,14 @@ const ResultCard: React.FC<Props> = ({
 								/>
 							) : (
 								<div
-									className={`${card.thumbnail()} h-full w-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center`}
+									className={`${card.thumbnail()} h-full w-full bg-gradient-to-br from-surface-variant to-surface flex items-center justify-center`}
 								>
-									<Music4 className="w-8 h-8 text-slate-500" />
+									<Music4 className="w-8 h-8 text-text-muted" />
 								</div>
 							)}
 
 							<div className="absolute inset-0 flex items-center justify-center">
-								<div className="relative bg-black/55 rounded-full p-2 shadow-lg border border-white/10 group-hover:scale-[1.04] transition">
+								<div className="relative bg-surface/80 rounded-full p-2 shadow-lg border border-border/20 group-hover:scale-[1.04] transition">
 									{(() => {
 										const ringProgress = isPreviewing ? playbackProgress : 0;
 										return (
@@ -163,9 +163,9 @@ const ResultCard: React.FC<Props> = ({
 									})()}
 									<div className="relative z-10 flex items-center justify-center">
 										{isPreviewing ? (
-											<Pause className="w-5 h-5 text-white" />
+											<Pause className="w-5 h-5 text-surface-foreground" />
 										) : (
-											<Play className="w-5 h-5 text-white" fill="white" />
+											<Play className="w-5 h-5 text-surface-foreground" fill="currentColor" />
 										)}
 									</div>
 								</div>
@@ -188,15 +188,15 @@ const ResultCard: React.FC<Props> = ({
 
 								<div className={card.stats()}>
 									<div className={card.statItem()}>
-										<Heart className="w-4 h-4 text-rose-300" />
+										<Heart className="w-4 h-4 text-accent" />
 										<span>{formatNumber(item.favourite_count)}</span>
 									</div>
 									<div className={card.statItem()}>
-										<Play className="w-4 h-4 text-emerald-300" />
+										<Play className="w-4 h-4 text-success" />
 										<span>{formatNumber(item.play_count)}</span>
 									</div>
 									<div className={card.statItem()}>
-										<CalendarDays className="w-4 h-4 text-sky-200" />
+										<CalendarDays className="w-4 h-4 text-primary" />
 										<span>{formatDate(item.ranked_date)}</span>
 									</div>
 								</div>
@@ -240,7 +240,7 @@ const ResultCard: React.FC<Props> = ({
 									)}
 								</div>
 								{failureMessage && (
-									<p className="text-xs text-rose-300">Failed: {failureMessage}</p>
+									<p className="text-xs text-error">Failed: {failureMessage}</p>
 								)}
 							</div>
 
@@ -278,8 +278,8 @@ const ResultCard: React.FC<Props> = ({
 									>
 										{idx + 1}
 									</div>
-									<span className="text-sm font-semibold text-white">★{d.rating}</span>
-									<span className="text-sm text-slate-200 truncate">{d.label}</span>
+									<span className="text-sm font-semibold text-surface-foreground">★{d.rating}</span>
+									<span className="text-sm text-text-secondary truncate">{d.label}</span>
 								</div>
 							))}
 						</div>

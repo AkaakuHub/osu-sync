@@ -55,30 +55,30 @@ export function ScanProgress() {
 	const getStatusColor = () => {
 		switch (scanStatus.status) {
 			case "scanning":
-				return "bg-blue-500";
+				return "bg-primary";
 			case "completed":
-				return "bg-green-500";
+				return "bg-success";
 			case "error":
-				return "bg-red-500";
+				return "bg-error";
 			default:
-				return "bg-gray-500";
+				return "bg-text-muted";
 		}
 	};
 
 	return (
-		<div className="fixed top-4 right-4 w-80 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
+		<div className="fixed top-4 right-4 w-80 bg-surface rounded-lg shadow-lg border border-border p-4 z-50">
 			<div className="flex items-center justify-between mb-2">
-				<h3 className="font-semibold text-gray-900">楽曲ライブラリスキャン</h3>
+				<h3 className="font-semibold text-surface-foreground">楽曲ライブラリスキャン</h3>
 				{scanStatus.status === "scanning" && (
-					<div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+					<div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
 				)}
 			</div>
 
 			<div className="space-y-2">
-				<div className="text-sm text-gray-600">{getStatusText()}</div>
+				<div className="text-sm text-text">{getStatusText()}</div>
 
 				{scanStatus.status === "scanning" && (
-					<div className="w-full bg-gray-200 rounded-full h-2">
+					<div className="w-full bg-surface-variant rounded-full h-2">
 						<div
 							className={`h-2 rounded-full transition-all duration-300 ${getStatusColor()}`}
 							style={{ width: `${progress}%` }}
@@ -87,11 +87,11 @@ export function ScanProgress() {
 				)}
 
 				{scanStatus.current_file && scanStatus.status === "scanning" && (
-					<div className="text-xs text-gray-500 truncate">現在: {scanStatus.current_file}</div>
+					<div className="text-xs text-text-muted truncate">現在: {scanStatus.current_file}</div>
 				)}
 
 				{scanStatus.status === "error" && scanStatus.error_message && (
-					<div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+					<div className="text-xs text-error bg-error/10 p-2 rounded">
 						{scanStatus.error_message}
 					</div>
 				)}

@@ -20,16 +20,16 @@ const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
 	return (
 		<div className={`w-full ${className}`}>
 			{/* Tab Headers */}
-			<div className="border-b border-slate-200 dark:border-slate-700">
+			<div className="border-b border-border">
 				<nav className="-mb-px flex space-x-8">
 					{tabs.map((tab) => (
 						<button
 							key={tab.id}
 							onClick={() => setActiveTab(tab.id)}
-							className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+							className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors rounded-t-lg ${
 								activeTab === tab.id
-									? "border-blue-500 text-blue-600 dark:text-blue-400"
-									: "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300"
+									? "border-primary text-primary"
+									: "border-transparent text-text-secondary hover:text-text hover:border-border"
 							}`}
 						>
 							{tab.icon}

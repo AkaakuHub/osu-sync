@@ -2,15 +2,15 @@ import React from "react";
 import { tv } from "tailwind-variants";
 
 const badge = tv({
-	base: "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+	base: "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2",
 	variants: {
 		variant: {
-			default: "border-transparent bg-blue-600 text-white hover:bg-blue-700",
+			default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
 			secondary:
-				"border-transparent bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600",
-			success: "border-transparent bg-green-500 text-white hover:bg-green-600",
-			warning: "border-transparent bg-yellow-500 text-white hover:bg-yellow-600",
-			error: "border-transparent bg-red-500 text-white hover:bg-red-600",
+				"border-transparent bg-surface-variant text-surface-variant-foreground hover:bg-surface",
+			success: "border-transparent bg-success text-success-foreground hover:bg-success/90",
+			warning: "border-transparent bg-warning text-warning-foreground hover:bg-warning/90",
+			error: "border-transparent bg-error text-error-foreground hover:bg-error/90",
 		},
 	},
 	defaultVariants: {

@@ -31,14 +31,14 @@ function App() {
 	];
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+		<div className="min-h-screen">
 			{/* Scan Progress Overlay */}
 			<ScanProgress />
 
 			<div className="p-6">
 				{/* App Header */}
 				<header className="mb-2">
-					<h1 className="text-xl font-bold text-slate-900 dark:text-white">osu! sync</h1>
+					<h1 className="text-xl font-bold text-text">osu! sync</h1>
 				</header>
 
 				{/* Tab Navigation */}

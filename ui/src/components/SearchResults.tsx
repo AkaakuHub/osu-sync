@@ -12,11 +12,12 @@ type Props = {
 	ownedOnly: boolean;
 	onQueueUpdate: () => void;
 	queue?: QueueStatus;
+	searchData?: SearchResponse;
+	isLoading?: boolean;
 };
 
-const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue }) => {
+const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue, searchData }) => {
 	const client = useQueryClient();
-	const [searchState, setSearchState] = React.useState<SearchResponse | null>(null);
 	const [showUnicode, setShowUnicode] = React.useState(false);
 	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
 	const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
@@ -27,23 +28,7 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue }) => 
 	const [elapsed, setElapsed] = React.useState(0);
 	const [currentTrack, setCurrentTrack] = React.useState<CurrentTrack | null>(null);
 
-	React.useEffect(() => {
-		const checkForNewSearchResults = () => {
-			const searchQueries = client.getQueryCache().findAll({ queryKey: ["search"] });
-			const latestQuery = searchQueries
-				.filter((q) => q.state.status === "success")
-				.sort((a, b) => b.state.dataUpdatedAt - a.state.dataUpdatedAt)[0];
-			if (latestQuery?.state.data && latestQuery.state.data !== searchState) {
-				setSearchState(latestQuery.state.data as SearchResponse);
-			}
-		};
-
-		const interval = window.setInterval(checkForNewSearchResults, 500);
-		checkForNewSearchResults();
-		return () => window.clearInterval(interval);
-	}, [client, searchState]);
-
-	const data = searchState;
+	const data = searchData;
 
 	const queueState = React.useMemo<QueueDerivedState>(() => {
 		const queued = new Set(queue?.queued ?? []);
@@ -231,12 +216,12 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue }) => 
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					<h2 className="text-lg font-semibold">Results</h2>
-					<span className="text-xs text-slate-400 bg-slate-800/70 px-2 py-1 rounded-md border border-slate-700/60">
+					<span className="text-xs text-text-secondary bg-surface-variant/70 px-2 py-1 rounded-md border border-border">
 						{filtered.length.toLocaleString("en-US")} / {data.total.toLocaleString("en-US")}
 					</span>
 					<button
 						onClick={() => setShowUnicode((prev) => !prev)}
-						className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-slate-800/80 border border-slate-700/70 text-slate-200 hover:bg-slate-700/80 transition-colors"
+						className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"
 						title={showUnicode ? "Display in Normal" : "Display in Unicode"}
 					>
 						<Languages className="w-3.5 h-3.5" />
@@ -246,7 +231,7 @@ const SearchResults: React.FC<Props> = ({ ownedOnly, onQueueUpdate, queue }) => 
 			</div>
 
 			{filtered.length === 0 ? (
-				<div className="text-center py-12 rounded-2xl border border-dashed border-slate-200 bg-white/60 dark:bg-slate-900/40">
+				<div className="text-center py-12 rounded-2xl border border-dashed border-border bg-surface/60">
 					<p className="text-muted-foreground">No beatmaps matching the criteria were found.</p>
 				</div>
 			) : (

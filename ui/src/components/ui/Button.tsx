@@ -2,19 +2,23 @@ import React from "react";
 import { tv } from "tailwind-variants";
 
 const button = tv({
-	base: "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50",
+	base: "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50 shadow-sm hover:shadow-md",
 	variants: {
 		variant: {
-			primary: "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500",
+			primary: "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/50 shadow-lg hover:shadow-xl",
 			secondary:
-				"bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700",
+				"bg-surface text-surface-foreground hover:bg-surface-variant border border-border focus-visible:ring-accent/50",
 			ghost:
-				"hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-100",
+				"hover:bg-surface/50 text-text hover:text-text-secondary focus-visible:ring-accent/30",
 			outline:
-				"border border-slate-300 bg-white hover:bg-slate-50 focus-visible:ring-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:hover:bg-slate-800",
+				"border border-border bg-transparent hover:bg-surface/50 text-text focus-visible:ring-primary/30",
+			success: "bg-success text-success-foreground hover:bg-success/90 focus-visible:ring-success/50",
+			warning: "bg-warning text-warning-foreground hover:bg-warning/90 focus-visible:ring-warning/50",
+			error: "bg-error text-error-foreground hover:bg-error/90 focus-visible:ring-error/50",
+			osu: "bg-gradient-to-r from-accent to-osu-pink text-osu-foreground hover:from-accent/90 hover:to-osu-pink/90 focus-visible:ring-accent/50 shadow-lg hover:shadow-xl",
 		},
 		size: {
-			sm: "text-xs px-2.5 py-1.5",
+			sm: "text-xs px-3 py-1.5",
 			md: "text-sm px-4 py-2",
 			lg: "text-base px-6 py-3",
 		},
@@ -28,7 +32,7 @@ const button = tv({
 const Button = React.forwardRef<
 	HTMLButtonElement,
 	React.ButtonHTMLAttributes<HTMLButtonElement> & {
-		variant?: "primary" | "secondary" | "ghost" | "outline";
+		variant?: "primary" | "secondary" | "ghost" | "outline" | "success" | "warning" | "error" | "osu";
 		size?: "sm" | "md" | "lg";
 		isLoading?: boolean;
 		children: React.ReactNode;

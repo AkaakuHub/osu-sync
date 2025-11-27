@@ -7,11 +7,11 @@ const SettingsPage: React.FC = () => {
 			{/* Header */}
 			<div className="flex items-center gap-2">
 				<Settings className="w-4 h-4" />
-				<span className="text-lg font-semibold text-slate-900 dark:text-white">Settings</span>
+				<span className="text-lg font-semibold text-text">Settings</span>
 			</div>
 
 			{/* Settings Panel */}
-			<div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+			<div className="rounded-lg border border-border bg-surface p-2 shadow-sm">
 				<SettingsPanel />
 			</div>
 		</div>

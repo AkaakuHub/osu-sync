@@ -40,7 +40,7 @@ const ResultList: React.FC<Props> = ({
 	}, []);
 
 	return (
-		<div className="max-h-[680px] rounded-xl border border-slate-700/40 bg-slate-900/80 shadow-2xl backdrop-blur-md">
+		<div className="max-h-[680px] rounded-xl border border-border bg-surface/80 shadow-2xl backdrop-blur-md">
 			<Virtuoso
 				style={{ height: "680px" }}
 				data={pairedItems}
