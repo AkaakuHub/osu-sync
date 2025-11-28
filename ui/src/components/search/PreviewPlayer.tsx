@@ -12,6 +12,7 @@ type Props = {
 	currentTrack: CurrentTrack | null;
 	previewingId: number | null;
 	playbackProgress: number;
+	isActuallyPlaying: boolean;
 	onToggle: () => void;
 	onSeek: (fraction: number) => void;
 };
@@ -20,6 +21,7 @@ const PreviewPlayer: React.FC<Props> = ({
 	currentTrack,
 	previewingId,
 	playbackProgress,
+	isActuallyPlaying,
 	onToggle,
 	onSeek,
 }) => (
@@ -32,7 +34,7 @@ const PreviewPlayer: React.FC<Props> = ({
 						onClick={onToggle}
 						title="再生 / 停止"
 					>
-						{previewingId === currentTrack.id ? (
+						{previewingId === currentTrack.id && isActuallyPlaying ? (
 							<Pause className="w-3 h-3" />
 						) : (
 							<Play className="w-3 h-3" fill="currentColor" />

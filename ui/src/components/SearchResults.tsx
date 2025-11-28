@@ -32,6 +32,7 @@ const SearchResults: React.FC<Props> = ({
 	const [showUnicode, setShowUnicode] = React.useState(false);
 	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
 	const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
+	const [isActuallyPlaying, setIsActuallyPlaying] = React.useState(false);
 	const howlRef = React.useRef<Howl | null>(null);
 	const progressTimer = React.useRef<number | null>(null);
 	const [playbackProgress, setPlaybackProgress] = React.useState(0);
@@ -120,6 +121,7 @@ const SearchResults: React.FC<Props> = ({
 		setDuration(0);
 		setPreviewingId(null);
 		setIsLoadingPreview(false);
+		setIsActuallyPlaying(false);
 		setCurrentTrack(null);
 	}, []);
 
@@ -127,8 +129,15 @@ const SearchResults: React.FC<Props> = ({
 		(item: PreviewableItem) => {
 			if (!item.preview_url) return;
 
-			if (previewingId === item.set_id) {
-				stopPreview();
+			if (previewingId === item.set_id && howlRef.current) {
+				// Toggle pause/play for current track (ミニプレイヤーと同じ動作)
+				if (howlRef.current.playing()) {
+					howlRef.current.pause();
+					setIsActuallyPlaying(false);
+				} else {
+					howlRef.current.play();
+					setIsActuallyPlaying(true);
+				}
 				return;
 			}
 
@@ -167,6 +176,7 @@ const SearchResults: React.FC<Props> = ({
 					onend: () => {
 						setPreviewingId(null);
 						setIsLoadingPreview(false);
+						setIsActuallyPlaying(false);
 						setPlaybackProgress(0);
 						setCurrentTrack(null);
 						if (progressTimer.current) {
@@ -177,6 +187,7 @@ const SearchResults: React.FC<Props> = ({
 					onplay: () => {
 						setIsLoadingPreview(false);
 						setPreviewingId(item.set_id);
+						setIsActuallyPlaying(true);
 						setDuration(howl.duration());
 						if (progressTimer.current) {
 							window.clearInterval(progressTimer.current);
@@ -188,14 +199,19 @@ const SearchResults: React.FC<Props> = ({
 							setPlaybackProgress(dur ? Math.min(position / dur, 1) : 0);
 						}, 100); // 頻度を上げてレスポンスを改善
 					},
+					onpause: () => {
+						setIsActuallyPlaying(false);
+					},
 					onloaderror: () => {
 						setIsLoadingPreview(false);
 						setPreviewingId(null);
+						setIsActuallyPlaying(false);
 						setCurrentTrack(null);
 					},
 					onplayerror: () => {
 						setIsLoadingPreview(false);
 						setPreviewingId(null);
+						setIsActuallyPlaying(false);
 						setCurrentTrack(null);
 					},
 				});
@@ -207,7 +223,31 @@ const SearchResults: React.FC<Props> = ({
 		[previewingId, stopPreview],
 	);
 
-	React.useEffect(() => stopPreview, [stopPreview]);
+	// ページのvisibility changeを監視してタブが非表示になっても再生を継続
+	React.useEffect(() => {
+		const handleVisibilityChange = () => {
+			// 何もしない - ミニプレイヤーは継続させる
+		};
+
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		return () => {
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+		};
+	}, []);
+
+	// アプリ終了時のみクリーンアップ
+	React.useEffect(() => {
+		return () => {
+			// コンポーネント完全破棄時のみクリーンアップ
+			if (howlRef.current) {
+				howlRef.current.stop();
+				howlRef.current.unload();
+			}
+			if (progressTimer.current) {
+				window.clearInterval(progressTimer.current);
+			}
+		};
+	}, []);
 
 	const seekTo = (fraction: number) => {
 		if (!howlRef.current || !duration || fraction < 0 || fraction > 1) return;
@@ -246,8 +286,10 @@ const SearchResults: React.FC<Props> = ({
 			// Toggle pause/play for current track
 			if (howlRef.current.playing()) {
 				howlRef.current.pause();
+				setIsActuallyPlaying(false);
 			} else {
 				howlRef.current.play();
+				setIsActuallyPlaying(true);
 			}
 		} else if (currentTrack.preview) {
 			// Start new preview
@@ -326,6 +368,7 @@ const SearchResults: React.FC<Props> = ({
 						previewingId={previewingId}
 						isLoadingPreview={isLoadingPreview}
 						playbackProgress={playbackProgress}
+						isActuallyPlaying={isActuallyPlaying}
 						queueState={queueState}
 						togglePreview={togglePreview}
 						triggerDownload={triggerDownload}
@@ -338,6 +381,7 @@ const SearchResults: React.FC<Props> = ({
 				currentTrack={currentTrack}
 				previewingId={previewingId}
 				playbackProgress={playbackProgress}
+				isActuallyPlaying={isActuallyPlaying}
 				onToggle={handlePlayerToggle}
 				onSeek={seekTo}
 			/>

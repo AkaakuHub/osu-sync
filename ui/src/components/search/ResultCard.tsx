@@ -23,6 +23,8 @@ type Props = {
 	isPreviewing: boolean;
 	isLoadingPreview: boolean;
 	playbackProgress: number;
+	previewingId: number | null;
+	isActuallyPlaying: boolean;
 	togglePreview: (item: PreviewableItem) => void;
 	triggerDownload: (setId: number) => void;
 	failureMessage?: string | null;
@@ -98,6 +100,8 @@ const ResultCard: React.FC<Props> = ({
 	isPreviewing,
 	isLoadingPreview,
 	playbackProgress,
+	previewingId,
+	isActuallyPlaying,
 	togglePreview,
 	triggerDownload,
 	failureMessage,
@@ -196,12 +200,13 @@ const ResultCard: React.FC<Props> = ({
 							<div className="absolute inset-0 flex items-center justify-center">
 								<div className="relative bg-surface/80 rounded-full p-2 shadow-lg border border-border/20 group-hover:scale-[1.04] transition">
 									{(() => {
-										const ringProgress = isPreviewing ? playbackProgress : 0;
+										const isCurrentlyPreviewing = previewingId === item.set_id;
+										const ringProgress = isCurrentlyPreviewing ? playbackProgress : 0;
 										return (
 											<div
 												className="absolute inset-0 rounded-full"
 												style={{
-													background: `conic-gradient(${isPreviewing ? "rgba(52, 211, 153,0.8)" : "rgba(255,255,255,0.25)"} ${Math.min(
+													background: `conic-gradient(${isActuallyPlaying ? "rgba(52, 211, 153,0.8)" : "rgba(255,255,255,0.25)"} ${Math.min(
 														ringProgress * 100,
 														100,
 													)}%, rgba(255,255,255,0.08) 0)`,

@@ -10,6 +10,7 @@ type Props = {
 	previewingId: number | null;
 	isLoadingPreview: boolean;
 	playbackProgress: number;
+	isActuallyPlaying: boolean;
 	queueState: QueueDerivedState;
 	togglePreview: (item: PreviewableItem) => void;
 	triggerDownload: (setId: number) => void;
@@ -22,6 +23,7 @@ const ResultList: React.FC<Props> = ({
 	previewingId,
 	isLoadingPreview,
 	playbackProgress,
+	isActuallyPlaying,
 	queueState,
 	togglePreview,
 	triggerDownload,
@@ -65,9 +67,11 @@ const ResultList: React.FC<Props> = ({
 												item={leftItem}
 												showUnicode={showUnicode}
 												action={action}
-												isPreviewing={previewingId === leftItem.set_id}
+												isPreviewing={previewingId === leftItem.set_id && isActuallyPlaying}
 												isLoadingPreview={isLoadingPreview}
 												playbackProgress={previewingId === leftItem.set_id ? playbackProgress : 0}
+												previewingId={previewingId}
+												isActuallyPlaying={isActuallyPlaying}
 												togglePreview={togglePreview}
 												triggerDownload={triggerDownload}
 												failureMessage={failureMessage}
@@ -92,9 +96,11 @@ const ResultList: React.FC<Props> = ({
 												item={rightItem}
 												showUnicode={showUnicode}
 												action={action}
-												isPreviewing={previewingId === rightItem.set_id}
+												isPreviewing={previewingId === rightItem.set_id && isActuallyPlaying}
 												isLoadingPreview={isLoadingPreview}
 												playbackProgress={previewingId === rightItem.set_id ? playbackProgress : 0}
+												previewingId={previewingId}
+												isActuallyPlaying={isActuallyPlaying}
 												togglePreview={togglePreview}
 												triggerDownload={triggerDownload}
 												failureMessage={failureMessage}
