@@ -1,0 +1,271 @@
+import React from "react";
+import { Howl } from "howler";
+import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
+import type { PreviewableItem } from "./search/ResultCard";
+
+// SearchResults.tsxから移動した状態
+const GlobalPreviewPlayer: React.FC = () => {
+	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
+	const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
+	const [isActuallyPlaying, setIsActuallyPlaying] = React.useState(false);
+	const howlRef = React.useRef<Howl | null>(null);
+	const progressTimer = React.useRef<number | null>(null);
+	const [playbackProgress, setPlaybackProgress] = React.useState(0);
+	const [duration, setDuration] = React.useState(0);
+	const [currentTrack, setCurrentTrack] = React.useState<CurrentTrack | null>(null);
+	const [volume, setVolume] = React.useState(0.7);
+	const [isMuted, setIsMuted] = React.useState(false);
+	const [previousVolume, setPreviousVolume] = React.useState(0.7);
+
+	const stopPreview = React.useCallback(() => {
+		if (howlRef.current) {
+			howlRef.current.stop();
+			howlRef.current.unload();
+			howlRef.current = null;
+		}
+		if (progressTimer.current) {
+			window.clearInterval(progressTimer.current);
+			progressTimer.current = null;
+		}
+		setPlaybackProgress(0);
+		setDuration(0);
+		setPreviewingId(null);
+		setIsLoadingPreview(false);
+		setIsActuallyPlaying(false);
+		setCurrentTrack(null);
+	}, []);
+
+	const togglePreview = React.useCallback(
+		(item: PreviewableItem) => {
+			if (!item.preview_url) return;
+
+			if (previewingId === item.set_id && howlRef.current) {
+				// Toggle pause/play for current track (ミニプレイヤーと同じ動作)
+				if (howlRef.current.playing()) {
+					howlRef.current.pause();
+					setIsActuallyPlaying(false);
+				} else {
+					howlRef.current.play();
+					setIsActuallyPlaying(true);
+				}
+				return;
+			}
+
+			// 即時状態更新で遅延を削減
+			if (howlRef.current) {
+				howlRef.current.stop();
+				howlRef.current.unload();
+				howlRef.current = null;
+			}
+			if (progressTimer.current) {
+				window.clearInterval(progressTimer.current);
+				progressTimer.current = null;
+			}
+
+			// 状態を即時クリアしてから新しいトラックを設定
+			setPreviewingId(null);
+			setPlaybackProgress(0);
+			setDuration(0);
+			setIsLoadingPreview(true);
+
+			// 少し遅延して新しいトラックを設定（前の状態が完全にクリアされるのを待つ）
+			setTimeout(() => {
+				setPreviewingId(item.set_id);
+				setCurrentTrack({
+					id: item.set_id,
+					title: item.title,
+					artist: item.artist,
+					preview: item.preview_url || "",
+				});
+
+				const howl = new Howl({
+					src: [item.preview_url || ""],
+					volume: volume,
+					html5: true,
+					preload: true, // プリロードを有効化
+					onend: () => {
+						setPreviewingId(null);
+						setIsLoadingPreview(false);
+						setIsActuallyPlaying(false);
+						setPlaybackProgress(0);
+						setCurrentTrack(null);
+						if (progressTimer.current) {
+							window.clearInterval(progressTimer.current);
+							progressTimer.current = null;
+						}
+					},
+					onplay: () => {
+						setIsLoadingPreview(false);
+						setPreviewingId(item.set_id);
+						setIsActuallyPlaying(true);
+						setDuration(howl.duration());
+						if (progressTimer.current) {
+							window.clearInterval(progressTimer.current);
+						}
+						progressTimer.current = window.setInterval(() => {
+							const position = howl.seek() as number;
+							const dur = howl.duration() || 0;
+							setDuration(dur);
+							setPlaybackProgress(dur ? Math.min(position / dur, 1) : 0);
+						}, 100); // 頻度を上げてレスポンスを改善
+					},
+					onpause: () => {
+						setIsActuallyPlaying(false);
+					},
+					onloaderror: () => {
+						setIsLoadingPreview(false);
+						setPreviewingId(null);
+						setIsActuallyPlaying(false);
+						setCurrentTrack(null);
+					},
+					onplayerror: () => {
+						setIsLoadingPreview(false);
+						setPreviewingId(null);
+						setIsActuallyPlaying(false);
+						setCurrentTrack(null);
+					},
+				});
+
+				howlRef.current = howl;
+				howl.play();
+			}, 50); // 50msの遅延で確実なクリアを確保
+		},
+		[previewingId, stopPreview],
+	);
+
+	// ページのvisibility changeを監視してタブが非表示になっても再生を継続
+	React.useEffect(() => {
+		const handleVisibilityChange = () => {
+			// 何もしない - ミニプレイヤーは継続させる
+		};
+
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		return () => {
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+		};
+	}, []);
+
+	// アプリ終了時のみクリーンアップ
+	React.useEffect(() => {
+		return () => {
+			// コンポーネント完全破棄時のみクリーンアップ
+			if (howlRef.current) {
+				howlRef.current.stop();
+				howlRef.current.unload();
+			}
+			if (progressTimer.current) {
+				window.clearInterval(progressTimer.current);
+			}
+		};
+	}, []);
+
+	const seekTo = React.useCallback(
+		(fraction: number) => {
+			if (!howlRef.current || !duration || fraction < 0 || fraction > 1) return;
+			const target = duration * fraction;
+			howlRef.current.seek(target);
+			setPlaybackProgress(fraction);
+		},
+		[duration],
+	);
+
+	const handleVolumeChange = React.useCallback(
+		(newVolume: number) => {
+			setVolume(newVolume);
+			if (!isMuted) {
+				setPreviousVolume(newVolume);
+			}
+			if (howlRef.current) {
+				howlRef.current.volume(isMuted ? 0 : newVolume);
+			}
+		},
+		[isMuted],
+	);
+
+	const handleToggleMute = React.useCallback(() => {
+		if (isMuted) {
+			// ミュート解除：直前の音量に戻す
+			setIsMuted(false);
+			setVolume(previousVolume);
+			if (howlRef.current) {
+				howlRef.current.volume(previousVolume);
+			}
+		} else {
+			// ミュート：現在の音量を保存して0に設定
+			setIsMuted(true);
+			setPreviousVolume(volume);
+			if (howlRef.current) {
+				howlRef.current.volume(0);
+			}
+		}
+	}, [isMuted, previousVolume, volume]);
+
+	const handlePlayerToggle = React.useCallback(() => {
+		if (!currentTrack) return;
+
+		if (previewingId === currentTrack.id && howlRef.current) {
+			// Toggle pause/play for current track
+			if (howlRef.current.playing()) {
+				howlRef.current.pause();
+				setIsActuallyPlaying(false);
+			} else {
+				howlRef.current.play();
+				setIsActuallyPlaying(true);
+			}
+		} else if (currentTrack.preview) {
+			// Start new preview
+			togglePreview({
+				set_id: currentTrack.id,
+				title: currentTrack.title,
+				artist: currentTrack.artist,
+				preview_url: currentTrack.preview,
+			});
+		}
+	}, [currentTrack, previewingId, togglePreview]);
+
+	// グローバルに機能を提供
+	React.useEffect(() => {
+		// グローバルにtogglePreview関数を公開
+		(window as any).togglePreview = togglePreview;
+		(window as any).previewPlayerState = {
+			previewingId,
+			isLoadingPreview,
+			isActuallyPlaying,
+			playbackProgress,
+			currentTrack,
+		};
+
+		return () => {
+			delete (window as any).togglePreview;
+			delete (window as any).previewPlayerState;
+		};
+	}, [
+		togglePreview,
+		previewingId,
+		isLoadingPreview,
+		isActuallyPlaying,
+		playbackProgress,
+		currentTrack,
+	]);
+
+	return (
+		<div className="fixed top-4 right-4 z-50">
+			{currentTrack ? (
+				<PreviewPlayer
+					currentTrack={currentTrack}
+					previewingId={previewingId}
+					playbackProgress={playbackProgress}
+					isActuallyPlaying={isActuallyPlaying}
+					volume={volume}
+					isMuted={isMuted}
+					onToggle={handlePlayerToggle}
+					onSeek={seekTo}
+					onVolumeChange={handleVolumeChange}
+					onToggleMute={handleToggleMute}
+				/>
+			) : null}
+		</div>
+	);
+};
+
+export default GlobalPreviewPlayer;

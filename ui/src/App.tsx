@@ -7,6 +7,7 @@ import QueuePage from "./components/pages/QueuePage";
 import SettingsPage from "./components/pages/SettingsPage";
 import { ScanProgress } from "./components/ScanProgress";
 import { QueueNotificationManager } from "./components/QueueNotificationManager";
+import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
 
 function App() {
 	const [ownedOnly, setOwnedOnly] = useState(false);
@@ -58,7 +59,8 @@ function App() {
 				</div>
 			</div>
 
-			{/* Toast Container */}
+			{/* Global Components */}
+			<GlobalPreviewPlayer />
 			<CustomToast />
 		</div>
 	);
