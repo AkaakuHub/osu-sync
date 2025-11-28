@@ -84,3 +84,23 @@
 		width: 0%;
 	}
 }
+
+/* 音量スライダーのサムネイルスタイル */
+.slider-volume-thumb::-webkit-slider-thumb {
+	appearance: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: hsl(var(--success));
+	cursor: pointer;
+	border: none;
+}
+
+.slider-volume-thumb::-moz-range-thumb {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: hsl(var(--success));
+	cursor: pointer;
+	border: none;
+}

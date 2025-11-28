@@ -1,5 +1,5 @@
 import type React from "react";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 export type CurrentTrack = {
 	id: number;
@@ -13,8 +13,12 @@ type Props = {
 	previewingId: number | null;
 	playbackProgress: number;
 	isActuallyPlaying: boolean;
+	volume: number;
+	isMuted: boolean;
 	onToggle: () => void;
 	onSeek: (fraction: number) => void;
+	onVolumeChange: (volume: number) => void;
+	onToggleMute: () => void;
 };
 
 const PreviewPlayer: React.FC<Props> = ({
@@ -22,8 +26,12 @@ const PreviewPlayer: React.FC<Props> = ({
 	previewingId,
 	playbackProgress,
 	isActuallyPlaying,
+	volume,
+	isMuted,
 	onToggle,
 	onSeek,
+	onVolumeChange,
+	onToggleMute,
 }) => (
 	<div className="fixed top-4 right-4 z-30">
 		{currentTrack ? (
@@ -32,7 +40,7 @@ const PreviewPlayer: React.FC<Props> = ({
 					<button
 						className="h-7 w-7 rounded-full bg-success/80 text-success-foreground flex items-center justify-center hover:bg-success transition-colors flex-shrink-0"
 						onClick={onToggle}
-						title="再生 / 停止"
+						title="play / pause"
 					>
 						{previewingId === currentTrack.id && isActuallyPlaying ? (
 							<Pause className="w-3 h-3" />
@@ -60,6 +68,30 @@ const PreviewPlayer: React.FC<Props> = ({
 						className="h-full bg-gradient-to-r from-success to-accent transition-[width] duration-150"
 						style={{ width: `${Math.min(playbackProgress * 100, 100)}%` }}
 					/>
+				</div>
+
+				{/* Compact Volume Control */}
+				<div className="flex items-center gap-1 mt-2">
+					<button
+						className="w-3 h-3 text-text-secondary flex-shrink-0 hover:text-text transition-colors"
+						onClick={onToggleMute}
+						title={isMuted ? "ミュート解除" : "ミュート"}
+					>
+						{isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+					</button>
+					<div
+						className="flex-1 h-1 bg-surface-variant rounded-full relative cursor-pointer"
+						onClick={(e) => {
+							const rect = e.currentTarget.getBoundingClientRect();
+							const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+							onVolumeChange(fraction);
+						}}
+					>
+						<div
+							className="h-full bg-success rounded-full transition-all duration-150"
+							style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+						/>
+					</div>
 				</div>
 			</div>
 		) : null}

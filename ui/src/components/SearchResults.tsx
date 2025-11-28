@@ -38,6 +38,9 @@ const SearchResults: React.FC<Props> = ({
 	const [playbackProgress, setPlaybackProgress] = React.useState(0);
 	const [duration, setDuration] = React.useState(0);
 	const [currentTrack, setCurrentTrack] = React.useState<CurrentTrack | null>(null);
+	const [volume, setVolume] = React.useState(0.7);
+	const [isMuted, setIsMuted] = React.useState(false);
+	const [previousVolume, setPreviousVolume] = React.useState(0.7);
 
 	const data = searchData;
 
@@ -170,7 +173,7 @@ const SearchResults: React.FC<Props> = ({
 
 				const howl = new Howl({
 					src: [item.preview_url || ""],
-					volume: 0.7,
+					volume: volume,
 					html5: true,
 					preload: true, // プリロードを有効化
 					onend: () => {
@@ -254,6 +257,34 @@ const SearchResults: React.FC<Props> = ({
 		const target = duration * fraction;
 		howlRef.current.seek(target);
 		setPlaybackProgress(fraction);
+	};
+
+	const handleVolumeChange = (newVolume: number) => {
+		setVolume(newVolume);
+		if (!isMuted) {
+			setPreviousVolume(newVolume);
+		}
+		if (howlRef.current) {
+			howlRef.current.volume(isMuted ? 0 : newVolume);
+		}
+	};
+
+	const handleToggleMute = () => {
+		if (isMuted) {
+			// ミュート解除：直前の音量に戻す
+			setIsMuted(false);
+			setVolume(previousVolume);
+			if (howlRef.current) {
+				howlRef.current.volume(previousVolume);
+			}
+		} else {
+			// ミュート：現在の音量を保存して0に設定
+			setIsMuted(true);
+			setPreviousVolume(volume);
+			if (howlRef.current) {
+				howlRef.current.volume(0);
+			}
+		}
 	};
 
 	const getActionState = React.useCallback(
@@ -382,8 +413,12 @@ const SearchResults: React.FC<Props> = ({
 				previewingId={previewingId}
 				playbackProgress={playbackProgress}
 				isActuallyPlaying={isActuallyPlaying}
+				volume={volume}
+				isMuted={isMuted}
 				onToggle={handlePlayerToggle}
 				onSeek={seekTo}
+				onVolumeChange={handleVolumeChange}
+				onToggleMute={handleToggleMute}
 			/>
 		</div>
 	);
