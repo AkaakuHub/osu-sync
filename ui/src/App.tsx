@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, Download, Settings } from "lucide-react";
-import { Toaster } from "react-hot-toast";
 import Tabs from "./components/ui/Tabs";
+import { CustomToast } from "./components/ui/Toast";
 import SearchPage from "./components/pages/SearchPage";
 import QueuePage from "./components/pages/QueuePage";
 import SettingsPage from "./components/pages/SettingsPage";
@@ -59,38 +59,7 @@ function App() {
 			</div>
 
 			{/* Toast Container */}
-			<Toaster
-				position="top-center"
-				toastOptions={{
-					duration: 4000,
-					style: {
-						background: "var(--color-surface)",
-						color: "var(--color-text)",
-						border: "1px solid var(--color-border)",
-						fontSize: "14px",
-						borderRadius: "8px",
-						boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
-					},
-					success: {
-						iconTheme: {
-							primary: "var(--color-success)",
-							secondary: "var(--color-surface)",
-						},
-					},
-					error: {
-						iconTheme: {
-							primary: "var(--color-error)",
-							secondary: "var(--color-surface)",
-						},
-					},
-					loading: {
-						iconTheme: {
-							primary: "var(--color-primary)",
-							secondary: "var(--color-surface)",
-						},
-					},
-				}}
-			/>
+			<CustomToast />
 		</div>
 	);
 }
