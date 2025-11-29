@@ -1,5 +1,5 @@
 import React from "react";
-import { Pause, Play, Volume2, VolumeX, Menu, Music2 } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX, Menu, Music2, Minimize2, Maximize2 } from "lucide-react";
 
 export type CurrentTrack = {
 	id: number;
@@ -20,6 +20,8 @@ type Props = {
 	onSeek: (fraction: number) => void;
 	onVolumeChange: (volume: number) => void;
 	onToggleMute: () => void;
+	isMinimized: boolean;
+	onToggleMinimize: () => void;
 };
 
 const PreviewPlayer: React.FC<Props> = ({
@@ -33,6 +35,8 @@ const PreviewPlayer: React.FC<Props> = ({
 	onSeek,
 	onVolumeChange,
 	onToggleMute,
+	isMinimized,
+	onToggleMinimize,
 }) => {
 	const [position, setPosition] = React.useState({ x: 0, y: 0 });
 	const [isDragging, setIsDragging] = React.useState(false);
@@ -125,93 +129,112 @@ const PreviewPlayer: React.FC<Props> = ({
 				transform: `translate(${position.x}px, ${position.y}px)`,
 			}}
 		>
-			<div className="bg-surface/95 backdrop-blur-md border border-border rounded-lg shadow-xl overflow-hidden w-56">
-				{/* Windows風タイトルバー */}
-				<div
-					className="bg-surface-variant/80 h-6 flex items-center justify-between px-2 cursor-move border-b border-border"
-					onMouseDown={handleMouseDown}
+			{isMinimized ? (
+				<button
+					className="h-6 w-6 mr-1 rounded-full bg-surface-variant border border-border shadow-lg flex items-center justify-center hover:bg-surface transition-colors"
+					onClick={onToggleMinimize}
+					title="Expand player"
 				>
-					<Menu className="w-3 h-3 text-text-secondary" />
-					<div className="w-3 h-3" /> {/* close ボタンのスペースを保持して整列 */}
-				</div>
-
-				{/* 既存のコンテンツ */}
-				<div className="p-2">
-					<div className="w-full h-20 rounded mb-2 overflow-hidden bg-surface-variant flex items-center justify-center">
-						{coverUrl ? (
-							<img src={coverUrl} alt={`${title} cover`} className="w-full h-full object-cover" />
-						) : (
-							<div className="flex items-center gap-2 text-text-muted text-xs">
-								<Music2 className="w-4 h-4" />
-								<span>No sound</span>
-							</div>
-						)}
-					</div>
-					<div className="flex items-center gap-2">
+					<Maximize2 className="w-3 h-3 text-text" />
+				</button>
+			) : (
+				<div className="bg-surface/95 backdrop-blur-md border border-border rounded-lg shadow-xl overflow-hidden w-56">
+					{/* タイトルバー */}
+					<div
+						className="bg-surface-variant/80 h-6 flex items-center justify-between px-2 cursor-move border-b border-border"
+						onMouseDown={handleMouseDown}
+					>
+						<Menu className="w-3 h-3 text-text-secondary" />
 						<button
-							className={`h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-								hasTrack
-									? "bg-success/80 text-success-foreground hover:bg-success"
-									: "bg-surface-variant text-text-muted cursor-not-allowed"
-							}`}
-							onClick={hasTrack ? onToggle : undefined}
-							disabled={!hasTrack}
-							title={hasTrack ? "play / pause" : "No preview available"}
+							className="w-4 h-4 text-text-secondary hover:text-text-foreground transition-colors flex items-center justify-center"
+							onClick={(e) => {
+								e.stopPropagation();
+								onToggleMinimize();
+							}}
+							title="Minimize"
 						>
-							{hasTrack && previewingId === currentTrack?.id && isActuallyPlaying ? (
-								<Pause className="w-3 h-3" />
-							) : (
-								<Play className="w-3 h-3" fill="currentColor" />
-							)}
+							<Minimize2 className="w-3 h-3" />
 						</button>
-						<div className="flex-1 min-w-0">
-							<div className="text-xs font-medium text-surface-foreground truncate">{title}</div>
-							<div className="text-[10px] text-text-secondary truncate">
-								{artist || (hasTrack ? "" : "No preview playing")}
+					</div>
+
+					{/* コンテンツ */}
+					<div className="p-2">
+						<div className="w-full h-20 rounded mb-2 overflow-hidden bg-surface-variant flex items-center justify-center">
+							{coverUrl ? (
+								<img src={coverUrl} alt={`${title} cover`} className="w-full h-full object-cover" />
+							) : (
+								<div className="flex items-center gap-2 text-text-muted text-xs">
+									<Music2 className="w-4 h-4" />
+									<span>No sound</span>
+								</div>
+							)}
+						</div>
+						<div className="flex items-center gap-2">
+							<button
+								className={`h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+									hasTrack
+										? "bg-success/80 text-success-foreground hover:bg-success"
+										: "bg-surface-variant text-text-muted cursor-not-allowed"
+								}`}
+								onClick={hasTrack ? onToggle : undefined}
+								disabled={!hasTrack}
+								title={hasTrack ? "play / pause" : "No preview available"}
+							>
+								{hasTrack && previewingId === currentTrack?.id && isActuallyPlaying ? (
+									<Pause className="w-3 h-3" />
+								) : (
+									<Play className="w-3 h-3" fill="currentColor" />
+								)}
+							</button>
+							<div className="flex-1 min-w-0">
+								<div className="text-xs font-medium text-surface-foreground truncate">{title}</div>
+								<div className="text-[10px] text-text-secondary truncate">
+									{artist || (hasTrack ? "" : "No preview playing")}
+								</div>
 							</div>
 						</div>
-					</div>
-					{/* Mini Progress Bar */}
-					<div
-						className={`h-1 bg-surface-variant rounded-full mt-2 overflow-hidden ${hasTrack ? "cursor-pointer" : "opacity-50"}`}
-						onClick={(e) => {
-							if (!hasTrack) return;
-							const rect = e.currentTarget.getBoundingClientRect();
-							const fraction = (e.clientX - rect.left) / rect.width;
-							onSeek(Math.max(0, Math.min(1, fraction)));
-						}}
-					>
+						{/* Mini Progress Bar */}
 						<div
-							className="h-full bg-gradient-to-r from-success to-accent transition-[width] duration-150"
-							style={{ width: `${Math.min(playbackProgress * 100, 100)}%` }}
-						/>
-					</div>
-
-					{/* Compact Volume Control */}
-					<div className="flex items-center gap-1 mt-2">
-						<button
-							className="w-3 h-3 text-text-secondary flex-shrink-0 hover:text-text transition-colors"
-							onClick={onToggleMute}
-							title={isMuted ? "ミュート解除" : "ミュート"}
-						>
-							{isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
-						</button>
-						<div
-							className="flex-1 h-1 bg-surface-variant rounded-full relative cursor-pointer"
+							className={`h-1 bg-surface-variant rounded-full mt-2 overflow-hidden ${hasTrack ? "cursor-pointer" : "opacity-50"}`}
 							onClick={(e) => {
+								if (!hasTrack) return;
 								const rect = e.currentTarget.getBoundingClientRect();
-								const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-								onVolumeChange(fraction);
+								const fraction = (e.clientX - rect.left) / rect.width;
+								onSeek(Math.max(0, Math.min(1, fraction)));
 							}}
 						>
 							<div
-								className="h-full bg-success rounded-full transition-all duration-150"
-								style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+								className="h-full bg-gradient-to-r from-success to-accent transition-[width] duration-150"
+								style={{ width: `${Math.min(playbackProgress * 100, 100)}%` }}
 							/>
+						</div>
+
+						{/* Compact Volume Control */}
+						<div className="flex items-center gap-1 mt-2">
+							<button
+								className="w-3 h-3 text-text-secondary flex-shrink-0 hover:text-text transition-colors"
+								onClick={onToggleMute}
+								title={isMuted ? "ミュート解除" : "ミュート"}
+							>
+								{isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+							</button>
+							<div
+								className="flex-1 h-1 bg-surface-variant rounded-full relative cursor-pointer"
+								onClick={(e) => {
+									const rect = e.currentTarget.getBoundingClientRect();
+									const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+									onVolumeChange(fraction);
+								}}
+							>
+								<div
+									className="h-full bg-success rounded-full transition-all duration-150"
+									style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+								/>
+							</div>
 						</div>
 					</div>
 				</div>
-			</div>
+			)}
 		</div>
 	);
 };

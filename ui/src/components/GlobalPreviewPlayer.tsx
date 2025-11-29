@@ -18,6 +18,7 @@ const GlobalPreviewPlayer: React.FC = () => {
 	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
 	const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
 	const [isActuallyPlaying, setIsActuallyPlaying] = React.useState(false);
+	const [isMinimized, setIsMinimized] = React.useState(false);
 	const howlRef = React.useRef<Howl | null>(null);
 	const progressTimer = React.useRef<number | null>(null);
 	const [playbackProgress, setPlaybackProgress] = React.useState(0);
@@ -421,6 +422,8 @@ const GlobalPreviewPlayer: React.FC = () => {
 				onSeek={seekTo}
 				onVolumeChange={handleVolumeChange}
 				onToggleMute={handleToggleMute}
+				isMinimized={isMinimized}
+				onToggleMinimize={() => setIsMinimized((v) => !v)}
 			/>
 		</div>
 	);
