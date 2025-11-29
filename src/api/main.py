@@ -352,18 +352,32 @@ def create_app() -> FastAPI:
         }
         filtered = {k: v for k, v in payload.items() if k in allowed}
         settings.persist(filtered)
-        # 反映
-        app.state.index = SongIndex(osu_db_path=settings.osu_db_path, songs_dir=settings.songs_dir)
-        await app.state.index.refresh()
-        app.state.downloader = DownloadManager(
-            songs_dir=settings.songs_dir,
-            url_template=settings.download_url_template,
-            max_concurrency=settings.max_concurrency,
-            requests_per_minute=settings.requests_per_minute,
-            index=app.state.index,
-        )
-        await app.state.downloader.start_workers()
-        build_osu_client()
+
+        # songs_dir, download_url_template, max_concurrency, requests_per_minute が変更された場合のみ再構築
+        needs_rebuild = any(key in filtered for key in [
+            "songs_dir", "download_url_template", "max_concurrency", "requests_per_minute"
+        ])
+
+        # osu_client_id, osu_client_secret が変更された場合のみ再構築
+        needs_client_rebuild = any(key in filtered for key in [
+            "osu_client_id", "osu_client_secret"
+        ])
+
+        if needs_rebuild:
+            app.state.index = SongIndex(osu_db_path=settings.osu_db_path, songs_dir=settings.songs_dir)
+            await app.state.index.refresh()
+            app.state.downloader = DownloadManager(
+                songs_dir=settings.songs_dir,
+                url_template=settings.download_url_template,
+                max_concurrency=settings.max_concurrency,
+                requests_per_minute=settings.requests_per_minute,
+                index=app.state.index,
+            )
+            await app.state.downloader.start_workers()
+
+        if needs_client_rebuild:
+            build_osu_client()
+
         return {"status": "ok"}
 
     app.include_router(api)
