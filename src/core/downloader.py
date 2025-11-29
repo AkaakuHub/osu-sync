@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 import zipfile
 from dataclasses import dataclass, field
@@ -9,6 +10,8 @@ import httpx
 from aiolimiter import AsyncLimiter
 
 from core.scanner import SongIndex
+
+logger = logging.getLogger("osu_sync.downloader")
 
 
 @dataclass
@@ -57,6 +60,13 @@ class DownloadManager:
         self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
         self._client = httpx.AsyncClient(follow_redirects=True, timeout=60)
         self._event_bus = event_bus
+        logger.info(
+            "Downloader initialized songs_dir=%s template=%s max_concurrency=%s rpm=%s",
+            self.songs_dir,
+            self.url_template,
+            self.max_concurrency,
+            requests_per_minute,
+        )
 
     def enqueue(self, set_ids: List[int], metadata: Optional[Dict[int, Dict[str, str]]] = None) -> List[DownloadTask]:
         new_tasks: List[DownloadTask] = []
@@ -81,6 +91,7 @@ class DownloadManager:
             self._queue.put_nowait(task)
             new_tasks.append(task)
         if new_tasks:
+            logger.info("Enqueued downloads: %s", [t.set_id for t in new_tasks])
             self._publish_status()
         return new_tasks
 
@@ -102,6 +113,7 @@ class DownloadManager:
             task.bytes_downloaded = 0
             self._publish_status()
             try:
+                logger.info("Start download set_id=%s url=%s", task.set_id, task.url)
                 await self._download(task)
                 if task.status not in {"failed", "skipped"}:
                     task.status = "completed"
@@ -110,6 +122,7 @@ class DownloadManager:
             except Exception as exc:  # noqa: BLE001
                 task.status = "failed"
                 task.message = str(exc)
+                logger.exception("Download failed set_id=%s url=%s error=%s", task.set_id, task.url, exc)
             finally:
                 self._queue.task_done()
                 self._publish_status()
@@ -130,11 +143,36 @@ class DownloadManager:
             if self.index:
                 self.index.mark_owned(task.set_id)
             self._publish_status()
+            logger.info("Skip download (exists) set_id=%s path=%s", task.set_id, existing_archive)
             return
 
         async with self._limiter:
             async with self._client.stream("GET", task.url) as resp:
                 resp.raise_for_status()
+                content_type = (resp.headers.get("content-type") or "").lower()
+                logger.info(
+                    "HTTP start set_id=%s status=%s content_length=%s content_type=%s final_url=%s",
+                    task.set_id,
+                    resp.status_code,
+                    resp.headers.get("content-length"),
+                    content_type,
+                    resp.url,
+                )
+
+                # HTMLなど明らかに .osz でない場合は即失敗させる
+                if not any(x in content_type for x in ("zip", "octet-stream", "osu")):
+                    snippet = await resp.aread()
+                    task.status = "failed"
+                    task.message = f"unexpected content-type: {content_type}"
+                    logger.error(
+                        "Abort download set_id=%s due to content-type=%s size=%s first256=%r",
+                        task.set_id,
+                        content_type,
+                        len(snippet),
+                        snippet[:256],
+                    )
+                    return
+
                 tmp_path = self.songs_dir / f"{task.set_id}-{int(time.time()*1000)}.part"
                 task.started_at = time.time()
                 task.updated_at = task.started_at
@@ -175,6 +213,46 @@ class DownloadManager:
                 tmp_path.rename(archive_path)
                 task.archive_path = archive_path
                 task.path = archive_path
+                duration = time.time() - (task.started_at or time.time())
+                size = archive_path.stat().st_size
+                logger.info(
+                    "HTTP done set_id=%s bytes=%s elapsed=%.2fs content_length=%s path=%s",
+                    task.set_id,
+                    size,
+                    duration,
+                    task.total_bytes,
+                    archive_path,
+                )
+                if task.total_bytes and size != task.total_bytes:
+                    logger.warning(
+                        "Size mismatch set_id=%s expected=%s actual=%s url=%s",
+                        task.set_id,
+                        task.total_bytes,
+                        size,
+                        task.url,
+                    )
+                if not zipfile.is_zipfile(archive_path):
+                    task.status = "failed"
+                    task.message = "downloaded file is not a valid zip/osz"
+                    logger.error(
+                        "Invalid archive set_id=%s size=%sB content_type=%s url=%s",
+                        task.set_id,
+                        size,
+                        content_type,
+                        task.url,
+                    )
+                    try:
+                        archive_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    return
+                if size < 20_000:  # だいたい 11KB 近辺の壊れを拾う
+                    logger.warning(
+                        "Downloaded file is unusually small set_id=%s size=%sB url=%s",
+                        task.set_id,
+                        size,
+                        task.url,
+                    )
 
         if self.index:
             meta = None
@@ -263,6 +341,7 @@ class DownloadManager:
                     if parsed:
                         return parsed
         except zipfile.BadZipFile:
+            logger.warning("BadZipFile while parsing %s", archive_path)
             return None
         return None
 

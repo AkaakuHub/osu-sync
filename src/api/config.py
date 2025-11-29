@@ -30,37 +30,54 @@ class SettingsStore:
 class Settings:
     """
     まとめて使う環境設定。環境変数が優先され、無ければ設定ファイルの値を使う。
+    初回起動時は設定ファイルを defaults で初期化する。
     """
 
     def __init__(self) -> None:
-        settings_dir = Path(os.getenv("OSUSYNC_CONFIG_DIR", Path.home() / ".osu-sync"))
+        # デフォルトの設定ディレクトリを XDG 準拠 (~/.config/osu-sync) に変更
+        settings_dir = Path(
+            os.getenv("OSUSYNC_CONFIG_DIR", Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")) / "osu-sync")
+        )
         self.store = SettingsStore(settings_dir / "settings.json")
+
+        defaults = {
+            "osu_client_id": None,
+            "osu_client_secret": None,
+            "songs_dir": os.path.expanduser("~/AppData/Local/osu!/Songs"),
+            "osu_db_path": os.path.expanduser("~/AppData/Local/osu!/osu!.db"),
+            # 公式DLはクッキーが必要なため、デフォルトミラーを nerinyan に
+            "download_url_template": "https://api.nerinyan.moe/d/{set_id}",
+            "max_concurrency": 3,
+            "requests_per_minute": 60,
+            "player_volume": 0.7,
+        }
+
+        file_existed = self.store.path.exists()
         data = self.store.load()
+
+        # 初回起動またはキー不足時に defaults で埋めて保存
+        updated = False
+        for key, value in defaults.items():
+            if key not in data:
+                data[key] = value
+                updated = True
+        if not file_existed or updated:
+            data = self.store.save(data)
 
         self.osu_client_id: Optional[int] = self._read_int("OSU_CLIENT_ID") or self._coerce_int(
             data.get("osu_client_id")
         )
         self.osu_client_secret: Optional[str] = os.getenv("OSU_CLIENT_SECRET") or data.get("osu_client_secret")
 
-        # osu! の標準 Songs ディレクトリ（Windows を想定）。
-        default_songs = os.path.expanduser("~/AppData/Local/osu!/Songs")
-        self.songs_dir: str = os.getenv("OSU_SONGS_DIR", data.get("songs_dir", default_songs))
+        self.songs_dir: str = os.getenv("OSU_SONGS_DIR", data.get("songs_dir"))
+        self.osu_db_path: str = os.getenv("OSU_DB_PATH", data.get("osu_db_path"))
 
-        # osu!.db のパス
-        default_osu_db = os.path.expanduser("~/AppData/Local/osu!/osu!.db")
-        self.osu_db_path: str = os.getenv("OSU_DB_PATH", data.get("osu_db_path", default_osu_db))
+        self.download_url_template: str = os.getenv("OSU_DOWNLOAD_URL_TEMPLATE", data.get("download_url_template"))
 
-        # DLに使うミラー。公式DLにはクッキーが要るため、まずはBeatconnectを既定。
-        self.download_url_template: str = os.getenv(
-            "OSU_DOWNLOAD_URL_TEMPLATE", data.get("download_url_template", "https://beatconnect.io/b/{set_id}")
-        )
+        self.max_concurrency: int = int(os.getenv("OSU_DL_CONCURRENCY", data.get("max_concurrency")))
+        self.requests_per_minute: int = int(os.getenv("OSU_DL_RPM", data.get("requests_per_minute")))
 
-        # 並列DL数／レート制限
-        self.max_concurrency: int = int(os.getenv("OSU_DL_CONCURRENCY", data.get("max_concurrency", 3)))
-        self.requests_per_minute: int = int(os.getenv("OSU_DL_RPM", data.get("requests_per_minute", 60)))
-
-        # ミニプレイヤーの音量設定（0.0-1.0）
-        self.player_volume: float = float(os.getenv("OSU_PLAYER_VOLUME", data.get("player_volume", 0.7)))
+        self.player_volume: float = float(os.getenv("OSU_PLAYER_VOLUME", data.get("player_volume")))
 
         # リスキャン対象拡張子
         self.scan_extensions = [".osu", ".osz"]

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import platform
 import subprocess
@@ -29,6 +30,7 @@ from api.schemas import (
 
 
 API_PREFIX = "/api"
+logger = logging.getLogger("osu_sync.api")
 
 
 class EventBus:
@@ -81,6 +83,10 @@ def reveal_in_file_manager(path: Path, *, select: bool = False) -> None:
 
 
 def create_app() -> FastAPI:
+    # ルートロガーのデフォルト設定が無ければ最低限 INFO で出す
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
     app = FastAPI(title="osu-sync", version="0.1.0")
     api = APIRouter(prefix=API_PREFIX)
     app.state.event_bus = EventBus()
@@ -121,6 +127,13 @@ def create_app() -> FastAPI:
         requests_per_minute=settings.requests_per_minute,
         index=app.state.index,
         event_bus=app.state.event_bus,
+    )
+    logger.info(
+        "App init songs_dir=%s template=%s max_concurrency=%s rpm=%s",
+        settings.songs_dir,
+        settings.download_url_template,
+        settings.max_concurrency,
+        settings.requests_per_minute,
     )
 
     def build_osu_client() -> None:
@@ -340,6 +353,12 @@ def create_app() -> FastAPI:
     @api.post("/download", response_model=QueueStatus)
     async def download(req: DownloadRequest) -> QueueStatus:
         missing = [s for s in req.set_ids if not app.state.index.owned(s)]
+        logger.info(
+            "POST /download requested=%s missing=%s metadata_keys=%s",
+            req.set_ids,
+            missing,
+            list(req.metadata.keys()) if req.metadata else [],
+        )
         if not missing:
             return QueueStatus(**app.state.downloader.status())
         app.state.downloader.enqueue(missing, req.metadata)
