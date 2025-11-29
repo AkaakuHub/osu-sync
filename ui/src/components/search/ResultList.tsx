@@ -16,8 +16,6 @@ type Props = {
 	triggerDownload: (setId: number) => void;
 	getActionState: (setId: number, baseOwned: boolean) => ActionState;
 	endReached?: () => void;
-	isLoadingMore?: boolean;
-	hasMore?: boolean;
 };
 
 const ResultList: React.FC<Props> = ({
@@ -32,8 +30,6 @@ const ResultList: React.FC<Props> = ({
 	triggerDownload,
 	getActionState,
 	endReached,
-	isLoadingMore = false,
-	hasMore = true,
 }) => {
 	// Pair items for 2-column layout
 	const pairedItems = items.reduce<

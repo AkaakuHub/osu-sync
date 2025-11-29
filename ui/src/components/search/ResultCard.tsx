@@ -13,7 +13,7 @@ import {
 
 export type PreviewableItem = Pick<
 	SearchResponse["results"][number],
-	"set_id" | "title" | "artist" | "preview_url"
+	"set_id" | "title" | "artist" | "preview_url" | "cover_url"
 >;
 
 type Props = {

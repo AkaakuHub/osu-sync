@@ -287,8 +287,6 @@ const SearchResults: React.FC<Props> = ({
 						triggerDownload={handleDownload}
 						getActionState={getActionState}
 						endReached={handleLoadMore}
-						isLoadingMore={isFetchingMore}
-						hasMore={hasMore}
 					/>
 
 					{/* ローディングインジケーター */}

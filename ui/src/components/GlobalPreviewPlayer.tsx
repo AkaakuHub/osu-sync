@@ -35,6 +35,10 @@ const GlobalPreviewPlayer: React.FC = () => {
 		setCurrentTrack(null);
 	}, []);
 
+	const handleClosePlayer = React.useCallback(() => {
+		stopPreview();
+	}, [stopPreview]);
+
 	const togglePreview = React.useCallback(
 		(item: PreviewableItem) => {
 			if (!item.preview_url) return;
@@ -75,7 +79,8 @@ const GlobalPreviewPlayer: React.FC = () => {
 					id: item.set_id,
 					title: item.title,
 					artist: item.artist,
-					preview: item.preview_url || "",
+					preview: item.preview_url as string,
+					cover_url: item.cover_url as string,
 				});
 
 				const howl = new Howl({
@@ -262,6 +267,7 @@ const GlobalPreviewPlayer: React.FC = () => {
 					onSeek={seekTo}
 					onVolumeChange={handleVolumeChange}
 					onToggleMute={handleToggleMute}
+					onClose={handleClosePlayer}
 				/>
 			) : null}
 		</div>
