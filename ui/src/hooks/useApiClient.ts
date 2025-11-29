@@ -1,3 +1,5 @@
+import { BeatmapStatus } from "@/components/search/types";
+
 // API client singleton
 class ApiClient {
 	private baseUrl: string = "";
@@ -42,15 +44,6 @@ export const apiClient = new ApiClient();
 // Set base URL for API calls
 apiClient.setBaseUrl("http://127.0.0.1:8000/api");
 
-// Types
-type BeatmapStatus =
-	| "graveyard"
-	| "wip"
-	| "pending"
-	| "ranked"
-	| "approved"
-	| "qualified"
-	| "loved";
 interface SearchResult {
 	set_id: number;
 	artist: string;

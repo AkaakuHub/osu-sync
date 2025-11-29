@@ -11,6 +11,7 @@ import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Toggle from "../ui/Toggle";
 import SearchResults from "../SearchResults";
+import { FilterPanel } from "../search/FilterPanel";
 
 type Props = {
 	ownedOnly: boolean;
@@ -29,24 +30,89 @@ const SearchPage: React.FC<Props> = ({
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 	const [currentPage, setCurrentPage] = useState(1);
+	const [searchFilters, setSearchFilters] = useState<any>({});
+
+	// フィルターパラメータを構築 - 公式APIのURL短縮形に完全対応
+	const buildSearchQuery = () => {
+		const params = new URLSearchParams();
+
+		// 基本検索クエリ（全検索の場合も空文字で送信）
+		params.set("q", searchQuery || "");
+
+		// フィルターを適用 - 公式APIの短縮形パラメータ名を使用
+		if (searchFilters.status && searchFilters.status !== "any") {
+			params.set("s", searchFilters.status);
+		}
+
+		if (searchFilters.mode && searchFilters.mode !== "null") {
+			params.set("m", searchFilters.mode);
+		}
+
+		// ジャンル - カンマ区切り（公式形式）
+		if (searchFilters.genre && searchFilters.genre.length > 0) {
+			params.set("g", searchFilters.genre.join(","));
+		}
+
+		// 言語 - カンマ区切り（公式形式）
+		if (searchFilters.language && searchFilters.language.length > 0) {
+			params.set("l", searchFilters.language.join(",")); // lang -> l (公式API)
+		}
+
+		// エクストラ - ドット区切り（公式形式）
+		if (searchFilters.extra && searchFilters.extra.length > 0) {
+			params.set("e", searchFilters.extra.join("."));
+		}
+
+		// 一般フィルター - ドット区切り（公式形式）
+		if (searchFilters.general && searchFilters.general.length > 0) {
+			params.set("c", searchFilters.general.join("."));
+		}
+
+		// NSFW - 文字列で送信（公式形式）
+		if (searchFilters.nsfw !== undefined) {
+			params.set("nsfw", searchFilters.nsfw.toString());
+		}
+
+		// プレイ済みフィルター
+		if (searchFilters.played && searchFilters.played !== "any") {
+			params.set("played", searchFilters.played);
+		}
+
+		// ランクフィルター - ドット区切り（公式形式）
+		if (searchFilters.rank && searchFilters.rank.length > 0) {
+			params.set("r", searchFilters.rank.join(".")); // rank -> r (公式API)
+		}
+
+		// ソート - field_order形式（公式形式）
+		if (searchFilters.sortField && searchFilters.sortOrder) {
+			params.set("sort", `${searchFilters.sortField}_${searchFilters.sortOrder}`);
+		}
+
+		// ページネーション
+		params.set("limit", "20");
+		params.set("page", currentPage.toString());
+
+		return params.toString();
+	};
 
 	const { data: searchResults, isFetching: searchLoading } = useQuery<SearchResponse>({
-		queryKey: ["search", searchQuery, currentPage],
+		queryKey: ["search", searchQuery, currentPage, searchFilters],
 		queryFn: async () => {
-			if (searchQuery.length < 2) return { results: [], total: 0, page: 1, limit: 20 };
-			return apiClient.get(
-				`/search?q=${encodeURIComponent(searchQuery)}&limit=20&page=${currentPage}`,
-			);
+			const query = buildSearchQuery();
+			console.log("DEBUG Frontend: searchQuery =", JSON.stringify(searchQuery));
+			console.log("DEBUG Frontend: searchFilters =", JSON.stringify(searchFilters));
+			console.log("DEBUG Frontend: buildQuery =", query);
+			const endpoint = query ? `/search?${query}` : `/search?q=&limit=20&page=${currentPage}`;
+			console.log("DEBUG Frontend: endpoint =", endpoint);
+			return apiClient.get(endpoint);
 		},
-		enabled: searchQuery.length >= 2,
+		enabled: true,
 	});
 
 	// 新規クエリで検索した場合はページングをリセット
 	useEffect(() => {
-		if (searchQuery && searchQuery.length >= 2) {
-			setCurrentPage(1);
-		}
-	}, [searchQuery]);
+		setCurrentPage(1);
+	}, [searchQuery, searchFilters]);
 
 	const {
 		data: index,
@@ -104,6 +170,18 @@ const SearchPage: React.FC<Props> = ({
 						variant="search"
 					/>
 				</div>
+			</div>
+
+			{/* Filter Panel */}
+			<div className="px-4 pb-3 flex-shrink-0">
+				<FilterPanel
+					onFiltersChange={(filters) => {
+						// フィルター変更時に即時反映
+						setSearchFilters(filters);
+						setCurrentPage(1); // ページをリセット
+					}}
+					isSupporter={false} // TODO: ユーザーのサポーター状態を取得
+				/>
 			</div>
 
 			{/* Search Results */}

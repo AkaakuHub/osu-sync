@@ -25,9 +25,15 @@ class OsuApiClient:
 
     async def _ensure_token(self) -> str:
         now = time.time()
-        if self._token and now < self._token_exp - 30:
+        # 5分以上残っている場合は現在のトークンを使用
+        if self._token and now < (self._token_exp - 300):
             return self._token
 
+        print("DEBUG: Token expired or missing, getting new token...")
+        return await self._get_new_token()
+
+    async def _get_new_token(self) -> str:
+        now = time.time()
         data = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -40,13 +46,49 @@ class OsuApiClient:
         payload = resp.json()
         self._token = payload["access_token"]
         self._token_exp = now + payload.get("expires_in", 3600)
-        return self._token
+        return self._tokend
 
-    async def search_beatmapsets(self, q: str, page: int = 1, limit: int = 20) -> Dict[str, Any]:
+    async def search_beatmapsets(self, q: str = "", page: int = 1, limit: int = 20, s: Optional[str] = None, m: Optional[str] = None, e: Optional[str] = None, c: Optional[str] = None, g: Optional[str] = None, l: Optional[str] = None, nsfw: Optional[bool] = None, sort: Optional[str] = None, played: Optional[str] = None, r: Optional[str] = None) -> Dict[str, Any]:  # noqa: E741
         token = await self._ensure_token()
         params = {"q": q, "page": page, "limit": limit}
+
+        # osu! API v2は個別パラメータ形式をサポート
+        # URL短縮形パラメータを追加
+        if s is not None:
+            params["s"] = s
+        if m is not None:
+            params["m"] = m
+        if e is not None:
+            params["e"] = e
+        if c is not None:
+            params["c"] = c
+        if g is not None:
+            params["g"] = g
+        if l is not None:
+            params["l"] = l
+        if nsfw is not None:
+            params["nsfw"] = str(nsfw).lower()
+        if sort is not None:
+            params["sort"] = sort
+        if played is not None:
+            params["played"] = played
+        if r is not None:
+            params["r"] = r
+
         headers = {"Authorization": f"Bearer {token}"}
+
+        # デバッグ: 実際に送信しているURLをログ出力
+        import urllib.parse
+        query_string = urllib.parse.urlencode(params)
+        full_url = f"{self.SEARCH_URL}?{query_string}"
+        print(f"DEBUG: Sending request to: {full_url}")
+
         resp = await self._client.get(self.SEARCH_URL, params=params, headers=headers)
+        print(f"DEBUG: Response status: {resp.status_code}")
+
         if resp.status_code != 200:
             raise HTTPException(status_code=resp.status_code, detail=f"osu! API error: {resp.status_code} {resp.text}")
-        return resp.json()
+
+        result = resp.json()
+        print(f"DEBUG: Response total: {result.get('total', 'unknown')}")
+        return result

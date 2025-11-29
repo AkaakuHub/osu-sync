@@ -3,6 +3,7 @@ import os
 import platform
 import subprocess
 from pathlib import Path
+from typing import Optional
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
@@ -225,12 +226,45 @@ def create_app() -> FastAPI:
 
     @api.get("/search", response_model=SearchResponse)
     async def search(
-        q: str,
+        q: Optional[str] = None,
         page: int = 1,
         limit: int = 20,
+        s: Optional[str] = None,  # status
+        m: Optional[str] = None,  # mode
+        e: Optional[str] = None,  # extra
+        c: Optional[str] = None,  # general
+        g: Optional[str] = None,  # genre
+        l: Optional[str] = None,  # language (公式APIの短縮形)
+        nsfw: Optional[bool] = None,
+        sort: Optional[str] = None,
+        played: Optional[str] = None,
+        rank: Optional[str] = None,
         osu: OsuApiClient = Depends(require_osu_client),
     ) -> SearchResponse:
-        raw = await osu.search_beatmapsets(q, page, limit)
+        # 公式APIのURL短縮形パラメータに完全に対応
+        # 高度な検索クエリと通常の検索フィルターの両方をサポート
+
+        # Basic search query (空文字でもOK)
+        search_query = q if q is not None else ""
+
+        # 公式APIのパラメータ形式に合わせて直接渡す
+        raw = await osu.search_beatmapsets(
+            q=search_query,
+            page=page,
+            limit=limit,
+            s=s,
+            m=m,
+            e=e,
+            c=c,
+            g=g,
+            l=l,  # language パラメータ
+            nsfw=nsfw,
+            sort=sort,
+            played=played,
+            r=rank  # rank パラメータ
+        )
+
+        # API v2はbeatmapsetsを配列で返す
         beatmapsets = raw.get("beatmapsets", [])
         results = [map_search_result(item) for item in beatmapsets]
         return SearchResponse(
