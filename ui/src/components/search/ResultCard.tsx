@@ -44,7 +44,7 @@ function getContrastColor(hexColor: string): string {
 
 const cardStyles = tv({
 	slots: {
-		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-md transition-all duration-300",
+		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-xs transition-all duration-300",
 		banner: "relative flex gap-3",
 		thumbnail: "rounded-lg object-cover ring-2 ring-border/70 shadow-xl shrink-0",
 		content: "flex-1 min-w-0 px-2 py-2 grid grid-cols-[1fr_auto] gap-3",
@@ -59,7 +59,7 @@ const cardStyles = tv({
 		difficultyPreview: "inline-flex items-center gap-1",
 		difficultyDot: "h-3 w-3 rounded-full border border-surface-foreground/20 shadow",
 		difficultyContainer:
-			"mt-2 overflow-hidden rounded-lg border border-border bg-surface/95 backdrop-blur-md shadow-2xl transition-all duration-300 ease-out",
+			"mt-2 overflow-hidden rounded-lg border border-border bg-surface/95 backdrop-blur-xs shadow-2xl transition-all duration-300 ease-out",
 		difficultyList: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-3 text-sm text-surface-foreground",
 		difficultyItem:
 			"flex items-center gap-3 rounded-lg px-3 py-2 bg-surface-variant/80 border border-border hover:bg-surface-variant/60 transition-colors",
@@ -249,8 +249,8 @@ const ResultCard: React.FC<Props> = ({
 		<div className="relative m-1.5 p-1 group">
 			<div className={card.base()} style={cardStyle}>
 				<div className="absolute inset-0 rounded-xl border-2 border-border/80 transition-all duration-300 group-hover:border-accent/60 group-hover:shadow-[0_0_10px_rgba(153,102,255,0.6),0_0_10px_rgba(255,102,170,0.5)]"></div>
-				<div className="relative rounded-xl backdrop-blur-xs overflow-hidden transition-all duration-300 group-hover:backdrop-blur-none">
-					<div className="absolute inset-0 bg-gradient-to-r from-surface/50 via-surface/60 to-surface/20 z-0 group-hover:opacity-80 transition-all duration-300" />
+				<div className="relative rounded-xl backdrop-blur-[2px] overflow-hidden transition-all duration-300 group-hover:backdrop-blur-none">
+					<div className="absolute inset-0 bg-gradient-to-r from-surface-variant/70 via-surface-variant/80 to-surface-variant/20 z-0 group-hover:opacity-80 transition-all duration-300" />
 
 					<div className={`${card.banner()} relative z-10`}>
 						{/* osu!公式サイトへのリンク */}
@@ -428,7 +428,7 @@ const ResultCard: React.FC<Props> = ({
 					onMouseEnter={handleHoverPanelMouseEnter}
 					onMouseLeave={handleHoverPanelMouseLeave}
 				>
-					<div className="bg-surface/95 backdrop-blur-md rounded-lg border border-border shadow-2xl p-2">
+					<div className="bg-surface/65 rounded-lg border border-border shadow-2xl p-2">
 						<div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-surface/50">
 							{grouped.map(({ mode, list }) => (
 								<div key={mode} className="space-y-2">
