@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import React from "react";
 import { RotateCcw } from "lucide-react";
 import {
 	apiClient,
@@ -30,6 +31,11 @@ const SearchPage: React.FC<Props> = ({
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 	const [currentPage, setCurrentPage] = useState(1);
+
+	// currentPageの変化を監視
+	useEffect(() => {
+		console.log("DEBUG: currentPage changed to:", currentPage);
+	}, [currentPage]);
 	const [searchFilters, setSearchFilters] = useState<any>({});
 
 	// フィルターパラメータを構築 - 公式APIのURL短縮形に完全対応
@@ -98,21 +104,31 @@ const SearchPage: React.FC<Props> = ({
 	const { data: searchResults, isFetching: searchLoading } = useQuery<SearchResponse>({
 		queryKey: ["search", searchQuery, currentPage, searchFilters],
 		queryFn: async () => {
-			const query = buildSearchQuery();
+			console.log("=== QUERY EXECUTION START ===");
 			console.log("DEBUG Frontend: searchQuery =", JSON.stringify(searchQuery));
 			console.log("DEBUG Frontend: searchFilters =", JSON.stringify(searchFilters));
+			console.log("DEBUG Frontend: currentPage =", currentPage);
+
+			const query = buildSearchQuery();
 			console.log("DEBUG Frontend: buildQuery =", query);
-			const endpoint = query ? `/search?${query}` : `/search?q=&limit=20&page=${currentPage}`;
+
+			const endpoint = `/search?${query}`;
 			console.log("DEBUG Frontend: endpoint =", endpoint);
+			console.log("=== QUERY EXECUTION END ===");
+
 			return apiClient.get(endpoint);
 		},
 		enabled: true,
+		staleTime: 0, // 常に再取得
 	});
 
 	// 新規クエリで検索した場合はページングをリセット
+	// TODO: これがページングと干渉している可能性があるため一時的に無効化
+	/*
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [searchQuery, searchFilters]);
+	*/
 
 	const {
 		data: index,
@@ -192,8 +208,8 @@ const SearchPage: React.FC<Props> = ({
 					queue={queue}
 					searchData={searchResults}
 					isLoading={searchLoading}
-					currentPage={currentPage}
-					setCurrentPage={setCurrentPage}
+					searchQuery={searchQuery}
+					searchFilters={searchFilters}
 				/>
 			</div>
 		</div>

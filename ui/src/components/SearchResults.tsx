@@ -4,7 +4,6 @@ import { Languages } from "lucide-react";
 import type { QueueStatus, SearchResponse } from "../hooks/useApiClient";
 import { triggerDownload } from "../utils/downloadUtils";
 import ResultList from "./search/ResultList";
-import Button from "./ui/Button";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
 
 type Props = {
@@ -13,8 +12,8 @@ type Props = {
 	queue?: QueueStatus;
 	searchData?: SearchResponse;
 	isLoading?: boolean;
-	currentPage?: number;
-	setCurrentPage?: (page: number) => void;
+	searchQuery: string;
+	searchFilters: any;
 };
 
 const SearchResults: React.FC<Props> = ({
@@ -22,13 +21,98 @@ const SearchResults: React.FC<Props> = ({
 	onQueueUpdate,
 	queue,
 	searchData,
-	currentPage = 1,
-	setCurrentPage,
+	isLoading,
+	searchQuery,
+	searchFilters,
 }) => {
 	const client = useQueryClient();
 	const [showUnicode, setShowUnicode] = React.useState(false);
 
+	// 無限スクロール用の状態
+	const [allResults, setAllResults] = React.useState<SearchResponse["results"]>([]);
+	const [internalCurrentPage, setInternalCurrentPage] = React.useState(1);
+	const [hasMore, setHasMore] = React.useState(true);
+	const [isFetchingMore, setIsFetchingMore] = React.useState(false);
+
 	const data = searchData;
+
+	// 初回データまたは検索条件変更時に結果をリセット
+	React.useEffect(() => {
+		if (searchData) {
+			console.log("DEBUG: Resetting results with new data", searchData.results.length);
+			setAllResults(searchData.results);
+			setHasMore(searchData.results.length < searchData.total);
+			setInternalCurrentPage(1);
+		}
+	}, [searchData?.results.length, searchData?.total]);
+
+	// 次のページを読み込む
+	const handleLoadMore = React.useCallback(async () => {
+		if (!hasMore || isFetchingMore || !searchData) return;
+
+		console.log("DEBUG: Loading more results, current page:", internalCurrentPage);
+		setIsFetchingMore(true);
+		const nextPage = internalCurrentPage + 1;
+
+		try {
+			// SearchPageのbuildSearchQueryと同じロジックでURLを構築
+			const params = new URLSearchParams();
+
+			// 基本検索クエリ
+			params.set("q", searchQuery || "");
+
+			// ページングパラメータ
+			params.set("page", nextPage.toString());
+			params.set("limit", "20");
+
+			// フィルターパラメータ
+			if (searchFilters.status && searchFilters.status !== "any") {
+				params.set("s", searchFilters.status);
+			}
+			if (searchFilters.mode && searchFilters.mode !== "null") {
+				params.set("m", searchFilters.mode.toString());
+			}
+			if (searchFilters.genre && searchFilters.genre.length > 0) {
+				params.set("g", searchFilters.genre.join(","));
+			}
+			if (searchFilters.language && searchFilters.language.length > 0) {
+				params.set("l", searchFilters.language.join(","));
+			}
+			if (searchFilters.extra && searchFilters.extra.length > 0) {
+				params.set("e", searchFilters.extra.join("."));
+			}
+			if (searchFilters.general && searchFilters.general.length > 0) {
+				params.set("c", searchFilters.general.join("."));
+			}
+			if (searchFilters.nsfw !== undefined) {
+				params.set("nsfw", searchFilters.nsfw.toString());
+			}
+			if (searchFilters.played && searchFilters.played !== "any") {
+				params.set("played", searchFilters.played);
+			}
+			if (searchFilters.rank && searchFilters.rank.length > 0) {
+				params.set("r", searchFilters.rank.join("."));
+			}
+			if (searchFilters.sortField && searchFilters.sortOrder) {
+				params.set("sort", `${searchFilters.sortField}_${searchFilters.sortOrder}`);
+			}
+
+			const endpoint = `/search?${params.toString()}`;
+			console.log("DEBUG: Loading more results from:", endpoint);
+
+			const response = await fetch(`http://127.0.0.1:8000/api${endpoint}`);
+			const newData: SearchResponse = await response.json();
+
+			console.log("DEBUG: Loaded", newData.results.length, "more results");
+			setAllResults(prev => [...prev, ...newData.results]);
+			setInternalCurrentPage(nextPage);
+			setHasMore(newData.results.length > 0 && allResults.length + newData.results.length < newData.total);
+		} catch (error) {
+			console.error("Failed to load more results:", error);
+		} finally {
+			setIsFetchingMore(false);
+		}
+	}, [hasMore, isFetchingMore, searchData, internalCurrentPage, allResults.length, searchQuery, searchFilters]);
 
 	const queueState = React.useMemo<QueueDerivedState>(() => {
 		const queued = new Set(queue?.queued ?? []);
@@ -61,13 +145,23 @@ const SearchResults: React.FC<Props> = ({
 	);
 
 	const filtered = React.useMemo(
-		() => data?.results?.filter((r) => (ownedOnly ? isOwned(r.set_id, r.owned) : true)) ?? [],
-		[data?.results, isOwned, ownedOnly],
+		() => allResults?.filter((r) => (ownedOnly ? isOwned(r.set_id, r.owned) : true)) ?? [],
+		[allResults, isOwned, ownedOnly],
 	);
 
 	// utilsから移動したtriggerDownloadを使用
 	const handleDownload = (setId: number) => {
-		triggerDownload(setId, data, client, onQueueUpdate);
+		// allResultsから該当アイテムを探す
+		const item = allResults.find(r => r.set_id === setId);
+		if (item) {
+			const mockSearchData: SearchResponse = {
+				results: allResults,
+				total: data?.total || 0,
+				page: internalCurrentPage,
+				limit: 20
+			};
+			triggerDownload(setId, mockSearchData, client, onQueueUpdate);
+		}
 	};
 
 	// GlobalPreviewPlayerからグローバル関数を取得
@@ -147,7 +241,7 @@ const SearchResults: React.FC<Props> = ({
 				<div className="flex items-center gap-3">
 					<h2 className="text-lg font-semibold">Results</h2>
 					<span className="text-xs text-text-secondary bg-surface-variant/70 px-2 py-1 rounded-md border border-border">
-						{filtered.length.toLocaleString("en-US")} / {data.total.toLocaleString("en-US")}
+						Total: {data.total.toLocaleString("en-US")} | Showing: {filtered.length.toLocaleString("en-US")}
 					</span>
 					<button
 						onClick={() => setShowUnicode((prev) => !prev)}
@@ -158,31 +252,6 @@ const SearchResults: React.FC<Props> = ({
 						{showUnicode ? "Unicode" : "Normal"}
 					</button>
 				</div>
-
-				{/* Pagination */}
-				{data.total > 20 && (
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage <= 1}
-							onClick={() => setCurrentPage?.(Math.max(1, currentPage - 1))}
-						>
-							←
-						</Button>
-						<span className="text-xs text-text px-2 py-1 bg-surface-variant/50 rounded">
-							Page {currentPage} / {Math.ceil(data.total / 20)}
-						</span>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage >= Math.ceil(data.total / 20)}
-							onClick={() => setCurrentPage?.(currentPage + 1)}
-						>
-							→
-						</Button>
-					</div>
-				)}
 			</div>
 
 			{filtered.length === 0 ? (
@@ -202,7 +271,24 @@ const SearchResults: React.FC<Props> = ({
 						togglePreview={togglePreview}
 						triggerDownload={handleDownload}
 						getActionState={getActionState}
+						endReached={handleLoadMore}
+						isLoadingMore={isFetchingMore}
+						hasMore={hasMore}
 					/>
+
+					{/* ローディングインジケーター */}
+					{isFetchingMore && (
+						<div className="text-center py-4 text-text-muted">
+							Loading more...
+						</div>
+					)}
+
+					{/* 終了インジケーター */}
+					{!hasMore && filtered.length > 0 && (
+						<div className="text-center py-4 text-text-muted border-t border-border">
+							End of results ({filtered.length} beatmaps loaded)
+						</div>
+					)}
 				</div>
 			)}
 		</div>

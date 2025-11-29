@@ -46,7 +46,7 @@ class OsuApiClient:
         payload = resp.json()
         self._token = payload["access_token"]
         self._token_exp = now + payload.get("expires_in", 3600)
-        return self._tokend
+        return self._token
 
     async def search_beatmapsets(self, q: str = "", page: int = 1, limit: int = 20, s: Optional[str] = None, m: Optional[str] = None, e: Optional[str] = None, c: Optional[str] = None, g: Optional[str] = None, l: Optional[str] = None, nsfw: Optional[bool] = None, sort: Optional[str] = None, played: Optional[str] = None, r: Optional[str] = None) -> Dict[str, Any]:  # noqa: E741
         token = await self._ensure_token()

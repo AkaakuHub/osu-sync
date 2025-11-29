@@ -15,6 +15,9 @@ type Props = {
 	togglePreview: (item: PreviewableItem) => void;
 	triggerDownload: (setId: number) => void;
 	getActionState: (setId: number, baseOwned: boolean) => ActionState;
+	endReached?: () => void;
+	isLoadingMore?: boolean;
+	hasMore?: boolean;
 };
 
 const ResultList: React.FC<Props> = ({
@@ -28,6 +31,9 @@ const ResultList: React.FC<Props> = ({
 	togglePreview,
 	triggerDownload,
 	getActionState,
+	endReached,
+	isLoadingMore = false,
+	hasMore = true,
 }) => {
 	// Pair items for 2-column layout
 	const pairedItems = items.reduce<
@@ -46,6 +52,8 @@ const ResultList: React.FC<Props> = ({
 			<Virtuoso
 				style={{ height: "100%" }}
 				data={pairedItems}
+				endReached={endReached}
+				overscan={200}
 				itemContent={(_, pair) => {
 					const [leftItem, rightItem] = pair;
 
