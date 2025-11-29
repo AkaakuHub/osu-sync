@@ -140,7 +140,7 @@ export function FilterPanel({ onFiltersChange, className = "" }: FilterPanelProp
 
 			{/* フィルター内容 - osu!公式風の横並びレイアウト */}
 			{isExpanded && (
-				<div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+				<div className="max-h-[calc(50vh-200px)] overflow-y-auto p-4 space-y-3">
 					{/* ソート */}
 					<div className="flex items-center gap-3">
 						<span className="text-sm font-medium text-text w-20">Sort:</span>
