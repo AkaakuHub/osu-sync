@@ -20,6 +20,8 @@ type Props = {
 	setOwnedOnly: (value: boolean) => void;
 	searchQuery?: string;
 	setSearchQuery?: (query: string) => void;
+	searchFilters?: SearchFilters | null;
+	setSearchFilters?: (filters: SearchFilters | null) => void;
 };
 
 const SearchPage: React.FC<Props> = ({
@@ -27,6 +29,8 @@ const SearchPage: React.FC<Props> = ({
 	setOwnedOnly,
 	searchQuery: propSearchQuery,
 	setSearchQuery: propSetSearchQuery,
+	searchFilters: propSearchFilters,
+	setSearchFilters: propSetSearchFilters,
 }) => {
 	const initialQuery = propSearchQuery ?? "";
 	const [internalSearchQuery, setInternalSearchQuery] = useState("");
@@ -34,8 +38,10 @@ const SearchPage: React.FC<Props> = ({
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 	const [currentPage, setCurrentPage] = useState(1);
-	const [filtersReady, setFiltersReady] = useState(false);
-	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
+	const [internalSearchFilters, setInternalSearchFilters] = useState<SearchFilters | null>(null);
+	const searchFilters = propSearchFilters ?? internalSearchFilters;
+	const setSearchFilters = propSetSearchFilters ?? setInternalSearchFilters;
+	const filtersReady = !!searchFilters;
 
 	// 500msデバウンスの実装
 	useEffect(() => {
@@ -213,10 +219,10 @@ const SearchPage: React.FC<Props> = ({
 							onFiltersChange={(filters) => {
 								// フィルター変更時に即時反映
 								setSearchFilters(filters);
-								setFiltersReady(true);
 								setCurrentPage(1); // ページをリセット
 							}}
 							isSupporter={false} // TODO: ユーザーのサポーター状態を取得
+							initialFilters={searchFilters}
 						/>
 					</div>
 

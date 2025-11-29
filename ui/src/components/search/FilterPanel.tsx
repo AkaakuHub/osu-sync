@@ -60,9 +60,10 @@ interface FilterPanelProps {
 	onFiltersChange?: (filters: any) => void;
 	isSupporter?: boolean;
 	className?: string;
+	initialFilters?: any;
 }
 
-export function FilterPanel({ onFiltersChange, className = "" }: FilterPanelProps) {
+export function FilterPanel({ onFiltersChange, className = "", initialFilters }: FilterPanelProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const {
@@ -79,7 +80,7 @@ export function FilterPanel({ onFiltersChange, className = "" }: FilterPanelProp
 		getFilterStats,
 		setGenre,
 		setLanguage,
-	} = useSearchFilters({ onFiltersChange });
+	} = useSearchFilters({ onFiltersChange, initialFilters });
 
 	const filterStats = useMemo(() => getFilterStats(), [getFilterStats]);
 

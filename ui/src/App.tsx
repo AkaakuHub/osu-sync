@@ -8,10 +8,12 @@ import SettingsPage from "./components/pages/SettingsPage";
 import { ScanProgress } from "./components/ScanProgress";
 import { QueueNotificationManager } from "./components/QueueNotificationManager";
 import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
+import { type SearchFilters } from "./components/search/types";
 
 function App() {
 	const [ownedOnly, setOwnedOnly] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
 
 	const tabs = [
 		{
@@ -24,6 +26,8 @@ function App() {
 					setOwnedOnly={setOwnedOnly}
 					searchQuery={searchQuery}
 					setSearchQuery={setSearchQuery}
+					searchFilters={searchFilters}
+					setSearchFilters={setSearchFilters}
 				/>
 			),
 		},

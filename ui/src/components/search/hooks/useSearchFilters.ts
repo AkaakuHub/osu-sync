@@ -28,19 +28,28 @@ import {
 
 interface UseSearchFiltersOptions {
 	onFiltersChange?: (filters: SearchFilters) => void;
+	initialFilters?: SearchFilters | null;
 }
 
 export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
-	const { onFiltersChange } = options;
+	const { onFiltersChange, initialFilters } = options;
 
 	// フィルター状態の初期化
 	const [filters, setFiltersState] = useState<SearchFilters>(() => {
-		return resetFilters();
+		return initialFilters ?? resetFilters();
 	});
 
 	// ジャンルと言語のデータ（将来的にAPIから取得）
 	const [genres] = useState<Genre[]>([]);
 	const [languages] = useState<Language[]>([]);
+
+	// initialFilters が後から変わったときに同期
+	useEffect(() => {
+		if (!initialFilters) return;
+		// 同じなら何もしない
+		if (JSON.stringify(initialFilters) === JSON.stringify(filters)) return;
+		setFiltersState(initialFilters);
+	}, [initialFilters]);
 
 	// フィルター変更通知
 	useEffect(() => {
