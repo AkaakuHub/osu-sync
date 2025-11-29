@@ -28,9 +28,20 @@ const SearchPage: React.FC<Props> = ({
 	setSearchQuery: propSetSearchQuery,
 }) => {
 	const [internalSearchQuery, setInternalSearchQuery] = useState("");
+	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 	const [currentPage, setCurrentPage] = useState(1);
+
+	// 500msデバウンスの実装
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedSearchQuery(searchQuery);
+			setCurrentPage(1); // 検索時にページをリセット
+		}, 500);
+
+		return () => clearTimeout(timer);
+	}, [searchQuery]);
 
 	// currentPageの変化を監視
 	useEffect(() => {
@@ -43,7 +54,7 @@ const SearchPage: React.FC<Props> = ({
 		const params = new URLSearchParams();
 
 		// 基本検索クエリ（全検索の場合も空文字で送信）
-		params.set("q", searchQuery || "");
+		params.set("q", debouncedSearchQuery || "");
 
 		// フィルターを適用 - 公式APIの短縮形パラメータ名を使用
 		if (searchFilters.status && searchFilters.status !== "any") {
@@ -102,10 +113,10 @@ const SearchPage: React.FC<Props> = ({
 	};
 
 	const { data: searchResults, isFetching: searchLoading } = useQuery<SearchResponse>({
-		queryKey: ["search", searchQuery, currentPage, searchFilters],
+		queryKey: ["search", debouncedSearchQuery, currentPage, searchFilters],
 		queryFn: async () => {
 			console.log("=== QUERY EXECUTION START ===");
-			console.log("DEBUG Frontend: searchQuery =", JSON.stringify(searchQuery));
+			console.log("DEBUG Frontend: debouncedSearchQuery =", JSON.stringify(debouncedSearchQuery));
 			console.log("DEBUG Frontend: searchFilters =", JSON.stringify(searchFilters));
 			console.log("DEBUG Frontend: currentPage =", currentPage);
 
@@ -220,7 +231,7 @@ const SearchPage: React.FC<Props> = ({
 							queue={queue}
 							searchData={searchResults}
 							isLoading={searchLoading}
-							searchQuery={searchQuery}
+							searchQuery={debouncedSearchQuery}
 							searchFilters={searchFilters}
 						/>
 					</div>
