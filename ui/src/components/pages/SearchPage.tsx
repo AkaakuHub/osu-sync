@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import React from "react";
 import { RotateCcw, Search } from "lucide-react";
 import {
@@ -123,7 +124,11 @@ const SearchPage: React.FC<Props> = ({
 		return params.toString();
 	};
 
-	const { data: searchResults, isFetching: searchLoading } = useQuery<SearchResponse>({
+	const {
+		data: searchResults,
+		isFetching: searchLoading,
+		error: searchError,
+	} = useQuery<SearchResponse>({
 		queryKey: ["search", debouncedSearchQuery, currentPage, searchFilters ?? "nofilters"],
 		queryFn: async () => {
 			const query = buildSearchQuery();
@@ -134,7 +139,17 @@ const SearchPage: React.FC<Props> = ({
 		staleTime: 60_000,
 		refetchOnMount: false,
 		refetchOnWindowFocus: false,
+		retry: 1,
 	});
+
+	useEffect(() => {
+		if (!searchError) return;
+		const anyErr = searchError as any;
+		const message = anyErr?.response?.data?.detail || anyErr?.message || "Search failed";
+		toast.error(`${message}\nPlease set osu! API Client ID/Secret in Settings tab.`, {
+			duration: 5000,
+		});
+	}, [searchError]);
 
 	// 新規クエリで検索した場合はページングをリセット
 	// TODO: これがページングと干渉している可能性があるため一時的に無効化
