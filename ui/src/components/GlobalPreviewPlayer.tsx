@@ -171,10 +171,6 @@ const GlobalPreviewPlayer: React.FC = () => {
 		setCurrentTrack(null);
 	}, []);
 
-	const handleClosePlayer = React.useCallback(() => {
-		stopPreview();
-	}, [stopPreview]);
-
 	const togglePreview = React.useCallback(
 		(item: PreviewableItem) => {
 			if (!item.preview_url) return;
@@ -407,28 +403,25 @@ const GlobalPreviewPlayer: React.FC = () => {
 		currentTrack,
 	]);
 
-	// 設定読み込み中は何も表示しない
+	// 設定読み込み前のみ非表示
 	if (!isSettingsLoaded) {
 		return null;
 	}
 
 	return (
 		<div className="fixed top-4 right-4 z-50">
-			{currentTrack ? (
-				<PreviewPlayer
-					currentTrack={currentTrack}
-					previewingId={previewingId}
-					playbackProgress={playbackProgress}
-					isActuallyPlaying={isActuallyPlaying}
-					volume={volume}
-					isMuted={isMuted}
-					onToggle={handlePlayerToggle}
-					onSeek={seekTo}
-					onVolumeChange={handleVolumeChange}
-					onToggleMute={handleToggleMute}
-					onClose={handleClosePlayer}
-				/>
-			) : null}
+			<PreviewPlayer
+				currentTrack={currentTrack}
+				previewingId={previewingId}
+				playbackProgress={playbackProgress}
+				isActuallyPlaying={isActuallyPlaying}
+				volume={volume}
+				isMuted={isMuted}
+				onToggle={handlePlayerToggle}
+				onSeek={seekTo}
+				onVolumeChange={handleVolumeChange}
+				onToggleMute={handleToggleMute}
+			/>
 		</div>
 	);
 };

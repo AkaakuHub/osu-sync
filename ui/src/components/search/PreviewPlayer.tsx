@@ -1,5 +1,5 @@
 import React from "react";
-import { Pause, Play, Volume2, VolumeX, Menu, X } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX, Menu, Music2 } from "lucide-react";
 
 export type CurrentTrack = {
 	id: number;
@@ -20,7 +20,6 @@ type Props = {
 	onSeek: (fraction: number) => void;
 	onVolumeChange: (volume: number) => void;
 	onToggleMute: () => void;
-	onClose: () => void;
 };
 
 const PreviewPlayer: React.FC<Props> = ({
@@ -34,7 +33,6 @@ const PreviewPlayer: React.FC<Props> = ({
 	onSeek,
 	onVolumeChange,
 	onToggleMute,
-	onClose,
 }) => {
 	const [position, setPosition] = React.useState({ x: 0, y: 0 });
 	const [isDragging, setIsDragging] = React.useState(false);
@@ -115,7 +113,10 @@ const PreviewPlayer: React.FC<Props> = ({
 		}
 	}, [isDragging, handleMouseMove, handleMouseUp]);
 
-	if (!currentTrack) return null;
+	const hasTrack = !!currentTrack;
+	const coverUrl = currentTrack?.cover_url;
+	const title = currentTrack?.title ?? "No sound";
+	const artist = currentTrack?.artist ?? "";
 
 	return (
 		<div
@@ -131,48 +132,50 @@ const PreviewPlayer: React.FC<Props> = ({
 					onMouseDown={handleMouseDown}
 				>
 					<Menu className="w-3 h-3 text-text-secondary" />
-					<button
-						className="w-3 h-3 text-text-secondary hover:text-text-foreground transition-colors"
-						onClick={(e) => {
-							e.stopPropagation(); // ドラッグイベントを停止
-							onClose();
-						}}
-						title="閉じる"
-					>
-						<X className="w-3 h-3" />
-					</button>
+					<div className="w-3 h-3" /> {/* close ボタンのスペースを保持して整列 */}
 				</div>
 
 				{/* 既存のコンテンツ */}
 				<div className="p-2">
-					<img
-						src={currentTrack.cover_url}
-						alt={`${currentTrack.title} cover`}
-						className="w-full h-20 object-cover rounded mb-2"
-					/>
+					<div className="w-full h-20 rounded mb-2 overflow-hidden bg-surface-variant flex items-center justify-center">
+						{coverUrl ? (
+							<img src={coverUrl} alt={`${title} cover`} className="w-full h-full object-cover" />
+						) : (
+							<div className="flex items-center gap-2 text-text-muted text-xs">
+								<Music2 className="w-4 h-4" />
+								<span>No sound</span>
+							</div>
+						)}
+					</div>
 					<div className="flex items-center gap-2">
 						<button
-							className="h-7 w-7 rounded-full bg-success/80 text-success-foreground flex items-center justify-center hover:bg-success transition-colors flex-shrink-0"
-							onClick={onToggle}
-							title="play / pause"
+							className={`h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+								hasTrack
+									? "bg-success/80 text-success-foreground hover:bg-success"
+									: "bg-surface-variant text-text-muted cursor-not-allowed"
+							}`}
+							onClick={hasTrack ? onToggle : undefined}
+							disabled={!hasTrack}
+							title={hasTrack ? "play / pause" : "No preview available"}
 						>
-							{previewingId === currentTrack.id && isActuallyPlaying ? (
+							{hasTrack && previewingId === currentTrack?.id && isActuallyPlaying ? (
 								<Pause className="w-3 h-3" />
 							) : (
 								<Play className="w-3 h-3" fill="currentColor" />
 							)}
 						</button>
 						<div className="flex-1 min-w-0">
-							<div className="text-xs font-medium text-surface-foreground truncate">
-								{currentTrack.title}
+							<div className="text-xs font-medium text-surface-foreground truncate">{title}</div>
+							<div className="text-[10px] text-text-secondary truncate">
+								{artist || (hasTrack ? "" : "No preview playing")}
 							</div>
-							<div className="text-[10px] text-text-secondary truncate">{currentTrack.artist}</div>
 						</div>
 					</div>
 					{/* Mini Progress Bar */}
 					<div
-						className="h-1 bg-surface-variant rounded-full mt-2 cursor-pointer overflow-hidden"
+						className={`h-1 bg-surface-variant rounded-full mt-2 overflow-hidden ${hasTrack ? "cursor-pointer" : "opacity-50"}`}
 						onClick={(e) => {
+							if (!hasTrack) return;
 							const rect = e.currentTarget.getBoundingClientRect();
 							const fraction = (e.clientX - rect.left) / rect.width;
 							onSeek(Math.max(0, Math.min(1, fraction)));
