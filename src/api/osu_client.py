@@ -3,6 +3,8 @@ from typing import Any, Dict, Optional
 
 import httpx
 from fastapi import HTTPException
+import json
+import asyncio
 
 
 class OsuApiClient:
@@ -22,6 +24,9 @@ class OsuApiClient:
         self._token: Optional[str] = None
         self._token_exp: float = 0.0
         self._client = httpx.AsyncClient(timeout=20, follow_redirects=True)
+        self._cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
+        self._cache_ttl = 3600  # seconds
+        self._cache_lock = asyncio.Lock()
 
     async def _ensure_token(self) -> str:
         now = time.time()
@@ -75,6 +80,20 @@ class OsuApiClient:
         if r is not None:
             params["r"] = r
 
+        # build cache key
+        key = json.dumps(params, sort_keys=True, ensure_ascii=False)
+
+        # serve from cache if fresh
+        async with self._cache_lock:
+            cached = self._cache.get(key)
+            if cached:
+                exp, data = cached
+                if time.time() < exp:
+                    print("DEBUG: Serving from cache")
+                    return data
+                else:
+                    self._cache.pop(key, None)
+
         headers = {"Authorization": f"Bearer {token}"}
 
         # デバッグ: 実際に送信しているURLをログ出力
@@ -91,4 +110,7 @@ class OsuApiClient:
 
         result = resp.json()
         print(f"DEBUG: Response total: {result.get('total', 'unknown')}")
+        # store to cache
+        async with self._cache_lock:
+            self._cache[key] = (time.time() + self._cache_ttl, result)
         return result

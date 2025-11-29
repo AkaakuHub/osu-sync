@@ -13,6 +13,7 @@ import Button from "../ui/Button";
 import Toggle from "../ui/Toggle";
 import SearchResults from "../SearchResults";
 import { FilterPanel } from "../search/FilterPanel";
+import { type SearchFilters } from "../search/types";
 
 type Props = {
 	ownedOnly: boolean;
@@ -27,11 +28,14 @@ const SearchPage: React.FC<Props> = ({
 	searchQuery: propSearchQuery,
 	setSearchQuery: propSetSearchQuery,
 }) => {
+	const initialQuery = propSearchQuery ?? "";
 	const [internalSearchQuery, setInternalSearchQuery] = useState("");
-	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialQuery);
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 	const [currentPage, setCurrentPage] = useState(1);
+	const [filtersReady, setFiltersReady] = useState(false);
+	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
 
 	// 500msデバウンスの実装
 	useEffect(() => {
@@ -47,62 +51,63 @@ const SearchPage: React.FC<Props> = ({
 	useEffect(() => {
 		console.log("DEBUG: currentPage changed to:", currentPage);
 	}, [currentPage]);
-	const [searchFilters, setSearchFilters] = useState<any>({});
 
 	// フィルターパラメータを構築 - 公式APIのURL短縮形に完全対応
 	const buildSearchQuery = () => {
 		const params = new URLSearchParams();
 
+		const filters: SearchFilters = searchFilters || ({} as SearchFilters);
+
 		// 基本検索クエリ（全検索の場合も空文字で送信）
 		params.set("q", debouncedSearchQuery || "");
 
 		// フィルターを適用 - 公式APIの短縮形パラメータ名を使用
-		if (searchFilters.status && searchFilters.status !== "any") {
-			params.set("s", searchFilters.status);
+		if (filters.status && filters.status !== "any") {
+			params.set("s", filters.status);
 		}
 
-		if (searchFilters.mode && searchFilters.mode !== "null") {
-			params.set("m", searchFilters.mode);
+		if (filters.mode && filters.mode !== "null") {
+			params.set("m", filters.mode);
 		}
 
 		// ジャンル - カンマ区切り（公式形式）
-		if (searchFilters.genre && searchFilters.genre.length > 0) {
-			params.set("g", searchFilters.genre.join(","));
+		if (filters.genre && filters.genre.length > 0) {
+			params.set("g", filters.genre.join(","));
 		}
 
 		// 言語 - カンマ区切り（公式形式）
-		if (searchFilters.language && searchFilters.language.length > 0) {
-			params.set("l", searchFilters.language.join(",")); // lang -> l (公式API)
+		if (filters.language && filters.language.length > 0) {
+			params.set("l", filters.language.join(",")); // lang -> l (公式API)
 		}
 
 		// エクストラ - ドット区切り（公式形式）
-		if (searchFilters.extra && searchFilters.extra.length > 0) {
-			params.set("e", searchFilters.extra.join("."));
+		if (filters.extra && filters.extra.length > 0) {
+			params.set("e", filters.extra.join("."));
 		}
 
 		// 一般フィルター - ドット区切り（公式形式）
-		if (searchFilters.general && searchFilters.general.length > 0) {
-			params.set("c", searchFilters.general.join("."));
+		if (filters.general && filters.general.length > 0) {
+			params.set("c", filters.general.join("."));
 		}
 
 		// NSFW - 文字列で送信（公式形式）
-		if (searchFilters.nsfw !== undefined) {
-			params.set("nsfw", searchFilters.nsfw.toString());
+		if (filters.nsfw !== undefined) {
+			params.set("nsfw", filters.nsfw.toString());
 		}
 
 		// プレイ済みフィルター
-		if (searchFilters.played && searchFilters.played !== "any") {
-			params.set("played", searchFilters.played);
+		if (filters.played && filters.played !== "any") {
+			params.set("played", filters.played);
 		}
 
 		// ランクフィルター - ドット区切り（公式形式）
-		if (searchFilters.rank && searchFilters.rank.length > 0) {
-			params.set("r", searchFilters.rank.join(".")); // rank -> r (公式API)
+		if (filters.rank && filters.rank.length > 0) {
+			params.set("r", filters.rank.join(".")); // rank -> r (公式API)
 		}
 
 		// ソート - field_order形式（公式形式）
-		if (searchFilters.sortField && searchFilters.sortOrder) {
-			params.set("sort", `${searchFilters.sortField}_${searchFilters.sortOrder}`);
+		if (filters.sortField && filters.sortOrder) {
+			params.set("sort", `${filters.sortField}_${filters.sortOrder}`);
 		}
 
 		// ページネーション
@@ -113,24 +118,16 @@ const SearchPage: React.FC<Props> = ({
 	};
 
 	const { data: searchResults, isFetching: searchLoading } = useQuery<SearchResponse>({
-		queryKey: ["search", debouncedSearchQuery, currentPage, searchFilters],
+		queryKey: ["search", debouncedSearchQuery, currentPage, searchFilters ?? "nofilters"],
 		queryFn: async () => {
-			console.log("=== QUERY EXECUTION START ===");
-			console.log("DEBUG Frontend: debouncedSearchQuery =", JSON.stringify(debouncedSearchQuery));
-			console.log("DEBUG Frontend: searchFilters =", JSON.stringify(searchFilters));
-			console.log("DEBUG Frontend: currentPage =", currentPage);
-
 			const query = buildSearchQuery();
-			console.log("DEBUG Frontend: buildQuery =", query);
-
 			const endpoint = `/search?${query}`;
-			console.log("DEBUG Frontend: endpoint =", endpoint);
-			console.log("=== QUERY EXECUTION END ===");
-
 			return apiClient.get(endpoint);
 		},
-		enabled: true,
-		staleTime: 0, // 常に再取得
+		enabled: filtersReady,
+		staleTime: 60_000,
+		refetchOnMount: false,
+		refetchOnWindowFocus: false,
 	});
 
 	// 新規クエリで検索した場合はページングをリセット
@@ -216,6 +213,7 @@ const SearchPage: React.FC<Props> = ({
 							onFiltersChange={(filters) => {
 								// フィルター変更時に即時反映
 								setSearchFilters(filters);
+								setFiltersReady(true);
 								setCurrentPage(1); // ページをリセット
 							}}
 							isSupporter={false} // TODO: ユーザーのサポーター状態を取得
