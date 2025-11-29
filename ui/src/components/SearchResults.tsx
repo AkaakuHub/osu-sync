@@ -267,7 +267,11 @@ const SearchResults: React.FC<Props> = ({
 
 			{filtered.length === 0 ? (
 				<div className="flex-1 text-center py-12 rounded-2xl border border-dashed border-border bg-surface/60 flex items-center justify-center">
-					<p className="text-muted-foreground">No beatmaps matching the criteria were found.</p>
+					{isLoading ? (
+						<p className="text-muted-foreground">Loading...</p>
+					) : (
+						<p className="text-muted-foreground">No beatmaps were found.</p>
+					)}
 				</div>
 			) : (
 				<div className="flex-1 min-h-0">
