@@ -104,15 +104,25 @@ const SearchResults: React.FC<Props> = ({
 			const newData: SearchResponse = await response.json();
 
 			console.log("DEBUG: Loaded", newData.results.length, "more results");
-			setAllResults(prev => [...prev, ...newData.results]);
+			setAllResults((prev) => [...prev, ...newData.results]);
 			setInternalCurrentPage(nextPage);
-			setHasMore(newData.results.length > 0 && allResults.length + newData.results.length < newData.total);
+			setHasMore(
+				newData.results.length > 0 && allResults.length + newData.results.length < newData.total,
+			);
 		} catch (error) {
 			console.error("Failed to load more results:", error);
 		} finally {
 			setIsFetchingMore(false);
 		}
-	}, [hasMore, isFetchingMore, searchData, internalCurrentPage, allResults.length, searchQuery, searchFilters]);
+	}, [
+		hasMore,
+		isFetchingMore,
+		searchData,
+		internalCurrentPage,
+		allResults.length,
+		searchQuery,
+		searchFilters,
+	]);
 
 	const queueState = React.useMemo<QueueDerivedState>(() => {
 		const queued = new Set(queue?.queued ?? []);
@@ -152,13 +162,13 @@ const SearchResults: React.FC<Props> = ({
 	// utilsから移動したtriggerDownloadを使用
 	const handleDownload = (setId: number) => {
 		// allResultsから該当アイテムを探す
-		const item = allResults.find(r => r.set_id === setId);
+		const item = allResults.find((r) => r.set_id === setId);
 		if (item) {
 			const mockSearchData: SearchResponse = {
 				results: allResults,
 				total: data?.total || 0,
 				page: internalCurrentPage,
-				limit: 20
+				limit: 20,
 			};
 			triggerDownload(setId, mockSearchData, client, onQueueUpdate);
 		}
@@ -241,7 +251,8 @@ const SearchResults: React.FC<Props> = ({
 				<div className="flex items-center gap-3">
 					<h2 className="text-lg font-semibold">Results</h2>
 					<span className="text-xs text-text-secondary bg-surface-variant/70 px-2 py-1 rounded-md border border-border">
-						Total: {data.total.toLocaleString("en-US")} | Showing: {filtered.length.toLocaleString("en-US")}
+						Total: {data.total.toLocaleString("en-US")} | Showing:{" "}
+						{filtered.length.toLocaleString("en-US")}
 					</span>
 					<button
 						onClick={() => setShowUnicode((prev) => !prev)}
@@ -278,9 +289,7 @@ const SearchResults: React.FC<Props> = ({
 
 					{/* ローディングインジケーター */}
 					{isFetchingMore && (
-						<div className="text-center py-4 text-text-muted">
-							Loading more...
-						</div>
+						<div className="text-center py-4 text-text-muted">Loading more...</div>
 					)}
 
 					{/* 終了インジケーター */}

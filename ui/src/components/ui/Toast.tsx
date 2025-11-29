@@ -85,9 +85,10 @@ export function CustomToast() {
 														? "var(--color-success)"
 														: "var(--color-primary)",
 											width: "100%",
-											animation: t.visible
-												? `shrink ${t.duration || 4000}ms linear forwards`
-												: "none",
+											animationName: t.visible ? "shrink" : "none",
+											animationDuration: `${t.duration || 4000}ms`,
+											animationTimingFunction: "linear",
+											animationFillMode: "forwards",
 											animationPlayState: hoveredToastId === t.id ? "paused" : "running",
 											borderBottomLeftRadius: "8px",
 											borderBottomRightRadius: "8px",

@@ -53,52 +53,52 @@ class Match:
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Tailwindのデフォルト色クラスの使用を検出します。"
+        description="Detects usage of default Tailwind color classes."
     )
     parser.add_argument(
         "roots",
         nargs="*",
         default=["src"],
-        help="走査対象のディレクトリ。省略時は src を再帰的にチェック",
+        help="Directories to scan. If omitted, recursively check src",
     )
     parser.add_argument(
         "-e",
         "--extensions",
         nargs="+",
         default=[".tsx", ".ts", ".jsx", ".js"],
-        help="チェック対象の拡張子。ドット無し指定も可",
+        help="File extensions to check (dotless specification also allowed)",
     )
     parser.add_argument(
         "--colors",
         nargs="+",
-        help="使用を禁止したいTailwindデフォルト色の一覧（指定するとデフォルトを上書き）",
+        help="List of default Tailwind colors to prohibit (overrides defaults if specified)",
     )
     parser.add_argument(
         "--add-colors",
         nargs="+",
         default=[],
-        help="デフォルト色に追加したい色",
+        help="Colors to add to defaults",
     )
     parser.add_argument(
         "--ignore-token",
         default="tailwind-ignore",
-        help="指定した文字列を含む行はチェック対象外にします",
+        help="Exclude lines containing the specified string from checks",
     )
     parser.add_argument(
         "--max-matches-per-file",
         type=int,
         default=5,
-        help="1ファイルあたりに表示する最大検出数（0以下で制限なし）",
+        help="Maximum number of detections to display per file (0 or less for no limit)",
     )
     parser.add_argument(
         "--show-all",
         action="store_true",
-        help="検出行をすべて表示（--max-matches-per-file を無視）",
+        help="Display all detected lines (ignores --max-matches-per-file)",
     )
     parser.add_argument(
         "--fail-on-missing-dir",
         action="store_true",
-        help="存在しないディレクトリが指定された場合にエラー終了します",
+        help="Exit with error if specified directory does not exist",
     )
     return parser.parse_args(argv)
 
@@ -118,7 +118,7 @@ def build_patterns(colors: Sequence[str]) -> List[re.Pattern[str]]:
         {color.strip() for color in colors if color and color.strip()}
     )
     if not unique_colors:
-        raise ValueError("色のリストが空です")
+        raise ValueError("Color list is empty")
     color_group = f"({'|'.join(unique_colors)})"
     return [
         re.compile(template.format(colors=color_group)) for template in PATTERN_TEMPLATES
@@ -150,7 +150,7 @@ def scan_file(
                 if skip_next:
                     skip_next = False
                     if contains_ignore_token:
-                        # comment行などに付いた無視トークンは次の行もスキップする
+                        # Skip next line if ignore token is attached to comment line etc.
                         if not any(pattern.search(stripped) for pattern in patterns):
                             skip_next = True
                     continue
@@ -158,8 +158,8 @@ def scan_file(
                 has_forbidden_color = any(pattern.search(stripped) for pattern in patterns)
 
                 if contains_ignore_token:
-                    # 同じ行に無視トークンがある場合は常にスキップ。
-                    # コメント行のみなら次の行もスキップする。
+                    # Always skip if ignore token is on same line.
+                    # If it's a comment-only line, also skip the next line.
                     if not has_forbidden_color:
                         skip_next = True
                     continue
@@ -170,9 +170,9 @@ def scan_file(
                     else:
                         truncated = True
     except UnicodeDecodeError:
-        print(f"⚠️ UTF-8として読み込めませんでした: {file_path}", file=sys.stderr)
+        print(f"WARNING: Could not read as UTF-8: {file_path}", file=sys.stderr)
     except OSError as exc:
-        print(f"⚠️ ファイルを読み込めませんでした: {file_path} ({exc})", file=sys.stderr)
+        print(f"WARNING: Could not read file: {file_path} ({exc})", file=sys.stderr)
     return matches, truncated
 
 
@@ -191,7 +191,7 @@ def main(argv: Sequence[str]) -> int:
     try:
         patterns = build_patterns(colors)
     except ValueError as exc:
-        print(f"❌ {exc}", file=sys.stderr)
+        print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
     root_paths = [Path(root) for root in args.roots]
@@ -199,18 +199,18 @@ def main(argv: Sequence[str]) -> int:
     missing_roots = [path for path in root_paths if not path.exists()]
 
     for missing in missing_roots:
-        print(f"⚠️ 指定されたディレクトリが存在しません: {missing}", file=sys.stderr)
+        print(f"WARNING: Specified directory does not exist: {missing}", file=sys.stderr)
     if args.fail_on_missing_dir and missing_roots:
         return 2
     if not existing_roots:
-        print("⚠️ 有効なディレクトリが指定されていません。処理を終了します。", file=sys.stderr)
+        print("WARNING: No valid directories specified. Exiting.", file=sys.stderr)
         return 2
 
     limit: Optional[int] = None
     if not args.show_all and args.max_matches_per_file > 0:
         limit = args.max_matches_per_file
 
-    print("🎨 Tailwindデフォルト色の使用をチェック中...")
+    print("Checking Tailwind default color usage...")
 
     any_errors = False
     for target_file in iter_target_files(existing_roots, extensions):
@@ -218,7 +218,7 @@ def main(argv: Sequence[str]) -> int:
         if not matches:
             continue
         any_errors = True
-        print(f"❌ 禁止されているTailwind色が見つかりました: {target_file}")
+        print(f"ERROR: Forbidden Tailwind colors found in: {target_file}")
         for match in matches:
             print(f"  {match.line_no}: {match.line}")
         if truncated:
@@ -226,15 +226,15 @@ def main(argv: Sequence[str]) -> int:
         print("")
 
     if any_errors:
-        print("💥 Tailwindデフォルト色の使用が検出されました！\n")
-        print("📋 代わりに以下のセマンティック色を使用してください：")
-        print("  背景: bg-surface, bg-surface-variant, bg-primary, bg-error など")
-        print("  テキスト: text-text, text-text-secondary, text-primary, text-error など")
-        print("  ボーダー: border-border, border-border-muted, border-primary など\n")
-        print("🎨 利用可能なセマンティック色の一覧は src/app/globals.css の @theme セクションを確認してください。")
+        print("!!! Tailwind default color usage detected!\n")
+        print("Please use the following semantic colors instead:")
+        print("  Backgrounds: bg-surface, bg-surface-variant, bg-primary, bg-error, etc.")
+        print("  Text: text-text, text-text-secondary, text-primary, text-error, etc.")
+        print("  Borders: border-border, border-border-muted, border-primary, etc.\n")
+        print("For available semantic colors, check the @theme section in src/app/globals.css.")
         return 1
 
-    print("✅ Tailwindデフォルト色の使用は検出されませんでした。")
+    print("OK: No Tailwind default color usage detected.")
     return 0
 
 
@@ -242,5 +242,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
     except KeyboardInterrupt:
-        print("🛑 中断されました。", file=sys.stderr)
+        print("ABORTED.", file=sys.stderr)
         sys.exit(130)
