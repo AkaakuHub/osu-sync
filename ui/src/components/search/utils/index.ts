@@ -3,11 +3,7 @@ import {
 	SearchFilters,
 	SearchParams,
 	AdvancedSearchQuery,
-	ExtraFilter,
-	GeneralFilter,
-	RankFilter,
 	SortField,
-	SortOrder,
 	DEFAULT_FILTERS,
 } from "../types";
 

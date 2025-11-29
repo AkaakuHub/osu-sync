@@ -1,17 +1,13 @@
-// 検索フィルターパネル - 統合されたフィルター管理コンポーネント
+// 検索フィルターパネル - osu!公式風のシンプルなレイアウト
 import { useState, useMemo } from "react";
 import { useSearchFilters } from "./hooks/useSearchFilters";
 import {
-	FilterPanelHeader,
-	FilterSection,
 	SortControls,
 	StatusControls,
 	ModeControls,
 	ArrayFilterControls,
 	NsfwToggle,
-	SupporterFilters,
 	SelectFilter,
-	AdvancedSearchInput,
 } from "./filter-components";
 import {
 	AVAILABLE_SORT_FIELDS,
@@ -20,11 +16,45 @@ import {
 	AVAILABLE_GENERAL,
 	AVAILABLE_RANKS,
 	GAME_MODES,
-	GENRES,
-	LANGUAGES,
 	SORT_FIELD_LABELS,
 	STATUS_LABELS,
 } from "./types";
+
+// 手動定義のジャンルと言語
+const GENRES = [
+	{ value: "any", label: "Any" },
+	{ value: "unspecified", label: "Unspecified" },
+	{ value: "video-game", label: "Video Game" },
+	{ value: "anime", label: "Anime" },
+	{ value: "rock", label: "Rock" },
+	{ value: "pop", label: "Pop" },
+	{ value: "other", label: "Other" },
+	{ value: "novelty", label: "Novelty" },
+	{ value: "hip-hop", label: "Hip Hop" },
+	{ value: "electronic", label: "Electronic" },
+	{ value: "metal", label: "Metal" },
+	{ value: "classical", label: "Classical" },
+	{ value: "folk", label: "Folk" },
+	{ value: "jazz", label: "Jazz" },
+];
+
+const LANGUAGES = [
+	{ value: "any", label: "Any" },
+	{ value: "english", label: "English" },
+	{ value: "chinese", label: "Chinese" },
+	{ value: "french", label: "French" },
+	{ value: "german", label: "German" },
+	{ value: "italian", label: "Italian" },
+	{ value: "japanese", label: "Japanese" },
+	{ value: "korean", label: "Korean" },
+	{ value: "spanish", label: "Spanish" },
+	{ value: "swedish", label: "Swedish" },
+	{ value: "russian", label: "Russian" },
+	{ value: "polish", label: "Polish" },
+	{ value: "instrumental", label: "Instrumental" },
+	{ value: "other", label: "Other" },
+	{ value: "unspecified", label: "Unspecified" },
+];
 
 interface FilterPanelProps {
 	onFiltersChange?: (filters: any) => void;
@@ -32,18 +62,11 @@ interface FilterPanelProps {
 	className?: string;
 }
 
-export function FilterPanel({
-	onFiltersChange,
-	isSupporter = false,
-	className = "",
-}: FilterPanelProps) {
+export function FilterPanel({ onFiltersChange, className = "" }: FilterPanelProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
-	const [advancedSearchVisible, setAdvancedSearchVisible] = useState(false);
 
 	const {
 		filters,
-		isActive,
-		requiresSupporter,
 		setSort,
 		setStatus,
 		setMode,
@@ -52,7 +75,6 @@ export function FilterPanel({
 		setNsfw,
 		setPlayed,
 		toggleRank,
-		setAdvancedQueryString,
 		resetAllFilters,
 		getFilterStats,
 		setGenre,
@@ -73,155 +95,183 @@ export function FilterPanel({
 		setMode(mode as any);
 	};
 
-	const handleAdvancedSearchSubmit = (queryString: string) => {
-		setAdvancedQueryString(queryString);
-	};
-
 	// 現在のフィルター設定
 	const sortValue = `${filters.sortField}_${filters.sortOrder}`;
 
 	return (
-		<div className={`bg-surface border border-border rounded-lg ${className}`}>
+		<div
+			className={`bg-surface/95 backdrop-blur-md border border-border rounded-lg shadow-lg ${className}`}
+		>
 			{/* ヘッダー */}
-			<FilterPanelHeader
-				isExpanded={isExpanded}
-				onToggleExpand={() => setIsExpanded(!isExpanded)}
-				isActive={isActive}
-				activeCount={filterStats.totalActive}
-				onReset={resetAllFilters}
-			/>
+			<div
+				className="flex items-center justify-between px-4 py-3 border-b border-border cursor-pointer hover:bg-surface-variant/50 transition-colors"
+				onClick={() => setIsExpanded(!isExpanded)}
+			>
+				<div className="flex items-center gap-2">
+					<span className="font-medium text-text">Filters</span>
+					{filterStats.totalActive > 0 && (
+						<span className="inline-flex items-center justify-center min-w-[20px] h-5 px-2 bg-accent text-accent-foreground text-xs font-medium rounded-full">
+							{filterStats.totalActive}
+						</span>
+					)}
+				</div>
+				<div className="flex items-center gap-2">
+					{filterStats.totalActive > 0 && (
+						<button
+							onClick={(e) => {
+								e.stopPropagation(); // ヘッダーのクリックイベントを伝播させない
+								resetAllFilters();
+							}}
+							className="px-2 py-1 text-xs text-text-secondary hover:text-text transition-colors"
+						>
+							Reset
+						</button>
+					)}
+					<svg
+						className={`w-4 h-4 text-text-secondary transition-transform ${isExpanded ? "rotate-180" : ""}`}
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+					</svg>
+				</div>
+			</div>
 
-			{/* フィルター内容 */}
+			{/* フィルター内容 - osu!公式風の横並びレイアウト */}
 			{isExpanded && (
-				<div className="p-6 space-y-6 border-t border-border-muted max-h-[500px] overflow-y-auto">
-					{/* ソートコントロール */}
-					<FilterSection title="並び替え" className="grid grid-cols-2 gap-4">
-						<SortControls
-							value={sortValue}
-							onChange={handleSortChange}
-							sortFields={AVAILABLE_SORT_FIELDS}
-							sortLabels={SORT_FIELD_LABELS}
-						/>
-					</FilterSection>
+				<div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+					{/* ソート */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">Sort:</span>
+						<div className="flex flex-wrap gap-2">
+							<SortControls
+								value={sortValue}
+								onChange={handleSortChange}
+								sortFields={AVAILABLE_SORT_FIELDS}
+								sortLabels={SORT_FIELD_LABELS}
+							/>
+						</div>
+					</div>
 
-					{/* 基本フィルター */}
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						{/* ステータスフィルター */}
-						<FilterSection title="ステータス">
+					{/* ステータス */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">Status:</span>
+						<div className="flex flex-wrap gap-2">
 							<StatusControls
 								value={filters.status}
 								onChange={handleStatusChange}
 								statuses={AVAILABLE_STATUSES}
 								statusLabels={STATUS_LABELS}
 							/>
-						</FilterSection>
-
-						{/* ゲームモードフィルター */}
-						<FilterSection title="ゲームモード">
-							<ModeControls value={filters.mode} onChange={handleModeChange} modes={GAME_MODES} />
-						</FilterSection>
+						</div>
 					</div>
 
-					{/* 配列フィルター */}
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-						{/* エクストラフィルター */}
-						<FilterSection title="追加機能">
+					{/* モード */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">Mode:</span>
+						<div className="flex flex-wrap gap-2">
+							<ModeControls value={filters.mode} onChange={handleModeChange} modes={GAME_MODES} />
+						</div>
+					</div>
+
+					{/* ジャンル */}
+					<div className="flex items-start gap-3">
+						<span className="text-sm font-medium text-text w-20 pt-1">Genre:</span>
+						<div className="flex flex-wrap gap-2 flex-1">
+							<ArrayFilterControls
+								type="checkbox"
+								items={GENRES}
+								selectedValues={filters.genre || []}
+								onToggle={(value) => setGenre(value as any)}
+							/>
+						</div>
+					</div>
+
+					{/* 言語 */}
+					<div className="flex items-start gap-3">
+						<span className="text-sm font-medium text-text w-20 pt-1">Language:</span>
+						<div className="flex flex-wrap gap-2 flex-1">
+							<ArrayFilterControls
+								type="checkbox"
+								items={LANGUAGES}
+								selectedValues={filters.language || []}
+								onToggle={(value) => setLanguage(value as any)}
+							/>
+						</div>
+					</div>
+
+					{/* エクストラ */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">Extra:</span>
+						<div className="flex flex-wrap gap-2">
 							<ArrayFilterControls
 								type="checkbox"
 								items={AVAILABLE_EXTRAS.map((value) => ({
 									value,
-									label: value === "video" ? "動画あり" : "ストーリーボードあり",
+									label: value === "video" ? "Video" : "Storyboard",
 								}))}
-								selectedValues={filters.extra}
+								selectedValues={filters.extra || []}
 								onToggle={(value) => toggleExtra(value as any)}
 							/>
-						</FilterSection>
+						</div>
+					</div>
 
-						{/* 一般フィルター */}
-						<FilterSection title="一般フィルター">
+					{/* 一般フィルター */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">General:</span>
+						<div className="flex flex-wrap gap-2">
 							<ArrayFilterControls
 								type="checkbox"
 								items={AVAILABLE_GENERAL.map((value) => ({
 									value,
-									label: {
-										recommended: "おすすめ難易度",
-										converts: "変換譜面を含む",
-										follows: "フォロー中のマッパー",
-										spotlights: "スポットライト譜面",
-										featured_artists: "フィーチャーアーティスト",
-									}[value],
+									label: value.charAt(0).toUpperCase() + value.slice(1),
 								}))}
-								selectedValues={filters.general}
+								selectedValues={filters.general || []}
 								onToggle={(value) => toggleGeneral(value as any)}
 							/>
-						</FilterSection>
-
-						{/* NSFWフィルター */}
-						<FilterSection title="コンテンツ設定">
-							<NsfwToggle value={filters.nsfw} onChange={setNsfw} />
-						</FilterSection>
-					</div>
-
-					{/* ジャンルと言語フィルター */}
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						{/* ジャンルフィルター */}
-						<FilterSection title="ジャンル">
-							<SelectFilter
-								value={filters.genre}
-								onChange={setGenre}
-								options={GENRES}
-								placeholder="ジャンルを選択"
-								multiple={true}
-							/>
-						</FilterSection>
-
-						{/* 言語フィルター */}
-						<FilterSection title="言語">
-							<SelectFilter
-								value={filters.language}
-								onChange={setLanguage}
-								options={LANGUAGES}
-								placeholder="言語を選択"
-								multiple={true}
-							/>
-						</FilterSection>
-					</div>
-
-					{/* サポーター専用フィルター */}
-					{isSupporter && (
-						<FilterSection
-							title="サポーター専用フィルター"
-							warning={!isSupporter && requiresSupporter}
-						>
-							<SupporterFilters
-								playedFilter={filters.played || "any"}
-								rankFilters={filters.rank || []}
-								onPlayedChange={(played) => setPlayed(played as any)}
-								onRankToggle={(rank) => toggleRank(rank as any)}
-								rankOptions={AVAILABLE_RANKS}
-							/>
-						</FilterSection>
-					)}
-
-					{/* 高度な検索 */}
-					<FilterSection title="高度な検索" className="space-y-4">
-						<div className="flex items-center justify-between">
-							<span className="text-sm text-text-secondary">クエリ構文を使用して詳細検索</span>
-							<button
-								onClick={() => setAdvancedSearchVisible(!advancedSearchVisible)}
-								className="text-sm text-accent hover:text-accent-foreground transition-colors"
-							>
-								{advancedSearchVisible ? "非表示" : "表示"}
-							</button>
 						</div>
+					</div>
 
-						{advancedSearchVisible && (
-							<AdvancedSearchInput
-								onSubmit={handleAdvancedSearchSubmit}
-								placeholder="例: stars>5 ar>=9 bpm<200 creator=hello"
+					{/* NSFW */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">NSFW:</span>
+						<div className="flex items-center gap-3">
+							<NsfwToggle value={filters.nsfw || false} onChange={setNsfw} />
+						</div>
+					</div>
+
+					{/* ランク */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">Rank:</span>
+						<div className="flex flex-wrap gap-2">
+							<ArrayFilterControls
+								type="checkbox"
+								items={AVAILABLE_RANKS.map((value) => ({
+									value,
+									label: value.toUpperCase(),
+								}))}
+								selectedValues={filters.rank || []}
+								onToggle={(value) => toggleRank(value as any)}
 							/>
-						)}
-					</FilterSection>
+						</div>
+					</div>
+
+					{/* プレイ済み */}
+					<div className="flex items-center gap-3">
+						<span className="text-sm font-medium text-text w-20">Played:</span>
+						<div className="flex flex-wrap gap-2">
+							<SelectFilter
+								value={filters.played || "any"}
+								onChange={(value) => setPlayed(value as any)}
+								options={[
+									{ value: "any", label: "Any" },
+									{ value: "played", label: "Played" },
+									{ value: "unplayed", label: "Unplayed" },
+								]}
+							/>
+						</div>
+					</div>
 				</div>
 			)}
 		</div>

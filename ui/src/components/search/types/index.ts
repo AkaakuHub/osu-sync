@@ -205,42 +205,6 @@ export interface SearchParams {
 	// 高度な検索はクエリ文字列に直接含める
 }
 
-// ジャンルと言語の定義
-export const GENRES = {
-	any: "Any",
-	unspecified: "Unspecified",
-	"video-game": "Video Game",
-	anime: "Anime",
-	rock: "Rock",
-	pop: "Pop",
-	other: "Other",
-	novelty: "Novelty",
-	"hip-hop": "Hip Hop",
-	electronic: "Electronic",
-	metal: "Metal",
-	classical: "Classical",
-	folk: "Folk",
-	jazz: "Jazz",
-} as const;
-
-export const LANGUAGES = {
-	any: "Any",
-	english: "English",
-	chinese: "Chinese",
-	french: "French",
-	german: "German",
-	italian: "Italian",
-	japanese: "Japanese",
-	korean: "Korean",
-	spanish: "Spanish",
-	swedish: "Swedish",
-	russian: "Russian",
-	polish: "Polish",
-	instrumental: "Instrumental",
-	other: "Other",
-	unspecified: "Unspecified",
-} as const;
-
 // 利用可能なオプション定数
 export const AVAILABLE_STATUSES: StatusFilter[] = [
 	"any",

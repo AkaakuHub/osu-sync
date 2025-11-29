@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import React from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Search } from "lucide-react";
 import {
 	apiClient,
 	type IndexSummary,
@@ -148,69 +148,83 @@ const SearchPage: React.FC<Props> = ({
 
 	return (
 		<div className="h-full flex flex-col bg-surface">
-			{/* Compact Status Bar */}
-			<div className="bg-surface-variant/90 backdrop-blur-md border border-border rounded-lg shadow-lg px-4 py-2 m-4 flex-shrink-0">
-				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-4 text-sm">
+			{/* Status Header */}
+			<div className="bg-surface-variant/80 backdrop-blur-sm border-b border-border px-6 py-3 flex-shrink-0">
+				<div className="max-w-7xl mx-auto flex items-center justify-between">
+					<div className="flex items-center gap-6 text-sm">
 						<div className="flex items-center gap-2">
 							<span className="text-text-muted">Owned:</span>
-							<span className="font-medium text-text">{index?.owned_sets ?? "-"}</span>
+							<span className="font-semibold text-text">{index?.owned_sets ?? "-"}</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<span className="text-text-muted">Meta:</span>
-							<span className="font-medium text-text">{index?.with_metadata ?? "-"}</span>
+							<span className="text-text-muted">With Metadata:</span>
+							<span className="font-semibold text-text">{index?.with_metadata ?? "-"}</span>
 						</div>
 					</div>
 					<div className="flex items-center gap-3">
-						<Toggle checked={ownedOnly} onChange={setOwnedOnly} label="Owned" />
+						<Toggle checked={ownedOnly} onChange={setOwnedOnly} label="Owned Only" />
 						<Button
 							variant="ghost"
 							onClick={() => refetchIndex()}
 							disabled={indexLoading}
 							size="sm"
-							className="text-xs px-2 py-1 h-6"
+							className="text-xs px-3 py-1.5 h-7"
 						>
-							<RotateCcw className="w-3 h-3" />
+							<RotateCcw className="w-3.5 h-3.5" />
 						</Button>
 					</div>
 				</div>
 			</div>
 
-			{/* Search Bar */}
-			<div className="px-4 pb-3 flex-shrink-0">
-				<div className="bg-surface-variant/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-3">
-					<Input
-						placeholder="Search by artist, title, or creator..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						variant="search"
-					/>
+			{/* Main Content Area */}
+			<div className="flex-1 min-h-0">
+				<div className="max-w-7xl mx-auto h-full flex flex-col p-4 gap-4">
+					{/* Search Bar - osu!公式風デザイン */}
+					<div className="flex-shrink-0">
+						<div className="beatmapsets-search__input-container relative">
+							<Input
+								placeholder="Search by artist, title, or creator..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								variant="search"
+								className="beatmapsets-search__input pr-12 text-base"
+							/>
+							{/* 検索アイコン */}
+							<Search className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+							{/* ローディングインジケーター */}
+							{searchLoading && (
+								<div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+									<div className="animate-spin w-4 h-4 border-2 border-border border-t-accent rounded-full"></div>
+								</div>
+							)}
+						</div>
+					</div>
+
+					{/* Filter Panel */}
+					<div className="flex-shrink-0">
+						<FilterPanel
+							onFiltersChange={(filters) => {
+								// フィルター変更時に即時反映
+								setSearchFilters(filters);
+								setCurrentPage(1); // ページをリセット
+							}}
+							isSupporter={false} // TODO: ユーザーのサポーター状態を取得
+						/>
+					</div>
+
+					{/* Search Results */}
+					<div className="flex-1 min-h-0">
+						<SearchResults
+							ownedOnly={ownedOnly}
+							onQueueUpdate={refetchQueue}
+							queue={queue}
+							searchData={searchResults}
+							isLoading={searchLoading}
+							searchQuery={searchQuery}
+							searchFilters={searchFilters}
+						/>
+					</div>
 				</div>
-			</div>
-
-			{/* Filter Panel */}
-			<div className="px-4 pb-3 flex-shrink-0">
-				<FilterPanel
-					onFiltersChange={(filters) => {
-						// フィルター変更時に即時反映
-						setSearchFilters(filters);
-						setCurrentPage(1); // ページをリセット
-					}}
-					isSupporter={false} // TODO: ユーザーのサポーター状態を取得
-				/>
-			</div>
-
-			{/* Search Results */}
-			<div className="flex-1 min-h-0 px-4 pb-4">
-				<SearchResults
-					ownedOnly={ownedOnly}
-					onQueueUpdate={refetchQueue}
-					queue={queue}
-					searchData={searchResults}
-					isLoading={searchLoading}
-					searchQuery={searchQuery}
-					searchFilters={searchFilters}
-				/>
 			</div>
 		</div>
 	);
