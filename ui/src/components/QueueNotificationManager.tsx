@@ -1,14 +1,24 @@
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { apiClient, type QueueStatus } from "../hooks/useApiClient";
+import { useQueryClient } from "@tanstack/react-query";
+import { type QueueStatus } from "../hooks/useApiClient";
+import { getEventSource } from "../utils/eventSource";
 
 export function QueueNotificationManager() {
 	const previousDoneRef = useRef<Map<number, any>>(new Map());
+	const queryClient = useQueryClient();
 
 	useEffect(() => {
-		const interval = setInterval(async () => {
+		const es = getEventSource();
+
+		const handleMessage = (event: MessageEvent) => {
 			try {
-				const queue = await apiClient.get<QueueStatus>("/queue");
+				const parsed = JSON.parse(event.data);
+				if (parsed.topic !== "queue") return;
+				const queue: QueueStatus = parsed.data;
+
+				// react-query キャッシュを即時更新
+				queryClient.setQueryData<QueueStatus>(["queue"], queue);
 
 				if (!queue?.done) return;
 
@@ -38,13 +48,13 @@ export function QueueNotificationManager() {
 					});
 				});
 			} catch (error) {
-				console.error("Failed to fetch queue status:", error);
-				// APIエラーはtoast表示しない
+				console.error("Failed to process queue event:", error);
 			}
-		}, 2000); // 2秒ごとにチェック
+		};
 
-		return () => clearInterval(interval);
-	}, []);
+		es.addEventListener("message", handleMessage);
+		return () => es.removeEventListener("message", handleMessage);
+	}, [queryClient]);
 
 	// このコンポーネントは通知のみを管理するのでUIは返さない
 	return null;

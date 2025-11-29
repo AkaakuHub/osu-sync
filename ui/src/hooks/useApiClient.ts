@@ -36,6 +36,10 @@ class ApiClient {
 			body: data ? JSON.stringify(data) : undefined,
 		});
 	}
+
+	getBaseUrl() {
+		return this.baseUrl;
+	}
 }
 
 // Global API client instance

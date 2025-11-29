@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import platform
 import subprocess
@@ -6,9 +7,9 @@ from pathlib import Path
 from typing import Optional
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.config import settings
@@ -28,6 +29,34 @@ from api.schemas import (
 
 
 API_PREFIX = "/api"
+
+
+class EventBus:
+    """Very small async pub/sub used for SSE push."""
+
+    def __init__(self) -> None:
+        self._subscribers: set[asyncio.Queue] = set()
+        self._lock = asyncio.Lock()
+
+    async def subscribe(self) -> asyncio.Queue:
+        q: asyncio.Queue = asyncio.Queue()
+        async with self._lock:
+            self._subscribers.add(q)
+        return q
+
+    async def unsubscribe(self, q: asyncio.Queue) -> None:
+        async with self._lock:
+            self._subscribers.discard(q)
+
+    async def publish(self, event: dict) -> None:
+        async with self._lock:
+            subs = list(self._subscribers)
+        for q in subs:
+            try:
+                q.put_nowait(event)
+            except asyncio.QueueFull:
+                # drop if subscriber is slow
+                continue
 
 
 def reveal_in_file_manager(path: Path, *, select: bool = False) -> None:
@@ -54,6 +83,7 @@ def reveal_in_file_manager(path: Path, *, select: bool = False) -> None:
 def create_app() -> FastAPI:
     app = FastAPI(title="osu-sync", version="0.1.0")
     api = APIRouter(prefix=API_PREFIX)
+    app.state.event_bus = EventBus()
 
     app.add_middleware(
         CORSMiddleware,
@@ -79,13 +109,18 @@ def create_app() -> FastAPI:
             return {"message": "ui/dist がまだありません。`npm install && npm run build` を実行してください。"}
 
     # 共有状態
-    app.state.index = SongIndex(osu_db_path=settings.osu_db_path, songs_dir=settings.songs_dir)
+    app.state.index = SongIndex(
+        osu_db_path=settings.osu_db_path,
+        songs_dir=settings.songs_dir,
+        event_bus=app.state.event_bus,
+    )
     app.state.downloader = DownloadManager(
         songs_dir=settings.songs_dir,
         url_template=settings.download_url_template,
         max_concurrency=settings.max_concurrency,
         requests_per_minute=settings.requests_per_minute,
         index=app.state.index,
+        event_bus=app.state.event_bus,
     )
 
     def build_osu_client() -> None:
@@ -185,6 +220,34 @@ def create_app() -> FastAPI:
     @api.get("/health")
     async def health() -> dict:
         return {"status": "ok"}
+
+    @api.get("/events")
+    async def sse_events(request: Request) -> StreamingResponse:
+        """
+        Server-Sent Events endpoint.
+        Emits dict payloads: {"topic": "...", "data": {...}}.
+        """
+        queue = await app.state.event_bus.subscribe()
+
+        async def event_generator():
+            try:
+                while True:
+                    if await request.is_disconnected():
+                        break
+                    event = await queue.get()
+                    yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            finally:
+                await app.state.event_bus.unsubscribe(queue)
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
 
     @api.get("/local/index", response_model=IndexSummary)
     async def local_index() -> IndexSummary:
@@ -364,7 +427,11 @@ def create_app() -> FastAPI:
         ])
 
         if needs_rebuild:
-            app.state.index = SongIndex(osu_db_path=settings.osu_db_path, songs_dir=settings.songs_dir)
+            app.state.index = SongIndex(
+                osu_db_path=settings.osu_db_path,
+                songs_dir=settings.songs_dir,
+                event_bus=app.state.event_bus,
+            )
             await app.state.index.refresh()
             app.state.downloader = DownloadManager(
                 songs_dir=settings.songs_dir,
@@ -372,6 +439,7 @@ def create_app() -> FastAPI:
                 max_concurrency=settings.max_concurrency,
                 requests_per_minute=settings.requests_per_minute,
                 index=app.state.index,
+                event_bus=app.state.event_bus,
             )
             await app.state.downloader.start_workers()
 

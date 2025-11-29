@@ -1,16 +1,20 @@
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { apiClient, ScanStatus } from "../hooks/useApiClient";
+import { ScanStatus } from "../hooks/useApiClient";
+import { getEventSource } from "../utils/eventSource";
 
 export function ScanProgress() {
 	const toastIdRef = useRef<string | null>(null);
 	const previousStatusRef = useRef<string | null>(null);
 
 	useEffect(() => {
-		// スキャン状態をポーリング
-		const interval = setInterval(async () => {
+		const es = getEventSource();
+
+		const handleMessage = (event: MessageEvent) => {
 			try {
-				const status = await apiClient.get<ScanStatus>("/local/scan-status");
+				const parsed = JSON.parse(event.data);
+				if (parsed.topic !== "scan") return;
+				const status: ScanStatus = parsed.data;
 
 				// ステータス変化を検知してtoastを表示
 				if (previousStatusRef.current !== status.status) {
@@ -31,7 +35,7 @@ export function ScanProgress() {
 							break;
 						case "completed":
 							toastIdRef.current = toast.success(
-								`スキャン完了！ (${status.processed_files} ファイル)`,
+								`スキャン完了！ (${status.processed_files ?? 0} ファイル)`,
 							);
 							// 完了toastは5秒後に自動で消える
 							setTimeout(() => {
@@ -58,13 +62,14 @@ export function ScanProgress() {
 					);
 				}
 			} catch (error) {
-				console.error("Failed to fetch scan status:", error);
-				// APIエラーはtoast表示しない（コンソールのみ）
+				console.error("Failed to process scan event:", error);
 			}
-		}, 1000); // 1秒ごとに更新
+		};
+
+		es.addEventListener("message", handleMessage);
 
 		return () => {
-			clearInterval(interval);
+			es.removeEventListener("message", handleMessage);
 			// コンポーネントがアンマウントされるときはtoastをクリア
 			if (toastIdRef.current) {
 				toast.dismiss(toastIdRef.current);

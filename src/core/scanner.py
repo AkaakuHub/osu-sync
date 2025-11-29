@@ -12,7 +12,12 @@ class SongIndex:
     osu!.dbから直接楽曲情報を読み取るインデックス。
     """
 
-    def __init__(self, osu_db_path: Optional[str] = None, songs_dir: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        osu_db_path: Optional[str] = None,
+        songs_dir: Optional[str] = None,
+        event_bus=None,
+    ) -> None:
         self.osu_db_path = osu_db_path
         self.songs_dir = Path(songs_dir) if songs_dir else None
         self._owned: Set[int] = set()
@@ -20,6 +25,7 @@ class SongIndex:
         self._state_lock = asyncio.Lock()
         self._scan_task: Optional[asyncio.Task] = None
         self._scanning = False
+        self._event_bus = event_bus
 
     @property
     def owned_set_ids(self) -> Set[int]:
@@ -40,31 +46,48 @@ class SongIndex:
         osu_owned, osu_metadata = set(), {}
         osz_owned, osz_metadata = set(), {}
 
-        # 1. osu!.dbから読み込み
-        if self.osu_db_path and Path(self.osu_db_path).exists():
-            try:
-                self._scan_task = asyncio.create_task(self._parse_osu_db())
-                osu_owned, osu_metadata = await self._scan_task
-            except Exception as e:
-                print(f"Error parsing osu!.db: {e}")
-        else:
-            print(f"osu!.db not found at {self.osu_db_path}, using .osz files only")
-
-        # 2. .oszファイルから読み込み
         try:
-            self._scan_task = asyncio.create_task(self._scan_osz_fast())
-            osz_owned, osz_metadata = await self._scan_task
-        except Exception as e:
-            print(f"Error scanning .osz files: {e}")
+            # 1. osu!.dbから読み込み
+            if self.osu_db_path and Path(self.osu_db_path).exists():
+                try:
+                    self._scan_task = asyncio.create_task(self._parse_osu_db())
+                    osu_owned, osu_metadata = await self._scan_task
+                except Exception as e:
+                    print(f"Error parsing osu!.db: {e}")
+            else:
+                print(f"osu!.db not found at {self.osu_db_path}, using .osz files only")
 
-        # 3. マージ（osu!.dbのメタデータを優先）
-        async with self._state_lock:
-            self._owned = osu_owned.union(osz_owned)
-            # osu!.dbのメタデータを優先し、.oszで補完
-            self._metadata = {**osz_metadata, **osu_metadata}
+            # 2. .oszファイルから読み込み
+            try:
+                self._scan_task = asyncio.create_task(self._scan_osz_fast())
+                osz_owned, osz_metadata = await self._scan_task
+            except Exception as e:
+                print(f"Error scanning .osz files: {e}")
 
-        print(f"Hybrid scan complete: {len(self._owned)} sets total "
-              f"(osu!.db: {len(osu_owned)}, .osz: {len(osz_owned)})")
+            # 3. マージ（osu!.dbのメタデータを優先）
+            async with self._state_lock:
+                self._owned = osu_owned.union(osz_owned)
+                # osu!.dbのメタデータを優先し、.oszで補完
+                self._metadata = {**osz_metadata, **osu_metadata}
+
+            print(f"Hybrid scan complete: {len(self._owned)} sets total "
+                  f"(osu!.db: {len(osu_owned)}, .osz: {len(osz_owned)})")
+            await self._emit_scan_event({
+                "status": "completed",
+                "owned_sets": len(self._owned),
+                "osu_db_sets": len(osu_owned),
+                "osz_sets": len(osz_owned),
+                "total_files": len(self._owned),
+                "processed_files": len(self._owned),
+                "current_file": None,
+                "started_at": None,
+                "completed_at": None,
+                "error_message": None,
+                "updated_at": None,
+            })
+        except Exception as exc:
+            await self._emit_scan_event({"status": "error", "error_message": str(exc)})
+            raise
 
     async def _start_background_scan(self) -> None:
         """バックグラウンドでハイブリッドスキャンを開始"""
@@ -72,6 +95,16 @@ class SongIndex:
         if self._scan_task and not self._scan_task.done():
             return
 
+        await self._emit_scan_event({
+            'status': 'scanning',
+            'total_files': 0,
+            'processed_files': 0,
+            'current_file': 'osu!.db',
+            'started_at': None,
+            'completed_at': None,
+            'error_message': None,
+            'updated_at': None
+        })
         self._scan_task = asyncio.create_task(self._load_hybrid())
 
     async def _parse_osu_db(self) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
@@ -241,3 +274,12 @@ class SongIndex:
         self._owned.add(set_id)
         if metadata:
             self._metadata[set_id] = metadata
+
+    async def _emit_scan_event(self, payload: Dict[str, any]) -> None:
+        """Push scan status to SSE subscribers."""
+        if not self._event_bus:
+            return
+        try:
+            await self._event_bus.publish({"topic": "scan", "data": payload})
+        except Exception as exc:
+            print(f"Scan event publish failed: {exc}")

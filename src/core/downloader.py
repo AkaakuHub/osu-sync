@@ -45,6 +45,7 @@ class DownloadManager:
         max_concurrency: int = 3,
         requests_per_minute: int = 60,
         index: Optional[SongIndex] = None,
+        event_bus=None,
     ) -> None:
         self.songs_dir = Path(songs_dir)
         self.url_template = url_template
@@ -55,6 +56,7 @@ class DownloadManager:
         self._workers_started = False
         self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
         self._client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+        self._event_bus = event_bus
 
     def enqueue(self, set_ids: List[int], metadata: Optional[Dict[int, Dict[str, str]]] = None) -> List[DownloadTask]:
         new_tasks: List[DownloadTask] = []
@@ -78,6 +80,8 @@ class DownloadManager:
             self._tasks[set_id] = task
             self._queue.put_nowait(task)
             new_tasks.append(task)
+        if new_tasks:
+            self._publish_status()
         return new_tasks
 
     async def start_workers(self) -> None:
@@ -96,6 +100,7 @@ class DownloadManager:
             task.status = "running"
             task.progress = 0.0
             task.bytes_downloaded = 0
+            self._publish_status()
             try:
                 await self._download(task)
                 if task.status not in {"failed", "skipped"}:
@@ -107,6 +112,7 @@ class DownloadManager:
                 task.message = str(exc)
             finally:
                 self._queue.task_done()
+                self._publish_status()
 
     async def _download(self, task: DownloadTask) -> None:
         self.songs_dir.mkdir(parents=True, exist_ok=True)
@@ -123,6 +129,7 @@ class DownloadManager:
             task.updated_at = time.time()
             if self.index:
                 self.index.mark_owned(task.set_id)
+            self._publish_status()
             return
 
         async with self._limiter:
@@ -138,6 +145,7 @@ class DownloadManager:
                     task.total_bytes = None
 
                 downloaded = 0
+                last_emit = time.time()
                 with tmp_path.open("wb") as f:
                     async for chunk in resp.aiter_bytes(4096):
                         f.write(chunk)
@@ -153,6 +161,9 @@ class DownloadManager:
                         task.updated_at = now
                         if task.total_bytes:
                             task.progress = min(downloaded / task.total_bytes, 0.999)
+                        if now - last_emit >= 0.5:
+                            last_emit = now
+                            self._publish_status()
                 metadata = self._derive_metadata_from_archive(tmp_path)
                 if metadata:
                     task.artist, task.title = metadata
@@ -193,6 +204,16 @@ class DownloadManager:
             "running": [self._serialize_task(t) for t in running],
             "done": [self._serialize_task(t) for t in finished],
         }
+
+    def _publish_status(self) -> None:
+        """Push current queue snapshot to SSE subscribers."""
+        if not self._event_bus:
+            return
+        try:
+            asyncio.create_task(self._event_bus.publish({"topic": "queue", "data": self.status()}))
+        except RuntimeError:
+            # event loop not running (during tests); ignore
+            pass
 
     def _serialize_task(self, task: DownloadTask) -> Dict[str, object]:
         return {

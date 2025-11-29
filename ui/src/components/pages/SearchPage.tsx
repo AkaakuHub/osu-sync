@@ -153,8 +153,7 @@ const SearchPage: React.FC<Props> = ({
 	const { data: queue, refetch: refetchQueue } = useQuery<QueueStatus>({
 		queryKey: ["queue"],
 		queryFn: () => apiClient.get<QueueStatus>("/queue"),
-		refetchInterval: 500,
-		refetchIntervalInBackground: true,
+		refetchOnWindowFocus: false,
 	});
 
 	return (

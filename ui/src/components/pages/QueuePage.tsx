@@ -8,8 +8,7 @@ const QueuePage: React.FC = () => {
 	const { data: queue, refetch: refetchQueue } = useQuery<QueueStatus>({
 		queryKey: ["queue"],
 		queryFn: () => apiClient.get<QueueStatus>("/queue"),
-		refetchInterval: 1000,
-		refetchIntervalInBackground: true,
+		refetchOnWindowFocus: false,
 	});
 
 	return (
