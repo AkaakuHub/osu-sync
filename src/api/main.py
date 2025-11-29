@@ -336,6 +336,7 @@ def create_app() -> FastAPI:
             "download_url_template": settings.download_url_template,
             "max_concurrency": settings.max_concurrency,
             "requests_per_minute": settings.requests_per_minute,
+            "player_volume": settings.player_volume,
         }
 
     @api.post("/settings")
@@ -347,6 +348,7 @@ def create_app() -> FastAPI:
             "download_url_template",
             "max_concurrency",
             "requests_per_minute",
+            "player_volume",
         }
         filtered = {k: v for k, v in payload.items() if k in allowed}
         settings.persist(filtered)

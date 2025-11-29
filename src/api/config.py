@@ -59,11 +59,24 @@ class Settings:
         self.max_concurrency: int = int(os.getenv("OSU_DL_CONCURRENCY", data.get("max_concurrency", 3)))
         self.requests_per_minute: int = int(os.getenv("OSU_DL_RPM", data.get("requests_per_minute", 60)))
 
+        # ミニプレイヤーの音量設定（0.0-1.0）
+        self.player_volume: float = float(os.getenv("OSU_PLAYER_VOLUME", data.get("player_volume", 0.7)))
+
         # リスキャン対象拡張子
         self.scan_extensions = [".osu", ".osz"]
 
     def persist(self, payload: Dict[str, object]) -> None:
         """UI から更新された設定を保存し、インメモリ値も差し替える。"""
+        # 現在の設定ファイルを読み込む
+        current_data = self.store.load()
+
+        # payloadの値で現在の設定を更新
+        current_data.update(payload)
+
+        # 更新した設定を保存
+        self.store.save(current_data)
+
+        # 設定を再読み込みしてインメモリ値を更新
         self.__init__()  # reload values from file/env
 
     @staticmethod

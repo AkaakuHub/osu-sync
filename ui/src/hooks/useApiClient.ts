@@ -109,6 +109,7 @@ export interface Settings {
 	download_url_template: string;
 	max_concurrency: number;
 	requests_per_minute: number;
+	player_volume: number;
 }
 
 export interface ScanStatus {

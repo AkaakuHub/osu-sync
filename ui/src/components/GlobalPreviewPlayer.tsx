@@ -1,10 +1,24 @@
 import React from "react";
 import { Howl } from "howler";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
 import type { PreviewableItem } from "./search/ResultCard";
+import { apiClient, type Settings } from "../hooks/useApiClient";
 
 // SearchResults.tsxから移動した状態
 const GlobalPreviewPlayer: React.FC = () => {
+	// 設定を取得
+	const { data: settings } = useQuery<Settings>({
+		queryKey: ["settings"],
+		queryFn: () => apiClient.get<Settings>("/settings"),
+	});
+	const queryClient = useQueryClient();
+
+	// 設定が読み込まれるまで待機
+	if (!settings) {
+		return null;
+	}
+
 	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
 	const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
 	const [isActuallyPlaying, setIsActuallyPlaying] = React.useState(false);
@@ -13,9 +27,25 @@ const GlobalPreviewPlayer: React.FC = () => {
 	const [playbackProgress, setPlaybackProgress] = React.useState(0);
 	const [duration, setDuration] = React.useState(0);
 	const [currentTrack, setCurrentTrack] = React.useState<CurrentTrack | null>(null);
-	const [volume, setVolume] = React.useState(0.7);
+
+	// 設定から初期音量を取得
+	const [volume, setVolume] = React.useState(settings.player_volume);
 	const [isMuted, setIsMuted] = React.useState(false);
-	const [previousVolume, setPreviousVolume] = React.useState(0.7);
+	const [previousVolume, setPreviousVolume] = React.useState(settings.player_volume);
+
+	// 設定が読み込まれたら音量を反映
+	React.useEffect(() => {
+		const newVolume = settings.player_volume;
+		setVolume(newVolume);
+		setPreviousVolume(newVolume);
+	}, [settings]);
+
+	// 音量・ミュート状態が変更されたらHowlerに適用
+	React.useEffect(() => {
+		if (howlRef.current) {
+			howlRef.current.volume(isMuted ? 0 : volume);
+		}
+	}, [volume, isMuted]);
 
 	const stopPreview = React.useCallback(() => {
 		if (howlRef.current) {
@@ -85,7 +115,7 @@ const GlobalPreviewPlayer: React.FC = () => {
 
 				const howl = new Howl({
 					src: [item.preview_url || ""],
-					volume: volume,
+					volume: isMuted ? 0 : volume,
 					html5: true,
 					preload: true, // プリロードを有効化
 					onend: () => {
@@ -183,8 +213,19 @@ const GlobalPreviewPlayer: React.FC = () => {
 			if (howlRef.current) {
 				howlRef.current.volume(isMuted ? 0 : newVolume);
 			}
+
+			// 音量設定をバックエンドに保存
+			apiClient
+				.post("/settings", { player_volume: newVolume })
+				.then(() => {
+					// 設定キャッシュを更新
+					queryClient.invalidateQueries({ queryKey: ["settings"] });
+				})
+				.catch((error) => {
+					console.error("Failed to save volume setting:", error);
+				});
 		},
-		[isMuted],
+		[isMuted, queryClient],
 	);
 
 	const handleToggleMute = React.useCallback(() => {

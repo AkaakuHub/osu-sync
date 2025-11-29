@@ -75,6 +75,21 @@ export default function SettingsPanel() {
 						/>
 					</div>
 
+					<div className="space-y-1">
+						<label className="text-text-secondary text-xs font-medium">Player Volume</label>
+						<Input
+							type="range"
+							min="0"
+							max="100"
+							defaultValue={Math.round(data.player_volume * 100)}
+							onChange={(e) => update("player_volume", Number(e.target.value) / 100)}
+							className="text-xs w-full"
+						/>
+						<div className="text-center text-xs text-text-muted">
+							{Math.round(data.player_volume * 100)}%
+						</div>
+					</div>
+
 					<div className="grid grid-cols-2 gap-2">
 						<div className="space-y-1">
 							<label className="text-text-secondary text-xs font-medium">Concurrency</label>
