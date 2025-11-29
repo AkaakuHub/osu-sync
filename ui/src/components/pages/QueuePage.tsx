@@ -25,7 +25,7 @@ const QueuePage: React.FC = () => {
 						variant="ghost"
 						onClick={() => refetchQueue()}
 						size="sm"
-						className="text-xs px-2 py-1 h-6"
+						className="text-xs px-2 py-1"
 					>
 						<RotateCcw className="w-3 h-3" />
 					</Button>

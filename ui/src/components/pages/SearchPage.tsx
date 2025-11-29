@@ -149,7 +149,7 @@ const SearchPage: React.FC<Props> = ({
 	return (
 		<div className="h-full flex flex-col bg-surface">
 			{/* Status Header */}
-			<div className="bg-surface-variant/80 backdrop-blur-sm border-b border-border px-6 py-3 flex-shrink-0">
+			<div className="bg-surface-variant/80 backdrop-blur-sm border-b border-border px-2 flex-shrink-0">
 				<div className="max-w-7xl mx-auto flex items-center justify-between">
 					<div className="flex items-center gap-6 text-sm">
 						<div className="flex items-center gap-2">
@@ -178,7 +178,7 @@ const SearchPage: React.FC<Props> = ({
 
 			{/* Main Content Area */}
 			<div className="flex-1 min-h-0">
-				<div className="max-w-7xl mx-auto h-full flex flex-col p-4 gap-4">
+				<div className="max-w-7xl mx-auto h-full flex flex-col p-2 gap-2">
 					{/* Search Bar - osu!公式風デザイン */}
 					<div className="flex-shrink-0">
 						<div className="beatmapsets-search__input-container relative">
@@ -187,7 +187,7 @@ const SearchPage: React.FC<Props> = ({
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								variant="search"
-								className="beatmapsets-search__input pr-12 text-base"
+								className="beatmapsets-search__input pr-12 text-base my-1"
 							/>
 							{/* 検索アイコン */}
 							<Search className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />

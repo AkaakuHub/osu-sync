@@ -296,7 +296,7 @@ const SearchResults: React.FC<Props> = ({
 
 					{/* 終了インジケーター */}
 					{!hasMore && filtered.length > 0 && (
-						<div className="text-center py-4 text-text-muted border-t border-border">
+						<div className="pt-1 text-center text-text-muted border-t border-border">
 							End of results ({filtered.length} beatmaps loaded)
 						</div>
 					)}

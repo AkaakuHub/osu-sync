@@ -49,7 +49,7 @@ function App() {
 
 			<div className="h-screen flex flex-col p-4">
 				{/* App Header */}
-				<header className="mb-3 flex-shrink-0">
+				<header className="flex-shrink-0">
 					<h1 className="text-xl font-bold text-text">osu! sync</h1>
 				</header>
 

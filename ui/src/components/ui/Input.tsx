@@ -2,12 +2,12 @@ import React from "react";
 import { tv } from "tailwind-variants";
 
 const input = tv({
-	base: "flex h-12 w-full rounded-xl border border-border bg-surface px-4 py-3 text-base ring-offset-surface file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 hover:border-border/80 shadow-sm hover:shadow-md",
+	base: "flex h-8 p-2 w-full rounded-xl border border-border bg-surface text-base ring-offset-surface file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 hover:border-border/80 shadow-sm hover:shadow-md",
 	variants: {
 		variant: {
 			default: "",
 			search:
-				"h-14 text-lg px-6 py-4 bg-surface-variant/50 border-border/50 focus-visible:bg-surface focus-visible:border-primary/50 shadow-lg hover:shadow-xl",
+				"text-lg px-4 bg-surface-variant/50 border-border/50 focus-visible:bg-surface focus-visible:border-primary/50 shadow-lg hover:shadow-xl",
 		},
 		error: {
 			true: "border-error focus-visible:ring-error/50",

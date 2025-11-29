@@ -104,7 +104,7 @@ export function FilterPanel({ onFiltersChange, className = "" }: FilterPanelProp
 		>
 			{/* ヘッダー */}
 			<div
-				className="flex items-center justify-between px-4 py-3 border-b border-border cursor-pointer hover:bg-surface-variant/50 transition-colors"
+				className="flex items-center justify-between px-4 py-1 border-b border-border cursor-pointer hover:bg-surface-variant/50 transition-colors"
 				onClick={() => setIsExpanded(!isExpanded)}
 			>
 				<div className="flex items-center gap-2">
