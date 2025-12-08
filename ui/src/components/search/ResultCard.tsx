@@ -357,13 +357,13 @@ const ResultCard: React.FC<Props> = ({
 									</span>
 									{grouped.length > 0 && (
 										<div
-											className="flex flex-wrap items-center gap-2 overflow-x-auto scrollbar-hide"
+											className="flex flex-nowrap items-center gap-4 overflow-x-auto whitespace-nowrap scrollbar-hide"
 											style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
 											onMouseEnter={handleDifficultyMouseEnter}
 											onMouseLeave={handleDifficultyMouseLeave}
 										>
 											{grouped.map(({ mode, list }) => (
-												<div key={mode} className="flex items-center gap-1">
+												<div key={mode} className="flex items-center gap-1 flex-shrink-0">
 													<span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-text-secondary">
 														<span className="w-4 h-4 text-text scale-25 -translate-1.5">
 															{modeIcon[mode]}
