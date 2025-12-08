@@ -19,6 +19,7 @@ import {
 	SORT_FIELD_LABELS,
 	STATUS_LABELS,
 } from "./types";
+import { tv } from "tailwind-variants";
 
 // 手動定義のジャンルと言語
 const GENRES = [
@@ -105,13 +106,23 @@ export function FilterPanel({
 	// 現在のフィルター設定
 	const sortValue = `${filters.sortField}_${filters.sortOrder}`;
 
+	const headerClass = tv({
+		base: "flex items-center justify-between px-4 py-1 cursor-pointer border-b hover:bg-surface-variant/50 transition-colors",
+		variants: {
+			expanded: {
+				true: "border-border",
+				false: "border-border/0",
+			},
+		},
+	});
+
 	return (
 		<div
 			className={`bg-surface/95 backdrop-blur-md border border-border rounded-lg shadow-lg ${className}`}
 		>
 			{/* ヘッダー */}
 			<div
-				className="flex items-center justify-between px-4 py-1 border-b border-border cursor-pointer hover:bg-surface-variant/50 transition-colors"
+				className={headerClass({ expanded: isExpanded })}
 				onClick={() => setIsExpanded(!isExpanded)}
 			>
 				<div className="flex items-center gap-2">
