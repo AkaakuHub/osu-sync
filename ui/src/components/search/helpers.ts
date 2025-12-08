@@ -33,6 +33,8 @@ export const formatDate = (value?: string | null) => {
 	}
 };
 
+export const defaultCover = "https://osu.ppy.sh/assets/images/default-bg@2x.4043b8f4.png";
+
 export const buildBackground = (cover?: string | null) => {
 	if (!cover) {
 		return {
@@ -40,10 +42,10 @@ export const buildBackground = (cover?: string | null) => {
 		};
 	}
 	return {
-		background: `linear-gradient(120deg, rgba(12,14,26,0.94) 0%, rgba(21,25,38,0.9) 60%, rgba(18,16,32,0.9) 100%), url(${cover})`,
-		backgroundSize: "cover",
+		backgroundImage: `linear-gradient(120deg, rgba(12,14,26,0.94) 0%, rgba(21,25,38,0.9) 60%, rgba(18,16,32,0.9) 100%), url(${cover}), url(${defaultCover})`,
+		backgroundSize: "cover, cover, cover",
 		backgroundPosition: "center",
-		backgroundBlendMode: "overlay",
+		backgroundBlendMode: "overlay, normal, normal",
 	};
 };
 
