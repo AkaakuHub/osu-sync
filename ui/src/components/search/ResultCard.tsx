@@ -232,6 +232,7 @@ const ResultCard: React.FC<Props> = ({
 			</svg>
 		),
 	};
+	const fallbackCover = "https://osu.ppy.sh/assets/images/default-bg@2x.4043b8f4.png";
 
 	const grouped = useMemo(() => {
 		const map = new Map<string, typeof difficulties>();
@@ -280,7 +281,10 @@ const ResultCard: React.FC<Props> = ({
 									alt={item.title}
 									className={`${card.thumbnail()} cursor-pointer h-full w-full`}
 									onError={(e) => {
-										e.currentTarget.style.display = "none";
+										if (e.currentTarget.src !== fallbackCover) {
+											e.currentTarget.onerror = null;
+											e.currentTarget.src = fallbackCover;
+										}
 									}}
 								/>
 							) : (
