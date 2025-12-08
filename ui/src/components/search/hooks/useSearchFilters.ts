@@ -1,5 +1,5 @@
 // 検索フィルター用のカスタムフック
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
 	SearchFilters,
 	SortField,
@@ -13,6 +13,7 @@ import {
 	AdvancedSearchQuery,
 	Genre,
 	Language,
+	DEFAULT_FILTERS,
 } from "../types";
 import {
 	filtersToParams,
@@ -29,10 +30,11 @@ import {
 interface UseSearchFiltersOptions {
 	onFiltersChange?: (filters: SearchFilters) => void;
 	initialFilters?: SearchFilters | null;
+	searchQuery?: string;
 }
 
 export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
-	const { onFiltersChange, initialFilters } = options;
+	const { onFiltersChange, initialFilters, searchQuery: externalQuery } = options;
 
 	// フィルター状態の初期化
 	const [filters, setFiltersState] = useState<SearchFilters>(() => {
@@ -50,6 +52,35 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
 		if (JSON.stringify(initialFilters) === JSON.stringify(filters)) return;
 		setFiltersState(initialFilters);
 	}, [initialFilters]);
+
+	// 空文字 → 非空 のクエリ入力を検知して、デフォルトソートが ranked のままなら relevance に一度だけ切り替える
+	const previousQuery = useRef<string>("");
+	useEffect(() => {
+		const currentQuery = externalQuery ?? "";
+		const wasEmpty = previousQuery.current.trim() === "";
+		const isNowFilled = currentQuery.trim() !== "";
+
+		if (wasEmpty && isNowFilled) {
+			setFiltersState((prev) => {
+				const isDefaultSort =
+					(!prev.sortField && !prev.sortOrder) ||
+					(prev.sortField === DEFAULT_FILTERS.sortField &&
+						(prev.sortOrder || DEFAULT_FILTERS.sortOrder) === DEFAULT_FILTERS.sortOrder);
+
+				if (isDefaultSort) {
+					return {
+						...prev,
+						sortField: "relevance",
+						sortOrder: prev.sortOrder || DEFAULT_FILTERS.sortOrder,
+					};
+				}
+
+				return prev;
+			});
+		}
+
+		previousQuery.current = currentQuery;
+	}, [externalQuery]);
 
 	// フィルター変更通知
 	useEffect(() => {

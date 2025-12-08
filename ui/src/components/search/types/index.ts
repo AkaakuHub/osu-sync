@@ -176,7 +176,7 @@ export interface SearchFilters {
 
 // デフォルトフィルター状態
 export const DEFAULT_FILTERS: SearchFilters = {
-	sortField: "relevance",
+	sortField: "ranked",
 	sortOrder: "desc",
 	status: "any",
 	mode: "null",

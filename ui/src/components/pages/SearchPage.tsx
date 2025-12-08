@@ -238,6 +238,7 @@ const SearchPage: React.FC<Props> = ({
 							}}
 							isSupporter={false} // TODO: ユーザーのサポーター状態を取得
 							initialFilters={searchFilters}
+							searchQuery={searchQuery}
 						/>
 					</div>
 

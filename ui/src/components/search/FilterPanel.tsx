@@ -61,9 +61,15 @@ interface FilterPanelProps {
 	isSupporter?: boolean;
 	className?: string;
 	initialFilters?: any;
+	searchQuery?: string;
 }
 
-export function FilterPanel({ onFiltersChange, className = "", initialFilters }: FilterPanelProps) {
+export function FilterPanel({
+	onFiltersChange,
+	className = "",
+	initialFilters,
+	searchQuery,
+}: FilterPanelProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const {
@@ -80,7 +86,7 @@ export function FilterPanel({ onFiltersChange, className = "", initialFilters }:
 		getFilterStats,
 		setGenre,
 		setLanguage,
-	} = useSearchFilters({ onFiltersChange, initialFilters });
+	} = useSearchFilters({ onFiltersChange, initialFilters, searchQuery });
 
 	const filterStats = useMemo(() => getFilterStats(), [getFilterStats]);
 
