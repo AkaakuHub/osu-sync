@@ -37,21 +37,21 @@ def update_versions(version: str) -> None:
     update_file(
         ROOT / "pyproject.toml",
         r'^(version\s*=\s*")([^"]+)(")$',
-        rf'\1{version}\3',
+        r'\g<1>' + version + r'\g<3>',
     )
 
     # root package.json
     update_file(
         ROOT / "package.json",
         r'("version"\s*:\s*")[^"]+(")',
-        rf'\1{version}\2',
+        r'\g<1>' + version + r'\g<2>',
     )
 
     # ui/package.json
     update_file(
         ROOT / "ui" / "package.json",
         r'("version"\s*:\s*")[^"]+(")',
-        rf'\1{version}\2',
+        r'\g<1>' + version + r'\g<2>',
     )
 
     # installer/osu-sync.iss
