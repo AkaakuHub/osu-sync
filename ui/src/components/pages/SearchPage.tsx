@@ -15,6 +15,7 @@ import Toggle from "../ui/Toggle";
 import SearchResults from "../SearchResults";
 import { FilterPanel } from "../search/FilterPanel";
 import { type SearchFilters } from "../search/types";
+import { resetFilters } from "../search/utils";
 
 type Props = {
 	ownedOnly: boolean;
@@ -39,7 +40,10 @@ const SearchPage: React.FC<Props> = ({
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 	const [currentPage, setCurrentPage] = useState(1);
-	const [internalSearchFilters, setInternalSearchFilters] = useState<SearchFilters | null>(null);
+	// デフォルトフィルターを最初から持たせて、有効化待ちの遅延をなくす
+	const [internalSearchFilters, setInternalSearchFilters] = useState<SearchFilters | null>(() =>
+		resetFilters(),
+	);
 	const searchFilters = propSearchFilters ?? internalSearchFilters;
 	const setSearchFilters = propSetSearchFilters ?? setInternalSearchFilters;
 	const filtersReady = !!searchFilters;
