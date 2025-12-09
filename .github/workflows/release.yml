@@ -93,6 +93,7 @@ jobs:
 
       - name: Install Python deps (uv)
         run: |
+          uv venv
           uv pip install . nuitka==2.8.9
 
       - name: Build exe with Nuitka (includes FastAPI + webview + dist)
