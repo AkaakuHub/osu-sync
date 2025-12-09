@@ -80,7 +80,13 @@ export default function SettingsPanel() {
 							Latest v{updateInfo.latest_version} · Current v{currentVersion}
 						</span>
 					</div>
-					<Button onClick={startUpdate} variant="primary" className="text-sm px-3 py-1.5">
+					<Button
+						onClick={startUpdate}
+						variant="primary"
+						className="text-sm px-3 py-1.5"
+						disabled={updating}
+						isLoading={updating}
+					>
 						{updating ? "Downloading…" : "Download & Install"}
 					</Button>
 				</div>
@@ -105,6 +111,7 @@ export default function SettingsPanel() {
 					variant="secondary"
 					className="text-sm px-3 py-1.5"
 					disabled={updating}
+					isLoading={updating}
 				>
 					Check again
 				</Button>
