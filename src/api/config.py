@@ -1,7 +1,6 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional
 
 
 class SettingsStore:
@@ -9,16 +8,16 @@ class SettingsStore:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
-    def load(self) -> Dict:
+    def load(self) -> dict:
         try:
             if self.path.exists():
-                with open(self.path, "r", encoding="utf-8") as f:
+                with open(self.path, encoding="utf-8") as f:
                     return json.load(f)
         except (OSError, json.JSONDecodeError):
             pass
         return {}
 
-    def save(self, data: Dict) -> Dict:
+    def save(self, data: dict) -> dict:
         try:
             with open(self.path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
@@ -36,7 +35,11 @@ class Settings:
     def __init__(self) -> None:
         # デフォルトの設定ディレクトリを XDG 準拠 (~/.config/osu-sync) に変更
         settings_dir = Path(
-            os.getenv("OSUSYNC_CONFIG_DIR", Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")) / "osu-sync")
+            os.getenv(
+                "OSUSYNC_CONFIG_DIR",
+                Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
+                / "osu-sync",
+            )
         )
         self.store = SettingsStore(settings_dir / "settings.json")
 
@@ -64,25 +67,35 @@ class Settings:
         if not file_existed or updated:
             data = self.store.save(data)
 
-        self.osu_client_id: Optional[int] = self._read_int("OSU_CLIENT_ID") or self._coerce_int(
-            data.get("osu_client_id")
+        self.osu_client_id: int | None = self._read_int(
+            "OSU_CLIENT_ID"
+        ) or self._coerce_int(data.get("osu_client_id"))
+        self.osu_client_secret: str | None = os.getenv("OSU_CLIENT_SECRET") or data.get(
+            "osu_client_secret"
         )
-        self.osu_client_secret: Optional[str] = os.getenv("OSU_CLIENT_SECRET") or data.get("osu_client_secret")
 
         self.songs_dir: str = os.getenv("OSU_SONGS_DIR", data.get("songs_dir"))
         self.osu_db_path: str = os.getenv("OSU_DB_PATH", data.get("osu_db_path"))
 
-        self.download_url_template: str = os.getenv("OSU_DOWNLOAD_URL_TEMPLATE", data.get("download_url_template"))
+        self.download_url_template: str = os.getenv(
+            "OSU_DOWNLOAD_URL_TEMPLATE", data.get("download_url_template")
+        )
 
-        self.max_concurrency: int = int(os.getenv("OSU_DL_CONCURRENCY", data.get("max_concurrency")))
-        self.requests_per_minute: int = int(os.getenv("OSU_DL_RPM", data.get("requests_per_minute")))
+        self.max_concurrency: int = int(
+            os.getenv("OSU_DL_CONCURRENCY", data.get("max_concurrency"))
+        )
+        self.requests_per_minute: int = int(
+            os.getenv("OSU_DL_RPM", data.get("requests_per_minute"))
+        )
 
-        self.player_volume: float = float(os.getenv("OSU_PLAYER_VOLUME", data.get("player_volume")))
+        self.player_volume: float = float(
+            os.getenv("OSU_PLAYER_VOLUME", data.get("player_volume"))
+        )
 
         # リスキャン対象拡張子
         self.scan_extensions = [".osu", ".osz"]
 
-    def persist(self, payload: Dict[str, object]) -> None:
+    def persist(self, payload: dict[str, object]) -> None:
         """UI から更新された設定を保存し、インメモリ値も差し替える。"""
         # 現在の設定ファイルを読み込む
         current_data = self.store.load()
@@ -97,12 +110,12 @@ class Settings:
         self.__init__()  # reload values from file/env
 
     @staticmethod
-    def _read_int(key: str) -> Optional[int]:
+    def _read_int(key: str) -> int | None:
         value = os.getenv(key)
         return int(value) if value is not None and value.isdigit() else None
 
     @staticmethod
-    def _coerce_int(value: object) -> Optional[int]:
+    def _coerce_int(value: object) -> int | None:
         try:
             return int(value) if value is not None else None
         except (TypeError, ValueError):

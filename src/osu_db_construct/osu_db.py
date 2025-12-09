@@ -1,35 +1,39 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 import kaitaistruct
-from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
+from kaitaistruct import KaitaiStruct
 
-
-if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 9):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
+if getattr(kaitaistruct, "API_VERSION", (0, 9)) < (0, 9):
+    raise Exception(
+        f"Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have {kaitaistruct.__version__}"
+    )
 
 from . import vlq_base128_le
+
+
 class OsuDb(KaitaiStruct):
     """osu!.db file format in rhythm game osu!,
     the legacy DB file structure used in the old osu stable client (not lazer).
-    
+
     DB files are in the `osu-stable` installation directory:
     Windows: `%localappdata%\osu!`
     Mac OSX: `/Applications/osu!.app/Contents/Resources/drive_c/Program Files/osu!/`
-    
+
     Unless otherwise specified, all numerical types are stored little-endian.
     Integer values, including bytes, are all unsigned.
     UTF-8 characters are stored in their canonical form, with the higher-order byte first.
-    
+
     osu!.db contains a cached version of information about all currently installed beatmaps.
     Deleting this file will force osu! to rebuild the cache from scratch.
     This may be useful since it may fix certain discrepancies, such as beatmaps
     that had been deleted from the Songs folder but are still showing up in-game.
     Unsurprisingly, due to its central role in the internal management of beatmaps
     and the amount of data that is cached, osu!.db is the largest of the .db files.
-    
+
     .. seealso::
        Source - https://github.com/ppy/osu/wiki/Legacy-database-file-structure
     """
+
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
@@ -56,6 +60,7 @@ class OsuDb(KaitaiStruct):
         See https://osu.ppy.sh/wiki/osu!_File_Formats/Osu_(file_format)
         for more information regarding timing points.
         """
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -67,7 +72,6 @@ class OsuDb(KaitaiStruct):
             self.offset = self._io.read_f8le()
             self.not_inherited = OsuDb.Bool(self._io, self, self._root)
 
-
     class String(KaitaiStruct):
         """Has three parts; a single byte which will be either 0x00, indicating that
         the next two parts are not present, or 0x0b (decimal 11), indicating that
@@ -76,6 +80,7 @@ class OsuDb(KaitaiStruct):
         of the following string, and then the string itself, encoded in UTF-8.
         See https://en.wikipedia.org/wiki/UTF-8.
         """
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -88,9 +93,7 @@ class OsuDb(KaitaiStruct):
                 self.len_str = vlq_base128_le.VlqBase128Le(self._io)
 
             if self.is_present == 11:
-                self.value = (self._io.read_bytes(self.len_str.value)).decode(u"UTF-8")
-
-
+                self.value = (self._io.read_bytes(self.len_str.value)).decode("UTF-8")
 
     class Beatmap(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
@@ -118,53 +121,69 @@ class OsuDb(KaitaiStruct):
             self.num_spinners = self._io.read_u2le()
             self.last_modification_time = self._io.read_u8le()
             _on = self._root.osu_version < 20140609
-            if _on == True:
+            if _on:
                 self.approach_rate = self._io.read_u1()
-            elif _on == False:
+            elif not _on:
                 self.approach_rate = self._io.read_f4le()
             _on = self._root.osu_version < 20140609
-            if _on == True:
+            if _on:
                 self.circle_size = self._io.read_u1()
-            elif _on == False:
+            elif not _on:
                 self.circle_size = self._io.read_f4le()
             _on = self._root.osu_version < 20140609
-            if _on == True:
+            if _on:
                 self.hp_drain = self._io.read_u1()
-            elif _on == False:
+            elif not _on:
                 self.hp_drain = self._io.read_f4le()
             _on = self._root.osu_version < 20140609
-            if _on == True:
+            if _on:
                 self.overall_difficulty = self._io.read_u1()
-            elif _on == False:
+            elif not _on:
                 self.overall_difficulty = self._io.read_f4le()
             self.slider_velocity = self._io.read_f8le()
             if self._root.osu_version >= 20140609:
                 _on = self._root.osu_version <= 20250107
-                if _on == True:
-                    self.star_rating_osu = OsuDb.IntDoublePairs(self._io, self, self._root)
-                elif _on == False:
-                    self.star_rating_osu = OsuDb.IntFloatPairs(self._io, self, self._root)
+                if _on:
+                    self.star_rating_osu = OsuDb.IntDoublePairs(
+                        self._io, self, self._root
+                    )
+                elif not _on:
+                    self.star_rating_osu = OsuDb.IntFloatPairs(
+                        self._io, self, self._root
+                    )
 
             if self._root.osu_version >= 20140609:
                 _on = self._root.osu_version <= 20250107
-                if _on == True:
-                    self.star_rating_taiko = OsuDb.IntDoublePairs(self._io, self, self._root)
-                elif _on == False:
-                    self.star_rating_taiko = OsuDb.IntFloatPairs(self._io, self, self._root)
+                if _on:
+                    self.star_rating_taiko = OsuDb.IntDoublePairs(
+                        self._io, self, self._root
+                    )
+                elif not _on:
+                    self.star_rating_taiko = OsuDb.IntFloatPairs(
+                        self._io, self, self._root
+                    )
 
             if self._root.osu_version >= 20140609:
                 _on = self._root.osu_version <= 20250107
-                if _on == True:
-                    self.star_rating_ctb = OsuDb.IntDoublePairs(self._io, self, self._root)
-                elif _on == False:
-                    self.star_rating_ctb = OsuDb.IntFloatPairs(self._io, self, self._root)
+                if _on:
+                    self.star_rating_ctb = OsuDb.IntDoublePairs(
+                        self._io, self, self._root
+                    )
+                elif not _on:
+                    self.star_rating_ctb = OsuDb.IntFloatPairs(
+                        self._io, self, self._root
+                    )
 
             if self._root.osu_version >= 20140609:
                 _on = self._root.osu_version <= 20250107
-                if _on == True:
-                    self.star_rating_mania = OsuDb.IntDoublePairs(self._io, self, self._root)
-                elif _on == False:
-                    self.star_rating_mania = OsuDb.IntFloatPairs(self._io, self, self._root)
+                if _on:
+                    self.star_rating_mania = OsuDb.IntDoublePairs(
+                        self._io, self, self._root
+                    )
+                elif not _on:
+                    self.star_rating_mania = OsuDb.IntFloatPairs(
+                        self._io, self, self._root
+                    )
 
             self.drain_time = self._io.read_u4le()
             self.total_time = self._io.read_u4le()
@@ -200,9 +219,9 @@ class OsuDb(KaitaiStruct):
             self.last_modification_time_int = self._io.read_u4le()
             self.mania_scroll_speed = self._io.read_u1()
 
-
     class TimingPoints(KaitaiStruct):
         """An Int indicating the number of following Timing points, then the aforementioned Timing points."""
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -215,10 +234,9 @@ class OsuDb(KaitaiStruct):
             for i in range(self.num_points):
                 self.points.append(OsuDb.TimingPoint(self._io, self, self._root))
 
-
-
     class Bool(KaitaiStruct):
         """0x00 for false, everything else is true."""
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -230,16 +248,15 @@ class OsuDb(KaitaiStruct):
 
         @property
         def value(self):
-            if hasattr(self, '_m_value'):
+            if hasattr(self, "_m_value"):
                 return self._m_value
 
-            self._m_value = (False if self.byte == 0 else True)
-            return getattr(self, '_m_value', None)
-
+            self._m_value = False if self.byte == 0 else True
+            return getattr(self, "_m_value", None)
 
     class IntDoublePair(KaitaiStruct):
-        """The first byte is 0x08, followed by an Int, then 0x0d, followed by a Double.
-        """
+        """The first byte is 0x08, followed by an Int, then 0x0d, followed by a Double."""
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -249,16 +266,20 @@ class OsuDb(KaitaiStruct):
         def _read(self):
             self.magic1 = self._io.read_bytes(1)
             if not self.magic1 == b"\x08":
-                raise kaitaistruct.ValidationNotEqualError(b"\x08", self.magic1, self._io, u"/types/int_double_pair/seq/0")
+                raise kaitaistruct.ValidationNotEqualError(
+                    b"\x08", self.magic1, self._io, "/types/int_double_pair/seq/0"
+                )
             self.mods = self._io.read_u4le()
             self.magic2 = self._io.read_bytes(1)
-            if not self.magic2 == b"\x0D":
-                raise kaitaistruct.ValidationNotEqualError(b"\x0D", self.magic2, self._io, u"/types/int_double_pair/seq/2")
+            if not self.magic2 == b"\x0d":
+                raise kaitaistruct.ValidationNotEqualError(
+                    b"\x0d", self.magic2, self._io, "/types/int_double_pair/seq/2"
+                )
             self.rating = self._io.read_f8le()
-
 
     class IntDoublePairs(KaitaiStruct):
         """An Int indicating the number of following Int-Double pairs, then the aforementioned pairs."""
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -271,11 +292,9 @@ class OsuDb(KaitaiStruct):
             for i in range(self.num_pairs):
                 self.pairs.append(OsuDb.IntDoublePair(self._io, self, self._root))
 
-
-
     class IntFloatPair(KaitaiStruct):
-        """The first byte is 0x08, followed by an Int, then 0x0c, followed by a Float.
-        """
+        """The first byte is 0x08, followed by an Int, then 0x0c, followed by a Float."""
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -285,16 +304,20 @@ class OsuDb(KaitaiStruct):
         def _read(self):
             self.magic1 = self._io.read_bytes(1)
             if not self.magic1 == b"\x08":
-                raise kaitaistruct.ValidationNotEqualError(b"\x08", self.magic1, self._io, u"/types/int_float_pair/seq/0")
+                raise kaitaistruct.ValidationNotEqualError(
+                    b"\x08", self.magic1, self._io, "/types/int_float_pair/seq/0"
+                )
             self.mods = self._io.read_u4le()
             self.magic2 = self._io.read_bytes(1)
-            if not self.magic2 == b"\x0C":
-                raise kaitaistruct.ValidationNotEqualError(b"\x0C", self.magic2, self._io, u"/types/int_float_pair/seq/2")
+            if not self.magic2 == b"\x0c":
+                raise kaitaistruct.ValidationNotEqualError(
+                    b"\x0c", self.magic2, self._io, "/types/int_float_pair/seq/2"
+                )
             self.rating = self._io.read_f4le()
-
 
     class IntFloatPairs(KaitaiStruct):
         """An Int indicating the number of following Int-Float pairs, then the aforementioned pairs."""
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -306,7 +329,3 @@ class OsuDb(KaitaiStruct):
             self.pairs = []
             for i in range(self.num_pairs):
                 self.pairs.append(OsuDb.IntFloatPair(self._io, self, self._root))
-
-
-
-

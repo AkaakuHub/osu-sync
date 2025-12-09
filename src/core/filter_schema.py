@@ -1,5 +1,3 @@
-from typing import List
-
 from pydantic import BaseModel
 
 
@@ -19,5 +17,5 @@ class Rule(BaseModel):
 
 
 class FilterRequest(BaseModel):
-    groups: List[Group]
-    rules: List[Rule]
+    groups: list[Group]
+    rules: list[Rule]

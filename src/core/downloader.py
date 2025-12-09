@@ -4,7 +4,6 @@ import time
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import httpx
 from aiolimiter import AsyncLimiter
@@ -20,19 +19,19 @@ class DownloadTask:
     url: str
     status: str = "queued"  # queued -> running -> completed/failed/skipped
     message: str = ""
-    path: Optional[Path] = None
-    archive_path: Optional[Path] = None
+    path: Path | None = None
+    archive_path: Path | None = None
     bytes_downloaded: int = 0
-    total_bytes: Optional[int] = None
-    progress: Optional[float] = 0.0
-    speed_bps: Optional[float] = None
-    started_at: Optional[float] = None
-    updated_at: Optional[float] = None
-    display_name: Optional[str] = None
-    artist: Optional[str] = None
-    title: Optional[str] = None
-    artist_unicode: Optional[str] = None
-    title_unicode: Optional[str] = None
+    total_bytes: int | None = None
+    progress: float | None = 0.0
+    speed_bps: float | None = None
+    started_at: float | None = None
+    updated_at: float | None = None
+    display_name: str | None = None
+    artist: str | None = None
+    title: str | None = None
+    artist_unicode: str | None = None
+    title_unicode: str | None = None
     created_at: float = field(default_factory=time.time)
 
 
@@ -47,15 +46,16 @@ class DownloadManager:
         url_template: str,
         max_concurrency: int = 3,
         requests_per_minute: int = 60,
-        index: Optional[SongIndex] = None,
+        index: SongIndex | None = None,
         event_bus=None,
     ) -> None:
         self.songs_dir = Path(songs_dir)
         self.url_template = url_template
         self.max_concurrency = max_concurrency
         self.index = index
-        self._queue: "asyncio.Queue[DownloadTask]" = asyncio.Queue()
-        self._tasks: Dict[int, DownloadTask] = {}
+        self._queue: asyncio.Queue[DownloadTask] = asyncio.Queue()
+        self._tasks: dict[int, DownloadTask] = {}
+        self._worker_handles: list[asyncio.Task] = []
         self._workers_started = False
         self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
         self._client = httpx.AsyncClient(follow_redirects=True, timeout=60)
@@ -68,10 +68,15 @@ class DownloadManager:
             requests_per_minute,
         )
 
-    def enqueue(self, set_ids: List[int], metadata: Optional[Dict[int, Dict[str, str]]] = None) -> List[DownloadTask]:
-        new_tasks: List[DownloadTask] = []
+    def enqueue(
+        self, set_ids: list[int], metadata: dict[int, dict[str, str]] | None = None
+    ) -> list[DownloadTask]:
+        new_tasks: list[DownloadTask] = []
         for set_id in set_ids:
-            if set_id in self._tasks and self._tasks[set_id].status in {"queued", "running"}:
+            if set_id in self._tasks and self._tasks[set_id].status in {
+                "queued",
+                "running",
+            }:
                 continue
             url = self.url_template.format(set_id=set_id)
             task = DownloadTask(set_id=set_id, url=url)
@@ -100,7 +105,8 @@ class DownloadManager:
             return
         self._workers_started = True
         for _ in range(self.max_concurrency):
-            asyncio.create_task(self._worker())
+            handle = asyncio.create_task(self._worker())
+            self._worker_handles.append(handle)
 
     async def _worker(self) -> None:
         while True:
@@ -119,10 +125,15 @@ class DownloadManager:
                     task.status = "completed"
                     task.progress = 1.0
                     task.updated_at = time.time()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 task.status = "failed"
                 task.message = str(exc)
-                logger.exception("Download failed set_id=%s url=%s error=%s", task.set_id, task.url, exc)
+                logger.exception(
+                    "Download failed set_id=%s url=%s error=%s",
+                    task.set_id,
+                    task.url,
+                    exc,
+                )
             finally:
                 self._queue.task_done()
                 self._publish_status()
@@ -143,7 +154,11 @@ class DownloadManager:
             if self.index:
                 self.index.mark_owned(task.set_id)
             self._publish_status()
-            logger.info("Skip download (exists) set_id=%s path=%s", task.set_id, existing_archive)
+            logger.info(
+                "Skip download (exists) set_id=%s path=%s",
+                task.set_id,
+                existing_archive,
+            )
             return
 
         async with self._limiter:
@@ -173,7 +188,9 @@ class DownloadManager:
                     )
                     return
 
-                tmp_path = self.songs_dir / f"{task.set_id}-{int(time.time()*1000)}.part"
+                tmp_path = (
+                    self.songs_dir / f"{task.set_id}-{int(time.time() * 1000)}.part"
+                )
                 task.started_at = time.time()
                 task.updated_at = task.started_at
                 content_length = resp.headers.get("content-length")
@@ -195,7 +212,9 @@ class DownloadManager:
                         if task.speed_bps is None:
                             task.speed_bps = instant_speed
                         else:
-                            task.speed_bps = (task.speed_bps * 0.6) + (instant_speed * 0.4)
+                            task.speed_bps = (task.speed_bps * 0.6) + (
+                                instant_speed * 0.4
+                            )
                         task.updated_at = now
                         if task.total_bytes:
                             task.progress = min(downloaded / task.total_bytes, 0.999)
@@ -260,15 +279,23 @@ class DownloadManager:
                 meta = (task.set_id, task.artist or "", task.title or "", "")
             self.index.mark_owned(task.set_id, meta)
 
-    def status(self) -> Dict[str, object]:
+    def status(self) -> dict[str, object]:
         queued = [t for t in self._tasks.values() if t.status == "queued"]
         running = [t for t in self._tasks.values() if t.status == "running"]
-        finished = [t for t in self._tasks.values() if t.status in {"completed", "failed", "skipped"}]
+        finished = [
+            t
+            for t in self._tasks.values()
+            if t.status in {"completed", "failed", "skipped"}
+        ]
 
         # Backfill metadata for existing tasks
         all_tasks = queued + running + finished
         for task in all_tasks:
-            if (not task.artist or not task.title) and self.index and task.set_id in self.index.metadata:
+            if (
+                (not task.artist or not task.title)
+                and self.index
+                and task.set_id in self.index.metadata
+            ):
                 metadata = self.index.metadata[task.set_id]
                 if len(metadata) >= 4:
                     _, artist, title, creator = metadata
@@ -288,12 +315,14 @@ class DownloadManager:
         if not self._event_bus:
             return
         try:
-            asyncio.create_task(self._event_bus.publish({"topic": "queue", "data": self.status()}))
+            self._last_publish_task = asyncio.create_task(
+                self._event_bus.publish({"topic": "queue", "data": self.status()})
+            )
         except RuntimeError:
             # event loop not running (during tests); ignore
             pass
 
-    def _serialize_task(self, task: DownloadTask) -> Dict[str, object]:
+    def _serialize_task(self, task: DownloadTask) -> dict[str, object]:
         return {
             "set_id": task.set_id,
             "status": task.status,
@@ -312,7 +341,7 @@ class DownloadManager:
             "title_unicode": task.title_unicode,
         }
 
-    def _find_existing_archive(self, set_id: int) -> Optional[Path]:
+    def _find_existing_archive(self, set_id: int) -> Path | None:
         patterns = [
             f"{set_id} *.osz",
             f"{set_id}-*.osz",
@@ -326,7 +355,9 @@ class DownloadManager:
                 return matches[0]
         return None
 
-    def _derive_metadata_from_archive(self, archive_path: Path) -> Optional[tuple[str, str]]:
+    def _derive_metadata_from_archive(
+        self, archive_path: Path
+    ) -> tuple[str, str] | None:
         try:
             with zipfile.ZipFile(archive_path, "r") as zf:
                 for member in zf.namelist():
@@ -345,7 +376,7 @@ class DownloadManager:
             return None
         return None
 
-    def _parse_osu_text(self, content: str) -> Optional[tuple[str, str]]:
+    def _parse_osu_text(self, content: str) -> tuple[str, str] | None:
         artist = title = ""
         in_meta = False
         for raw_line in content.splitlines():

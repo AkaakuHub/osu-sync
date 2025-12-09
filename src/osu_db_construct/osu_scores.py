@@ -1,30 +1,34 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 import kaitaistruct
-from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
+from kaitaistruct import KaitaiStruct
 
-
-if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 9):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
+if getattr(kaitaistruct, "API_VERSION", (0, 9)) < (0, 9):
+    raise Exception(
+        f"Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have {kaitaistruct.__version__}"
+    )
 
 from . import vlq_base128_le
+
+
 class OsuScores(KaitaiStruct):
     """scores.db file format in rhythm game osu!,
     the legacy DB file structure used in the old osu stable client (not lazer).
-    
+
     DB files are in the `osu-stable` installation directory:
     Windows: `%localappdata%\osu!`
     Mac OSX: `/Applications/osu!.app/Contents/Resources/drive_c/Program Files/osu!/`
-    
+
     Unless otherwise specified, all numerical types are stored little-endian.
     Integer values, including bytes, are all unsigned.
     UTF-8 characters are stored in their canonical form, with the higher-order byte first.
-    
+
     scores.db contains the scores achieved locally.
-    
+
     .. seealso::
        Source - https://github.com/ppy/osu/wiki/Legacy-database-file-structure
     """
+
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
@@ -38,9 +42,9 @@ class OsuScores(KaitaiStruct):
         for i in range(self.num_beatmaps):
             self.beatmaps.append(OsuScores.Beatmap(self._io, self, self._root))
 
-
     class Bool(KaitaiStruct):
         """0x00 for false, everything else is true."""
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -52,12 +56,11 @@ class OsuScores(KaitaiStruct):
 
         @property
         def value(self):
-            if hasattr(self, '_m_value'):
+            if hasattr(self, "_m_value"):
                 return self._m_value
 
-            self._m_value = (False if self.byte == 0 else True)
-            return getattr(self, '_m_value', None)
-
+            self._m_value = False if self.byte == 0 else True
+            return getattr(self, "_m_value", None)
 
     class String(KaitaiStruct):
         """Has three parts; a single byte which will be either 0x00, indicating that
@@ -67,6 +70,7 @@ class OsuScores(KaitaiStruct):
         of the following string, and then the string itself, encoded in UTF-8.
         See https://en.wikipedia.org/wiki/UTF-8.
         """
+
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -79,9 +83,7 @@ class OsuScores(KaitaiStruct):
                 self.len_str = vlq_base128_le.VlqBase128Le(self._io)
 
             if self.is_present == 11:
-                self.value = (self._io.read_bytes(self.len_str.value)).decode(u"UTF-8")
-
-
+                self.value = (self._io.read_bytes(self.len_str.value)).decode("UTF-8")
 
     class Beatmap(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
@@ -96,8 +98,6 @@ class OsuScores(KaitaiStruct):
             self.scores = []
             for i in range(self.num_scores):
                 self.scores.append(OsuScores.Score(self._io, self, self._root))
-
-
 
     class Score(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
@@ -125,12 +125,10 @@ class OsuScores(KaitaiStruct):
             self.empty = OsuScores.String(self._io, self, self._root)
             self.replay_timestamp = self._io.read_u8le()
             self.minus_one = self._io.read_bytes(4)
-            if not self.minus_one == b"\xFF\xFF\xFF\xFF":
-                raise kaitaistruct.ValidationNotEqualError(b"\xFF\xFF\xFF\xFF", self.minus_one, self._io, u"/types/score/seq/17")
+            if not self.minus_one == b"\xff\xff\xff\xff":
+                raise kaitaistruct.ValidationNotEqualError(
+                    b"\xff\xff\xff\xff", self.minus_one, self._io, "/types/score/seq/17"
+                )
             self.online_score_id = self._io.read_u8le()
             if (self.mods & (1 << 23)) != 0:
                 self.mod_info = self._io.read_f8le()
-
-
-
-

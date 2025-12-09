@@ -13,3 +13,9 @@ pre-commit:
     check-tailwind-colors:
       run: python scripts/check-tailwind-colors.py ui/src
       stage_fixed: true
+    py-format:
+      run: uv run ruff format src
+      stage_fixed: true
+    py-lint:
+      run: uv run ruff check src --fix
+      stage_fixed: true

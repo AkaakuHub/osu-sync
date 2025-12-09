@@ -1,10 +1,10 @@
+import asyncio
+import json
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 from fastapi import HTTPException
-import json
-import asyncio
 
 
 class OsuApiClient:
@@ -16,15 +16,15 @@ class OsuApiClient:
     TOKEN_URL = "https://osu.ppy.sh/oauth/token"
     SEARCH_URL = "https://osu.ppy.sh/api/v2/beatmapsets/search"
 
-    def __init__(self, client_id: Optional[int], client_secret: Optional[str]) -> None:
+    def __init__(self, client_id: int | None, client_secret: str | None) -> None:
         if not client_id or not client_secret:
             raise ValueError("OSU_CLIENT_ID/OSU_CLIENT_SECRET が未設定です。")
         self.client_id = client_id
         self.client_secret = client_secret
-        self._token: Optional[str] = None
+        self._token: str | None = None
         self._token_exp: float = 0.0
         self._client = httpx.AsyncClient(timeout=20, follow_redirects=True)
-        self._cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
+        self._cache: dict[str, tuple[float, dict[str, Any]]] = {}
         self._cache_ttl = 3600  # seconds
         self._cache_lock = asyncio.Lock()
 
@@ -47,13 +47,31 @@ class OsuApiClient:
         }
         resp = await self._client.post(self.TOKEN_URL, data=data)
         if resp.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"osu! token error: {resp.status_code} {resp.text}")
+            raise HTTPException(
+                status_code=502,
+                detail=f"osu! token error: {resp.status_code} {resp.text}",
+            )
         payload = resp.json()
         self._token = payload["access_token"]
         self._token_exp = now + payload.get("expires_in", 3600)
         return self._token
 
-    async def search_beatmapsets(self, q: str = "", page: int = 1, limit: int = 20, s: Optional[str] = None, m: Optional[str] = None, e: Optional[str] = None, c: Optional[str] = None, g: Optional[str] = None, l: Optional[str] = None, nsfw: Optional[bool] = None, sort: Optional[str] = None, played: Optional[str] = None, r: Optional[str] = None) -> Dict[str, Any]:  # noqa: E741
+    async def search_beatmapsets(
+        self,
+        q: str = "",
+        page: int = 1,
+        limit: int = 20,
+        s: str | None = None,
+        m: str | None = None,
+        e: str | None = None,
+        c: str | None = None,
+        g: str | None = None,
+        l: str | None = None,  # noqa: E741
+        nsfw: bool | None = None,
+        sort: str | None = None,
+        played: str | None = None,
+        r: str | None = None,
+    ) -> dict[str, Any]:
         token = await self._ensure_token()
         params = {"q": q, "page": page, "limit": limit}
 
@@ -98,6 +116,7 @@ class OsuApiClient:
 
         # デバッグ: 実際に送信しているURLをログ出力
         import urllib.parse
+
         query_string = urllib.parse.urlencode(params)
         full_url = f"{self.SEARCH_URL}?{query_string}"
         print(f"DEBUG: Sending request to: {full_url}")
@@ -106,7 +125,10 @@ class OsuApiClient:
         print(f"DEBUG: Response status: {resp.status_code}")
 
         if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail=f"osu! API error: {resp.status_code} {resp.text}")
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"osu! API error: {resp.status_code} {resp.text}",
+            )
 
         result = resp.json()
         print(f"DEBUG: Response total: {result.get('total', 'unknown')}")
