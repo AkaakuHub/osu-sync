@@ -14,6 +14,7 @@ Development (--dev):
 
 import argparse
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -41,7 +42,25 @@ def resolve_dist_dir() -> Path:
     return alt
 
 
-def start_uvicorn(app, host: str = "127.0.0.1", port: int = 8000) -> tuple[threading.Thread, uvicorn.Server]:
+def pick_port(base: int = 18080, attempts: int = 40) -> int:
+    """Pick an available TCP port, starting at base and incrementing."""
+    for i in range(attempts):
+        candidate = base + i
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind(("127.0.0.1", candidate))
+                return candidate
+            except OSError:
+                continue
+    # Fallback to OS-assigned ephemeral port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def start_uvicorn(app, host: str = "127.0.0.1", port: int | None = None) -> tuple[threading.Thread, uvicorn.Server]:
+    port = port or pick_port()
     config = uvicorn.Config(app, host=host, port=port, reload=False, log_level="info")
     server = uvicorn.Server(config)
 
@@ -77,9 +96,9 @@ def main() -> None:
     args = parser.parse_args()
 
     host = "127.0.0.1"
-    port = 8000
 
     if args.dev:
+        port = pick_port()
         procs: list[subprocess.Popen] = []
         try:
             # 1) uvicorn --reload (factory)
@@ -124,6 +143,7 @@ def main() -> None:
 
     # Production path
     dist_dir = resolve_dist_dir()
+    port = pick_port()
     app = create_app(dist_dir=dist_dir)
 
     thread, server = start_uvicorn(app, host=host, port=port)
