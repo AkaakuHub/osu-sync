@@ -86,6 +86,12 @@ async def download_and_run_installer(url: str) -> str:
 
     # Launch installer silently; do not wait.
     log_path = path + ".log"
+    creationflags = 0
+    if platform.system() == "Windows":
+        # Detach so it keeps running after parent exits
+        creationflags = (
+            subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+        )
     subprocess.Popen(
         [
             path,
@@ -99,5 +105,6 @@ async def download_and_run_installer(url: str) -> str:
             f"/LOG={log_path}",
         ],
         close_fds=True,
+        creationflags=creationflags,
     )
     return path

@@ -4,6 +4,7 @@ import { apiClient, type Settings } from "../hooks/useApiClient";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
 import toast from "react-hot-toast";
+import Modal from "./ui/Modal";
 
 const fetchSettings = () => apiClient.get<Settings>("/settings");
 const saveSettings = (payload: Partial<Settings & { osu_client_secret: string }>) =>
@@ -28,6 +29,7 @@ export default function SettingsPanel() {
 	});
 	const [form, setForm] = useState<Partial<Settings & { osu_client_secret: string }>>({});
 	const [updating, setUpdating] = useState(false);
+	const [showConfirm, setShowConfirm] = useState(false);
 
 	const mutation = useMutation({
 		mutationFn: saveSettings,
@@ -40,19 +42,18 @@ export default function SettingsPanel() {
 	const startUpdate = async () => {
 		if (updating) return;
 		setUpdating(true);
-		const ok = window.confirm(
-			"This will close osu-sync and run the installer. Do you want to continue?",
-		);
-		if (!ok) {
-			setUpdating(false);
-			return;
-		}
 		try {
 			const res = await apiClient.post<{ status: string }>("/update/start", {});
 			if (res.status === "started") {
 				toast.success("Downloading updater…", { id: "update-started" });
 				// Request backend to quit so installer can replace files
 				await apiClient.post("/update/quit", {});
+				// Close frontend window after a short delay (dev mode uvicorn --reload is separate process)
+				setTimeout(() => {
+					if (typeof window !== "undefined" && window.close) {
+						window.close();
+					}
+				}, 500);
 			} else {
 				toast("Already up to date.");
 			}
@@ -90,7 +91,7 @@ export default function SettingsPanel() {
 						</span>
 					</div>
 					<Button
-						onClick={startUpdate}
+						onClick={() => setShowConfirm(true)}
 						variant="primary"
 						className="text-sm px-3 py-1.5"
 						disabled={updating}
@@ -147,6 +148,22 @@ export default function SettingsPanel() {
 
 	return (
 		<div className="h-full flex flex-col p-4">
+			{showConfirm && (
+				<Modal
+					title="Install update now?"
+					body={"The app will close to let the installer run.\nProceed?"}
+					confirmLabel="Install & Quit"
+					cancelLabel="Cancel"
+					onConfirm={() => {
+						setShowConfirm(false);
+						startUpdate();
+					}}
+					onCancel={() => setShowConfirm(false)}
+					confirmVariant="primary"
+					disableConfirm={updating}
+					isConfirmLoading={updating}
+				/>
+			)}
 			{/* Compact Form Layout */}
 			<div className="grid grid-cols-2 gap-4 text-sm">
 				{/* Column 1 */}

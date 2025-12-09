@@ -4,7 +4,8 @@ import logging
 import os
 import platform
 import subprocess
-import sys
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -278,8 +279,12 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
 
     @api.post("/update/quit")
     async def update_quit() -> dict:
-        # Immediately exit the process to allow installer to replace files
-        asyncio.get_running_loop().call_soon(sys.exit, 0)
+        # Exit shortly after sending response to allow installer to replace files
+        def killer() -> None:
+            time.sleep(1.0)
+            os._exit(0)
+
+        threading.Thread(target=killer, daemon=True).start()
         return {"status": "exiting"}
 
     # ルータ
