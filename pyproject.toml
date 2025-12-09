@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "osu-sync"
-version = "0.1.0"
+version = "1.0.0"
 description = "osu! beatmap synchronization tool"
 authors = [{name = "AkaakuHub", email = "akaaku2021media01@gmail.com"}]
 license = {text = "MIT"}

@@ -88,7 +88,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         )
 
-    app = FastAPI(title="osu-sync", version="0.1.0")
+    app = FastAPI(title="osu-sync")
     api = APIRouter(prefix=API_PREFIX)
     app.state.event_bus = EventBus()
 
