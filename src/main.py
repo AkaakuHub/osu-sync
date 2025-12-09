@@ -44,6 +44,7 @@ LOADING_HTML = """
       color: #e2e8f0;
     }
     .spinner {
+      margin-top: 120px;
       width: 56px;
       height: 56px;
       border: 6px solid rgba(148, 163, 184, 0.35);
