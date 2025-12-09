@@ -131,7 +131,19 @@ def start_proc(
     return subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags, env=env)
 
 
+def ensure_stdio() -> None:
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    devnull = open(os.devnull, "w")
+    if sys.stdout is None:
+        sys.stdout = devnull
+    if sys.stderr is None:
+        sys.stderr = devnull
+
+
 def main() -> None:
+    ensure_stdio()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--dev",
