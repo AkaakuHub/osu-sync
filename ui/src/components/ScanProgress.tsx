@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { ScanStatus } from "../hooks/useApiClient";
 import { getEventSource } from "../utils/eventSource";
@@ -7,7 +6,6 @@ import { getEventSource } from "../utils/eventSource";
 export function ScanProgress() {
 	const toastIdRef = useRef<string | null>(null);
 	const previousStatusRef = useRef<string | null>(null);
-	const queryClient = useQueryClient();
 
 	useEffect(() => {
 		const es = getEventSource();
@@ -40,9 +38,6 @@ export function ScanProgress() {
 								`Scan finished (${status.processed_files ?? 0} files)`,
 								{ duration: 5000 },
 							);
-							// 完了したらインデックスとキューを即時リフレッシュ
-							queryClient.invalidateQueries({ queryKey: ["index"] });
-							queryClient.invalidateQueries({ queryKey: ["queue"] });
 							break;
 						case "error":
 							toastIdRef.current = toast.error(
@@ -81,7 +76,7 @@ export function ScanProgress() {
 				toast.dismiss(toastIdRef.current);
 			}
 		};
-	}, [queryClient]);
+	}, []);
 
 	// このコンポーネントはtoastのみを表示するので、UIは返さない
 	return null;
