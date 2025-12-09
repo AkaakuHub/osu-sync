@@ -77,7 +77,7 @@ async def download_and_run_installer(url: str) -> str:
     fd, path = tempfile.mkstemp(suffix=".exe")
     os.close(fd)
 
-    async with httpx.AsyncClient(timeout=None) as client:
+    async with httpx.AsyncClient(timeout=None, follow_redirects=True) as client:
         async with client.stream("GET", url) as resp:
             resp.raise_for_status()
             with open(path, "wb") as f:
