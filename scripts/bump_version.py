@@ -83,11 +83,13 @@ def main() -> None:
 
     update_versions(version)
     if args.tag:
+        msg = f"chore: v{version}"
+        subprocess.run(["git", "commit", "-am", msg], cwd=ROOT, check=True)
         git_tag(version)
 
     print(f"Updated version to {version}")
     if args.tag:
-        print(f"Created git tag v{version}")
+        print(f"Committed and tagged v{version}")
 
 
 if __name__ == "__main__":
