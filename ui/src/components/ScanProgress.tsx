@@ -18,9 +18,9 @@ export function ScanProgress() {
 				if (parsed.topic !== "scan") return;
 				const status: ScanStatus = parsed.data;
 
-				// ステータス変化を検知してtoastを表示
+				// Detect status change and show toast
 				if (previousStatusRef.current !== status.status) {
-					// 前のtoastをクリア
+					// Clear previous toast
 					if (toastIdRef.current) {
 						toast.dismiss(toastIdRef.current);
 						toastIdRef.current = null;
@@ -28,16 +28,16 @@ export function ScanProgress() {
 
 					switch (status.status) {
 						case "scanning":
-							toastIdRef.current = toast.loading(
-								`スキャン中... (${status.processed_files}/${status.total_files} ファイル)`,
-								{
-									duration: 5000,
-								},
-							);
+							(() => {
+								const total = status.total_files ?? 0;
+								const processed = status.processed_files ?? 0;
+								const label = total === 0 ? "Scanning..." : `Scanning... (${processed}/${total})`;
+								toastIdRef.current = toast.loading(label, { duration: 5000 });
+							})();
 							break;
 						case "completed":
 							toastIdRef.current = toast.success(
-								`スキャン完了！ (${status.processed_files ?? 0} ファイル)`,
+								`Scan finished (${status.processed_files ?? 0} files)`,
 								{ duration: 5000 },
 							);
 							// 完了したらインデックスとキューを即時リフレッシュ
@@ -46,21 +46,26 @@ export function ScanProgress() {
 							break;
 						case "error":
 							toastIdRef.current = toast.error(
-								`スキャンエラー: ${status.error_message || "不明なエラー"}`,
+								`Scan failed: ${status.error_message || "Unknown error"}`,
 								{ duration: 5000 },
 							);
 							break;
 					}
 					previousStatusRef.current = status.status;
 				} else if (status.status === "scanning" && toastIdRef.current) {
-					// スキャン中は進捗を更新（同じIDで上書き）
-					toast.loading(
-						`スキャン中... (${status.processed_files}/${status.total_files} ファイル)${status.current_file ? `\n現在: ${status.current_file}` : ""}`,
-						{
-							id: toastIdRef.current,
-							duration: 5000,
-						},
-					);
+					// Update progress on the same toast
+					const total = status.total_files ?? 0;
+					const processed = status.processed_files ?? 0;
+					const label =
+						total === 0
+							? "Scanning..."
+							: `Scanning... (${processed}/${total})${
+									status.current_file ? `\nNow: ${status.current_file}` : ""
+								}`;
+					toast.loading(label, {
+						id: toastIdRef.current,
+						duration: 5000,
+					});
 				}
 			} catch (error) {
 				console.error("Failed to process scan event:", error);
