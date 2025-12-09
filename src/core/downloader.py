@@ -89,7 +89,7 @@ class DownloadManager:
             elif self.index and set_id in self.index.metadata:
                 index_metadata = self.index.metadata[set_id]
                 if len(index_metadata) >= 4:
-                    _, artist, title, creator = index_metadata
+                    _, artist, title, _creator = index_metadata
                     task.artist = artist
                     task.title = title
             self._tasks[set_id] = task
@@ -298,7 +298,7 @@ class DownloadManager:
             ):
                 metadata = self.index.metadata[task.set_id]
                 if len(metadata) >= 4:
-                    _, artist, title, creator = metadata
+                    _, artist, title, _creator = metadata
                     if not task.artist:
                         task.artist = artist
                     if not task.title:

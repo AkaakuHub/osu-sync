@@ -29,3 +29,5 @@ Thumbs.db
 *.log
 *.tmp
 
+build
+.nuitka-cache
