@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { apiClient, type Settings } from "../hooks/useApiClient";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
@@ -22,6 +22,19 @@ export default function SettingsPanel() {
 	});
 
 	const update = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
+
+	const hasUnsavedChanges = useMemo(() => {
+		if (!data) return false;
+
+		return (Object.keys(form) as Array<keyof typeof form>).some((key) => {
+			const value = form[key];
+			// Secret は入力があるだけで変更とみなす
+			if (key === "osu_client_secret") return Boolean(value);
+
+			const original = data[key as keyof Settings];
+			return value !== undefined && value !== original;
+		});
+	}, [form, data]);
 
 	if (!data) return <div className="text-sm text-muted-foreground">Loading...</div>;
 
@@ -115,28 +128,30 @@ export default function SettingsPanel() {
 							/>
 						</div>
 					</div>
-
-					<div className="pt-2">
-						<Button
-							className="w-full text-xs py-2"
-							onClick={() => mutation.mutate(form)}
-							disabled={mutation.isPending}
-							isLoading={mutation.isPending}
-						>
-							Save
-						</Button>
-					</div>
 				</div>
 			</div>
 
-			{/* Status Messages */}
-			<div className="mt-3 h-4 flex items-center justify-center">
-				{mutation.isError && <span className="text-xs text-error">Failed to save</span>}
-				{mutation.isSuccess && <span className="text-xs text-success">Settings saved</span>}
+			{/* Save Area */}
+			<div className="mt-auto flex flex-col items-center gap-2 pt-4">
+				<Button
+					className={`w-40 text-sm py-2 ${hasUnsavedChanges && !mutation.isPending ? "soft-glow" : ""}`}
+					onClick={() => mutation.mutate(form)}
+					disabled={mutation.isPending}
+					isLoading={mutation.isPending}
+				>
+					Save
+				</Button>
+				<div className="h-5 flex items-center text-xs text-center">
+					{hasUnsavedChanges && !mutation.isPending && (
+						<span className="text-warning">Unsaved changes</span>
+					)}
+					{mutation.isError && <span className="text-error">Save failed</span>}
+					{mutation.isSuccess && !hasUnsavedChanges && <span className="text-success">Saved</span>}
+				</div>
 			</div>
 
 			{/* Help Link */}
-			<div className="mt-auto pt-3 border-t border-border/30">
+			<div className="mt-4 pt-3 border-t border-border/30">
 				<p className="text-xs text-text-muted text-center">
 					Get OAuth credentials from{" "}
 					<a
