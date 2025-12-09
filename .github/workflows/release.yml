@@ -92,7 +92,8 @@ jobs:
         run: choco install innosetup --no-progress -y
 
       - name: Build installer (Inno Setup)
-        run: '"C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer\\osu-sync.iss'
+        # PowerShell でパスに空白があるので & + ダブルクォートで囲む
+        run: '& "C:\Program Files (x86)\Inno Setup 6\iscc.exe" "installer\osu-sync.iss"'
 
       # Release
       - name: Create GitHub Release (attach portable & installer)
