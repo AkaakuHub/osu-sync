@@ -83,7 +83,7 @@ jobs:
             --assume-yes-for-downloads ^
             --include-data-dir=ui\\dist=ui\\dist ^
             --output-filename=osu-sync.exe ^
-            src/bootstrap.py
+            src/main.py
 
       - name: Upload exe
         uses: actions/upload-artifact@v4

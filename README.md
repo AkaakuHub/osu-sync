@@ -9,5 +9,5 @@ uv sync
 
 Then, start the development environment:
 ```bash
-uv run python src/bootstrap.py --dev
+uv run python src/main.py --dev
 ```
