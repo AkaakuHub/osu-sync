@@ -68,12 +68,22 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
 
+      - name: Cache Nuitka build artifacts
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\nuitka-cache
+          key: ${{ runner.os }}-nuitka-cache-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-nuitka-cache-
+
       - name: Install Python deps (uv)
         run: |
           uv venv
           uv pip install . nuitka==2.8.9
 
       - name: Build exe with Nuitka (includes FastAPI + webview + dist)
+        env:
+          NUITKA_CACHE_DIR: ${{ runner.temp }}\nuitka-cache
         shell: pwsh
         run: uv run python -m nuitka --onefile --standalone --windows-console-mode=disable --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
 
