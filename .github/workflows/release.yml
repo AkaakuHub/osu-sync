@@ -68,32 +68,14 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
 
-      - name: Resolve Nuitka cache path
-        id: nuitka-cache-path
-        shell: pwsh
-        run: |
-          $cache = Join-Path $Env:RUNNER_TEMP "nuitka-cache"
-          echo "path=$cache" >> $Env:GITHUB_OUTPUT
-          New-Item -ItemType Directory -Force -Path $cache | Out-Null
-
-      - name: Cache Nuitka build artifacts
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.nuitka-cache-path.outputs.path }}
-          key: ${{ runner.os }}-nuitka-cache-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-nuitka-cache-
-
       - name: Install Python deps (uv)
         run: |
           uv venv
           uv pip install . nuitka==2.8.9
 
       - name: Build exe with Nuitka (includes FastAPI + webview + dist)
-        env:
-          NUITKA_CACHE_DIR: ${{ steps.nuitka-cache-path.outputs.path }}
         shell: pwsh
-        run: uv run python -m nuitka --onefile --standalone --windows-console-mode=disable --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --cache-dir=$Env:NUITKA_CACHE_DIR --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
+        run: uv run python -m nuitka --onefile --standalone --windows-console-mode=disable --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
 
       # Inno Setup installer
       - name: Install Inno Setup
