@@ -4,8 +4,8 @@ import { ScanStatus } from "../hooks/useApiClient";
 import { getEventSource } from "../utils/eventSource";
 
 export function ScanProgress() {
-	const toastIdRef = useRef<string | null>(null);
 	const previousStatusRef = useRef<string | null>(null);
+	const lastToastKeyRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		const es = getEventSource();
@@ -16,52 +16,29 @@ export function ScanProgress() {
 				if (parsed.topic !== "scan") return;
 				const status: ScanStatus = parsed.data;
 
-				// Detect status change and show toast
-				if (previousStatusRef.current !== status.status) {
-					// Clear previous toast
-					if (toastIdRef.current) {
-						toast.dismiss(toastIdRef.current);
-						toastIdRef.current = null;
+				// Show only completion/error; suppress loading toast
+				if (status.status === "completed") {
+					const key = `completed:${status.processed_files ?? "?"}`;
+					if (lastToastKeyRef.current !== key) {
+						lastToastKeyRef.current = key;
+						toast.dismiss("scan-finished");
+						toast.success(`Scan finished (${status.processed_files ?? 0} files)`, {
+							duration: 5000,
+							id: "scan-finished",
+						});
 					}
-
-					switch (status.status) {
-						case "scanning":
-							(() => {
-								const total = status.total_files ?? 0;
-								const processed = status.processed_files ?? 0;
-								const label = total === 0 ? "Scanning..." : `Scanning... (${processed}/${total})`;
-								toastIdRef.current = toast.loading(label, { duration: 5000 });
-							})();
-							break;
-						case "completed":
-							toastIdRef.current = toast.success(
-								`Scan finished (${status.processed_files ?? 0} files)`,
-								{ duration: 5000 },
-							);
-							break;
-						case "error":
-							toastIdRef.current = toast.error(
-								`Scan failed: ${status.error_message || "Unknown error"}`,
-								{ duration: 5000 },
-							);
-							break;
+				} else if (status.status === "error") {
+					const key = `error:${status.error_message || ""}`;
+					if (lastToastKeyRef.current !== key) {
+						lastToastKeyRef.current = key;
+						toast.dismiss("scan-finished");
+						toast.error(`Scan failed: ${status.error_message || "Unknown error"}`, {
+							duration: 5000,
+							id: "scan-finished",
+						});
 					}
-					previousStatusRef.current = status.status;
-				} else if (status.status === "scanning" && toastIdRef.current) {
-					// Update progress on the same toast
-					const total = status.total_files ?? 0;
-					const processed = status.processed_files ?? 0;
-					const label =
-						total === 0
-							? "Scanning..."
-							: `Scanning... (${processed}/${total})${
-									status.current_file ? `\nNow: ${status.current_file}` : ""
-								}`;
-					toast.loading(label, {
-						id: toastIdRef.current,
-						duration: 5000,
-					});
 				}
+				previousStatusRef.current = status.status;
 			} catch (error) {
 				console.error("Failed to process scan event:", error);
 			}
@@ -71,10 +48,7 @@ export function ScanProgress() {
 
 		return () => {
 			es.removeEventListener("message", handleMessage);
-			// コンポーネントがアンマウントされるときはtoastをクリア
-			if (toastIdRef.current) {
-				toast.dismiss(toastIdRef.current);
-			}
+			toast.dismiss("scan-finished");
 		};
 	}, []);
 

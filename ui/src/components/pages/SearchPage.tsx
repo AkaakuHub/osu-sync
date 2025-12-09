@@ -16,6 +16,7 @@ import SearchResults from "../SearchResults";
 import { FilterPanel } from "../search/FilterPanel";
 import { type SearchFilters } from "../search/types";
 import { resetFilters } from "../search/utils";
+import { getEventSource } from "../../utils/eventSource";
 
 type Props = {
 	ownedOnly: boolean;
@@ -47,6 +48,8 @@ const SearchPage: React.FC<Props> = ({
 	const searchFilters = propSearchFilters ?? internalSearchFilters;
 	const setSearchFilters = propSetSearchFilters ?? setInternalSearchFilters;
 	const filtersReady = !!searchFilters;
+	// スキャン完了までは検索を走らせない
+	const [scanReady, setScanReady] = useState(false);
 
 	// 500msデバウンスの実装
 	useEffect(() => {
@@ -139,7 +142,7 @@ const SearchPage: React.FC<Props> = ({
 			const endpoint = `/search?${query}`;
 			return apiClient.get(endpoint);
 		},
-		enabled: filtersReady,
+		enabled: filtersReady && scanReady,
 		staleTime: 60_000,
 		refetchOnMount: false,
 		refetchOnWindowFocus: false,
@@ -177,6 +180,85 @@ const SearchPage: React.FC<Props> = ({
 		queryFn: () => apiClient.get<QueueStatus>("/queue"),
 		refetchOnWindowFocus: false,
 	});
+
+	// スキャン完了を待ってから検索を開始する
+	useEffect(() => {
+		let mounted = true;
+		apiClient
+			.get<{ status: string }>("/local/scan-status")
+			.then((res) => {
+				if (!mounted) return;
+				if (res.status === "completed" || res.status === "error") {
+					setScanReady(true);
+				}
+			})
+			.catch(() => mounted && setScanReady(true));
+
+		const es = getEventSource();
+		const handler = (event: MessageEvent) => {
+			try {
+				const parsed = JSON.parse(event.data);
+				if (parsed.topic !== "scan") return;
+				const st = parsed.data?.status;
+				if (st === "completed" || st === "error") {
+					setScanReady(true);
+					refetchIndex();
+					refetchQueue();
+				}
+			} catch (e) {
+				console.error("Failed to handle scan event", e);
+			}
+		};
+		es.addEventListener("message", handler);
+		return () => {
+			mounted = false;
+			es.removeEventListener("message", handler);
+		};
+	}, [refetchIndex, refetchQueue]);
+
+	// スキャン完了までローディング画面を出す
+	if (!scanReady) {
+		// Use the exact same loader style as main.py LOADING_HTML
+		return (
+			<div
+				style={{
+					height: "100vh",
+					margin: 0,
+					display: "grid",
+					placeItems: "center",
+					background: "#0f172a",
+					color: "#e2e8f0",
+					fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
+				}}
+			>
+				<div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+					<div
+						style={{
+							width: "56px",
+							height: "56px",
+							border: "6px solid rgba(148, 163, 184, 0.35)",
+							borderTopColor: "#34d399",
+							borderRadius: "50%",
+							animation: "spin 0.8s linear infinite",
+							boxShadow: "0 0 16px rgba(52, 211, 153, 0.4)",
+							marginTop: "-80px",
+						}}
+					/>
+					<div
+						style={{
+							marginTop: "14px",
+							fontSize: "13px",
+							letterSpacing: "0.2px",
+							color: "#cbd5e1",
+						}}
+					>
+						Launching osu-sync…
+					</div>
+				</div>
+				<style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+			</div>
+		);
+	}
 
 	return (
 		<div className="h-full flex flex-col bg-surface">
