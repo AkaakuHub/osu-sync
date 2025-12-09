@@ -9,11 +9,40 @@ import { ScanProgress } from "./components/ScanProgress";
 import { QueueNotificationManager } from "./components/QueueNotificationManager";
 import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
 import { type SearchFilters } from "./components/search/types";
+import { useEffect } from "react";
+import toast from "react-hot-toast";
+import { apiClient } from "./hooks/useApiClient";
 
 function App() {
 	const [ownedOnly, setOwnedOnly] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
+
+	// App起動時に一度だけアップデート確認し、あればトースト通知
+	useEffect(() => {
+		let cancelled = false;
+		apiClient
+			.get<{
+				update_available: boolean;
+				latest_version: string;
+				current_version: string;
+			}>("/update/status")
+			.then((info) => {
+				if (cancelled) return;
+				if (info.update_available) {
+					toast(`Update available: v${info.latest_version}\nYou are on v${info.current_version}`, {
+						id: "update-available",
+						duration: 8000,
+					});
+				}
+			})
+			.catch(() => {
+				/* ignore failures */
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const tabs = [
 		{

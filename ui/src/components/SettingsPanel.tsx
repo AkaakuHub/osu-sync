@@ -3,14 +3,29 @@ import { useMemo, useState } from "react";
 import { apiClient, type Settings } from "../hooks/useApiClient";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
+import toast from "react-hot-toast";
 
 const fetchSettings = () => apiClient.get<Settings>("/settings");
 const saveSettings = (payload: Partial<Settings & { osu_client_secret: string }>) =>
 	apiClient.post<Settings>("/settings", payload);
+type UpdateStatus = {
+	update_available: boolean;
+	latest_version: string;
+	current_version: string;
+	installer_url?: string;
+	release_name?: string;
+};
+
+const fetchUpdateStatus = () => apiClient.get<UpdateStatus>("/update/status");
 
 export default function SettingsPanel() {
 	const client = useQueryClient();
 	const { data } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
+	const { data: updateInfo, refetch: refetchUpdate } = useQuery<UpdateStatus>({
+		queryKey: ["update-status"],
+		queryFn: fetchUpdateStatus,
+		refetchOnWindowFocus: false,
+	});
 	const [form, setForm] = useState<Partial<Settings & { osu_client_secret: string }>>({});
 
 	const mutation = useMutation({
@@ -20,6 +35,77 @@ export default function SettingsPanel() {
 			client.invalidateQueries({ queryKey: ["index"] });
 		},
 	});
+
+	const startUpdate = async () => {
+		try {
+			const res = await apiClient.post<{ status: string }>("/update/start", {});
+			if (res.status === "started") {
+				toast.success("Downloading updater…", { id: "update-started" });
+			} else {
+				toast("Already up to date.");
+			}
+		} catch (e: any) {
+			toast.error(e?.response?.data?.detail || e.message || "Update failed");
+		} finally {
+			refetchUpdate();
+		}
+	};
+
+	const currentVersion = updateInfo?.current_version ?? "-";
+	const renderUpdateRow = () => {
+		if (!updateInfo) {
+			return (
+				<div className="flex items-center justify-between gap-3">
+					<div className="flex flex-col">
+						<span className="text-sm font-medium text-text">Updates</span>
+						<span className="text-xs text-text-secondary">Checking…</span>
+					</div>
+					<Button variant="ghost" className="text-sm px-3 py-1.5" disabled>
+						…
+					</Button>
+				</div>
+			);
+		}
+
+		if (updateInfo.update_available) {
+			return (
+				<div className="flex items-center justify-between gap-3">
+					<div className="flex flex-col gap-0.5">
+						<span className="text-sm font-semibold text-text">Update available</span>
+						<span className="text-xs text-text-secondary">
+							Latest v{updateInfo.latest_version} · Current v{currentVersion}
+						</span>
+					</div>
+					<Button onClick={startUpdate} variant="primary" className="text-sm px-3 py-1.5">
+						Download & Install
+					</Button>
+				</div>
+			);
+		}
+
+		return (
+			<div className="flex items-center justify-between gap-3">
+				<div className="flex flex-col gap-0.5">
+					<span className="text-sm font-semibold text-text">Up to date</span>
+					<span className="text-xs text-text-secondary">Current v{currentVersion}</span>
+				</div>
+				<Button
+					onClick={() =>
+						refetchUpdate().then((res) => {
+							const info = res.data as UpdateStatus | undefined;
+							if (info && !info.update_available) {
+								toast("Already up to date.");
+							}
+						})
+					}
+					variant="secondary"
+					className="text-sm px-3 py-1.5"
+				>
+					Check again
+				</Button>
+			</div>
+		);
+	};
 
 	const update = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -141,6 +227,11 @@ export default function SettingsPanel() {
 				>
 					Save
 				</Button>
+				<div className="w-full max-w-md pt-4">
+					<div className="rounded-lg border border-border bg-surface/80 px-4 py-3 shadow-sm flex flex-col gap-1">
+						{renderUpdateRow()}
+					</div>
+				</div>
 				<div className="h-5 flex items-center text-xs text-center">
 					{hasUnsavedChanges && !mutation.isPending && (
 						<span className="text-warning">Unsaved changes</span>

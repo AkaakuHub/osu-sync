@@ -26,6 +26,7 @@ from api.schemas import (
 from core.downloader import DownloadManager
 from core.filter_schema import FilterRequest
 from core.scanner import SongIndex
+from update_checker import download_and_run_installer, fetch_latest
 
 API_PREFIX = "/api"
 logger = logging.getLogger("osu_sync.api")
@@ -245,6 +246,34 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
                 detail="osu! API 資格情報が未設定です。/api/settings で client_id / client_secret を入力してください。",
             )
         return app.state.osu
+
+    # Update endpoints
+    @api.get("/update/status")
+    async def update_status() -> dict:
+        info = await fetch_latest()
+        return {
+            "current_version": info.current_version,
+            "latest_version": info.latest_version,
+            "update_available": info.update_available,
+            "installer_url": info.installer_url,
+            "release_name": info.release_name,
+        }
+
+    @api.post("/update/start")
+    async def update_start() -> dict:
+        info = await fetch_latest()
+        if not info.update_available:
+            return {"status": "up-to-date"}
+        if not info.installer_url:
+            raise HTTPException(
+                status_code=400, detail="No installer asset found for latest release"
+            )
+        try:
+            path = await download_and_run_installer(info.installer_url)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        # Optionally request UI to quit; here we just respond.
+        return {"status": "started", "path": path}
 
     # ルータ
     @api.get("/health")
