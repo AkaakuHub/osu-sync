@@ -85,5 +85,17 @@ async def download_and_run_installer(url: str) -> str:
                     f.write(chunk)
 
     # Launch installer silently; do not wait.
-    subprocess.Popen([path, "/VERYSILENT", "/NORESTART"], close_fds=True)
+    log_path = path + ".log"
+    subprocess.Popen(
+        [
+            path,
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/CLOSEAPPLICATIONS",
+            "/RESTARTAPPLICATIONS",
+            f"/LOG={log_path}",
+        ],
+        close_fds=True,
+    )
     return path
