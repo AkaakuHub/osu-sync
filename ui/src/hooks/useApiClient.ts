@@ -45,8 +45,21 @@ class ApiClient {
 // Global API client instance
 export const apiClient = new ApiClient();
 
-// Set base URL for API calls
-apiClient.setBaseUrl("http://127.0.0.1:8000/api");
+// Resolve base URL
+// - dev: ?api_port=NNNN を受け取り 127.0.0.1:port を決め打ち
+// - prod: 同一オリジン
+const searchParams =
+	typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+const apiPort = searchParams?.get("api_port");
+
+const baseUrl =
+	apiPort && Number(apiPort)
+		? `http://127.0.0.1:${apiPort}/api`
+		: typeof window !== "undefined" && window.location
+			? `${window.location.origin}/api`
+			: "/api";
+
+apiClient.setBaseUrl(baseUrl);
 
 interface SearchResult {
 	set_id: number;

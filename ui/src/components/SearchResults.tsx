@@ -1,7 +1,7 @@
 import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Languages } from "lucide-react";
-import type { QueueStatus, SearchResponse } from "../hooks/useApiClient";
+import { apiClient, type QueueStatus, type SearchResponse } from "../hooks/useApiClient";
 import { triggerDownload } from "../utils/downloadUtils";
 import ResultList from "./search/ResultList";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
@@ -100,8 +100,7 @@ const SearchResults: React.FC<Props> = ({
 			const endpoint = `/search?${params.toString()}`;
 			console.log("DEBUG: Loading more results from:", endpoint);
 
-			const response = await fetch(`http://127.0.0.1:8000/api${endpoint}`);
-			const newData: SearchResponse = await response.json();
+			const newData = await apiClient.get<SearchResponse>(endpoint);
 
 			console.log("DEBUG: Loaded", newData.results.length, "more results");
 			setAllResults((prev) => [...prev, ...newData.results]);
