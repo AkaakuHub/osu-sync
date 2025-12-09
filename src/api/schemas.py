@@ -1,18 +1,18 @@
 from enum import Enum
-from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
 
 class BeatmapStatus(str, Enum):
     """osu! beatmap status following official definitions"""
+
     GRAVEYARD = "graveyard"  # -2
-    WIP = "wip"              # -1
-    PENDING = "pending"      # 0
-    RANKED = "ranked"        # 1
-    APPROVED = "approved"    # 2
+    WIP = "wip"  # -1
+    PENDING = "pending"  # 0
+    RANKED = "ranked"  # 1
+    APPROVED = "approved"  # 2
     QUALIFIED = "qualified"  # 3
-    LOVED = "loved"          # 4
+    LOVED = "loved"  # 4
 
 
 class DifficultyInfo(BaseModel):
@@ -24,57 +24,59 @@ class DifficultyInfo(BaseModel):
 class SearchResult(BaseModel):
     set_id: int
     artist: str
-    artist_unicode: Optional[str] = None
+    artist_unicode: str | None = None
     title: str
-    title_unicode: Optional[str] = None
+    title_unicode: str | None = None
     creator: str
     favourite_count: int
     play_count: int
     status: BeatmapStatus
     owned: bool
-    cover_url: Optional[str] = None
-    preview_url: Optional[str] = None
-    ranked_date: Optional[str] = None
-    bpm: Optional[float] = None
-    total_length: Optional[int] = None
-    difficulty_count: Optional[int] = None
-    difficulties: Optional[List[DifficultyInfo]] = None
+    cover_url: str | None = None
+    preview_url: str | None = None
+    ranked_date: str | None = None
+    bpm: float | None = None
+    total_length: int | None = None
+    difficulty_count: int | None = None
+    difficulties: list[DifficultyInfo] | None = None
 
 
 class SearchResponse(BaseModel):
     total: int
     page: int
     limit: int
-    results: List[SearchResult]
+    results: list[SearchResult]
 
 
 class DownloadRequest(BaseModel):
-    set_ids: List[int]
-    metadata: Optional[Dict[int, Dict[str, str]]] = None  # set_id -> {artist, title, artist_unicode, title_unicode}
+    set_ids: list[int]
+    metadata: dict[int, dict[str, str]] | None = (
+        None  # set_id -> {artist, title, artist_unicode, title_unicode}
+    )
 
 
 class QueueEntry(BaseModel):
     set_id: int
     status: str
-    message: Optional[str] = None
-    path: Optional[str] = None
-    archive_path: Optional[str] = None
-    display_name: Optional[str] = None
-    artist: Optional[str] = None
-    title: Optional[str] = None
-    artist_unicode: Optional[str] = None
-    title_unicode: Optional[str] = None
-    progress: Optional[float] = None
+    message: str | None = None
+    path: str | None = None
+    archive_path: str | None = None
+    display_name: str | None = None
+    artist: str | None = None
+    title: str | None = None
+    artist_unicode: str | None = None
+    title_unicode: str | None = None
+    progress: float | None = None
     bytes_downloaded: int = 0
-    total_bytes: Optional[int] = None
-    speed_bps: Optional[float] = None
-    updated_at: Optional[float] = None
+    total_bytes: int | None = None
+    speed_bps: float | None = None
+    updated_at: float | None = None
 
 
 class QueueStatus(BaseModel):
-    queued: List[QueueEntry]
-    running: List[QueueEntry]
-    done: List[QueueEntry]
+    queued: list[QueueEntry]
+    running: list[QueueEntry]
+    done: list[QueueEntry]
 
 
 class IndexSummary(BaseModel):

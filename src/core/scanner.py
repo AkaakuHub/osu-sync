@@ -1,10 +1,10 @@
 import asyncio
 import re
 from pathlib import Path
-from typing import Dict, Optional, Set, Tuple
+
+from kaitaistruct import KaitaiStream
 
 from osu_db_construct.osu_db import OsuDb
-from kaitaistruct import KaitaiStream
 
 
 class SongIndex:
@@ -14,25 +14,27 @@ class SongIndex:
 
     def __init__(
         self,
-        osu_db_path: Optional[str] = None,
-        songs_dir: Optional[str] = None,
+        osu_db_path: str | None = None,
+        songs_dir: str | None = None,
         event_bus=None,
     ) -> None:
         self.osu_db_path = osu_db_path
         self.songs_dir = Path(songs_dir) if songs_dir else None
-        self._owned: Set[int] = set()
-        self._metadata: Dict[int, Tuple[int, str, str, str]] = {}  # (set_id, artist, title, creator)
+        self._owned: set[int] = set()
+        self._metadata: dict[
+            int, tuple[int, str, str, str]
+        ] = {}  # (set_id, artist, title, creator)
         self._state_lock = asyncio.Lock()
-        self._scan_task: Optional[asyncio.Task] = None
+        self._scan_task: asyncio.Task | None = None
         self._scanning = False
         self._event_bus = event_bus
 
     @property
-    def owned_set_ids(self) -> Set[int]:
+    def owned_set_ids(self) -> set[int]:
         return self._owned
 
     @property
-    def metadata(self) -> Dict[int, Tuple[int, str, str, str]]:
+    def metadata(self) -> dict[int, tuple[int, str, str, str]]:
         return self._metadata
 
     async def refresh(self) -> None:
@@ -64,27 +66,31 @@ class SongIndex:
             except Exception as e:
                 print(f"Error scanning .osz files: {e}")
 
-            # 3. マージ（osu!.dbのメタデータを優先）
+            # 3. マージ (osu!.dbのメタデータを優先)
             async with self._state_lock:
                 self._owned = osu_owned.union(osz_owned)
                 # osu!.dbのメタデータを優先し、.oszで補完
                 self._metadata = {**osz_metadata, **osu_metadata}
 
-            print(f"Hybrid scan complete: {len(self._owned)} sets total "
-                  f"(osu!.db: {len(osu_owned)}, .osz: {len(osz_owned)})")
-            await self._emit_scan_event({
-                "status": "completed",
-                "owned_sets": len(self._owned),
-                "osu_db_sets": len(osu_owned),
-                "osz_sets": len(osz_owned),
-                "total_files": len(self._owned),
-                "processed_files": len(self._owned),
-                "current_file": None,
-                "started_at": None,
-                "completed_at": None,
-                "error_message": None,
-                "updated_at": None,
-            })
+            print(
+                f"Hybrid scan complete: {len(self._owned)} sets total "
+                f"(osu!.db: {len(osu_owned)}, .osz: {len(osz_owned)})"
+            )
+            await self._emit_scan_event(
+                {
+                    "status": "completed",
+                    "owned_sets": len(self._owned),
+                    "osu_db_sets": len(osu_owned),
+                    "osz_sets": len(osz_owned),
+                    "total_files": len(self._owned),
+                    "processed_files": len(self._owned),
+                    "current_file": None,
+                    "started_at": None,
+                    "completed_at": None,
+                    "error_message": None,
+                    "updated_at": None,
+                }
+            )
         except Exception as exc:
             await self._emit_scan_event({"status": "error", "error_message": str(exc)})
             raise
@@ -95,19 +101,23 @@ class SongIndex:
         if self._scan_task and not self._scan_task.done():
             return
 
-        await self._emit_scan_event({
-            'status': 'scanning',
-            'total_files': 0,
-            'processed_files': 0,
-            'current_file': 'osu!.db',
-            'started_at': None,
-            'completed_at': None,
-            'error_message': None,
-            'updated_at': None
-        })
+        await self._emit_scan_event(
+            {
+                "status": "scanning",
+                "total_files": 0,
+                "processed_files": 0,
+                "current_file": "osu!.db",
+                "started_at": None,
+                "completed_at": None,
+                "error_message": None,
+                "updated_at": None,
+            }
+        )
         self._scan_task = asyncio.create_task(self._load_hybrid())
 
-    async def _parse_osu_db(self) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
+    async def _parse_osu_db(
+        self,
+    ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
         """osu!.dbを解析してメタデータを抽出"""
         async with self._state_lock:
             if self._scanning:
@@ -122,13 +132,15 @@ class SongIndex:
             async with self._state_lock:
                 self._scanning = False
 
-    def _parse_osu_db_sync(self) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
+    def _parse_osu_db_sync(
+        self,
+    ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
         """同期でosu!.dbを解析"""
-        owned: Set[int] = set()
-        metadata: Dict[int, Tuple[int, str, str, str]] = {}
+        owned: set[int] = set()
+        metadata: dict[int, tuple[int, str, str, str]] = {}
 
         try:
-            with open(self.osu_db_path, 'rb') as f:
+            with open(self.osu_db_path, "rb") as f:
                 osu_data = OsuDb(KaitaiStream(f))
 
                 print(f"Loaded osu!.db version {osu_data.osu_version}")
@@ -138,14 +150,14 @@ class SongIndex:
                     # folder_nameからbeatmapset_idを抽出
                     # 例: "539007 $44,000 - PISSCORD" → 539007
                     folder_name = beatmap.folder_name
-                    if hasattr(folder_name, 'value'):
+                    if hasattr(folder_name, "value"):
                         folder_name = folder_name.value
 
                     if not folder_name:
                         continue
 
                     # フォルダ名の先頭の数字をbeatmapset_idとして使用
-                    match = re.match(r'^(\d+)', folder_name)
+                    match = re.match(r"^(\d+)", folder_name)
                     if not match:
                         continue
 
@@ -155,12 +167,16 @@ class SongIndex:
 
                     owned.add(set_id)
 
-                    # メタデータを整形（Unicode版を優先）
+                    # メタデータを整形 (Unicode版を優先)
                     def get_string_value(s):
-                        return s.value if hasattr(s, 'value') else s or ""
+                        return s.value if hasattr(s, "value") else s or ""
 
-                    artist = get_string_value(beatmap.artist_name_unicode) or get_string_value(beatmap.artist_name)
-                    title = get_string_value(beatmap.song_title_unicode) or get_string_value(beatmap.song_title)
+                    artist = get_string_value(
+                        beatmap.artist_name_unicode
+                    ) or get_string_value(beatmap.artist_name)
+                    title = get_string_value(
+                        beatmap.song_title_unicode
+                    ) or get_string_value(beatmap.song_title)
                     creator = get_string_value(beatmap.creator_name)
 
                     if set_id not in metadata:
@@ -172,10 +188,12 @@ class SongIndex:
 
         return owned, metadata
 
-    async def _scan_osz_fast(self) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
+    async def _scan_osz_fast(
+        self,
+    ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
         """ファイル名からのみ.oszを高速スキャン - O(1) per file"""
-        owned: Set[int] = set()
-        metadata: Dict[int, Tuple[int, str, str, str]] = {}
+        owned: set[int] = set()
+        metadata: dict[int, tuple[int, str, str, str]] = {}
 
         if not self.songs_dir or not self.songs_dir.exists():
             print(f"Songs directory not found at {self.songs_dir}")
@@ -184,7 +202,9 @@ class SongIndex:
         # 別スレッドで実行
         return await asyncio.to_thread(self._scan_osz_sync, owned, metadata)
 
-    def _scan_osz_sync(self, owned: Set[int], metadata: Dict[int, Tuple[int, str, str, str]]) -> Tuple[Set[int], Dict[int, Tuple[int, str, str, str]]]:
+    def _scan_osz_sync(
+        self, owned: set[int], metadata: dict[int, tuple[int, str, str, str]]
+    ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
         """同期版.oszスキャン"""
         osz_files = list(self.songs_dir.rglob("*.osz"))
         print(f"Scanning {len(osz_files)} .osz files...")
@@ -192,7 +212,7 @@ class SongIndex:
         for osz_path in osz_files:
             filename = osz_path.name
             # "123456 Artist - Title.osz" → 123456
-            match = re.match(r'^(\d+)', filename)
+            match = re.match(r"^(\d+)", filename)
             if match:
                 set_id = int(match.group(1))
                 if set_id <= 0:
@@ -203,23 +223,28 @@ class SongIndex:
                 # osu!.dbにない場合のみファイル名からメタデータ抽出
                 if set_id not in metadata:
                     artist, title = self._extract_metadata_from_filename(filename)
-                    metadata[set_id] = (set_id, artist, title, "")  # creatorはファイル名から抽出不可
+                    metadata[set_id] = (
+                        set_id,
+                        artist,
+                        title,
+                        "",
+                    )  # creatorはファイル名から抽出不可
 
         print(f"Found {len(owned)} unique sets from .osz files")
         return owned, metadata
 
-    def _extract_metadata_from_filename(self, filename: str) -> Tuple[str, str]:
+    def _extract_metadata_from_filename(self, filename: str) -> tuple[str, str]:
         """ファイル名からアーティストとタイトルを抽出"""
         # "123456 Artist - Title.osz" → ("Artist", "Title")
-        if filename.endswith('.osz'):
+        if filename.endswith(".osz"):
             filename = filename[:-4]  # .oszを削除
 
         # 最初の数字部分を削除
-        filename = re.sub(r'^\d+\s*', '', filename, count=1)
+        filename = re.sub(r"^\d+\s*", "", filename, count=1)
 
         # " - " で分割
-        if ' - ' in filename:
-            parts = filename.split(' - ', 1)
+        if " - " in filename:
+            parts = filename.split(" - ", 1)
             if len(parts) == 2:
                 artist = parts[0].strip()
                 title = parts[1].strip()
@@ -235,39 +260,41 @@ class SongIndex:
     def owned(self, set_id: int) -> bool:
         return set_id in self._owned
 
-    def summary(self) -> Dict[str, int]:
+    def summary(self) -> dict[str, int]:
         return {
             "owned_sets": len(self._owned),
             "with_metadata": len(self._metadata),
             "songs_dir_exists": int(self.songs_dir and self.songs_dir.exists()),
         }
 
-    def get_scan_status(self) -> Dict[str, any]:
+    def get_scan_status(self) -> dict[str, any]:
         """現在のスキャン状態を取得"""
         if self._scanning:
             return {
-                'status': 'scanning',
-                'total_files': 0,
-                'processed_files': 0,
-                'current_file': 'osu!.db',
-                'started_at': None,
-                'completed_at': None,
-                'error_message': None,
-                'updated_at': None
+                "status": "scanning",
+                "total_files": 0,
+                "processed_files": 0,
+                "current_file": "osu!.db",
+                "started_at": None,
+                "completed_at": None,
+                "error_message": None,
+                "updated_at": None,
             }
         else:
             return {
-                'status': 'completed',
-                'total_files': 1,
-                'processed_files': 1,
-                'current_file': None,
-                'started_at': None,
-                'completed_at': None,
-                'error_message': None,
-                'updated_at': None
+                "status": "completed",
+                "total_files": 1,
+                "processed_files": 1,
+                "current_file": None,
+                "started_at": None,
+                "completed_at": None,
+                "error_message": None,
+                "updated_at": None,
             }
 
-    def mark_owned(self, set_id: int, metadata: Optional[Tuple[int, str, str, str]] = None) -> None:
+    def mark_owned(
+        self, set_id: int, metadata: tuple[int, str, str, str] | None = None
+    ) -> None:
         """
         ダウンロード完了直後に所有セットを即時反映。
         """
@@ -275,7 +302,7 @@ class SongIndex:
         if metadata:
             self._metadata[set_id] = metadata
 
-    async def _emit_scan_event(self, payload: Dict[str, any]) -> None:
+    async def _emit_scan_event(self, payload: dict[str, any]) -> None:
         """Push scan status to SSE subscribers."""
         if not self._event_bus:
             return

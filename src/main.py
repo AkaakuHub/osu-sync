@@ -20,7 +20,6 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import List
 
 import uvicorn
 import webview
@@ -59,7 +58,9 @@ def pick_port(base: int = 18080, attempts: int = 40) -> int:
         return s.getsockname()[1]
 
 
-def start_uvicorn(app, host: str = "127.0.0.1", port: int | None = None) -> tuple[threading.Thread, uvicorn.Server]:
+def start_uvicorn(
+    app, host: str = "127.0.0.1", port: int | None = None
+) -> tuple[threading.Thread, uvicorn.Server]:
     port = port or pick_port()
     config = uvicorn.Config(app, host=host, port=port, reload=False, log_level="info")
     server = uvicorn.Server(config)
@@ -83,7 +84,9 @@ def wait_for_server(host: str, port: int, timeout: float = 10.0) -> None:
     # Time out silently; webview will show if server not ready, but this avoids long hang.
 
 
-def start_proc(cmd: List[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> subprocess.Popen:
+def start_proc(
+    cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
+) -> subprocess.Popen:
     creationflags = 0
     if os.name == "nt":
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -92,7 +95,11 @@ def start_proc(cmd: List[str], cwd: Path | None = None, env: dict[str, str] | No
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dev", action="store_true", help="start with uvicorn --reload and Vite dev server")
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="start with uvicorn --reload and Vite dev server",
+    )
     args = parser.parse_args()
 
     host = "127.0.0.1"

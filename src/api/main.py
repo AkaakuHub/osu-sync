@@ -5,8 +5,7 @@ import os
 import platform
 import subprocess
 from pathlib import Path
-from typing import Optional
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,10 +13,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.config import settings
-from core.downloader import DownloadManager
-from core.filter_schema import FilterRequest
 from api.osu_client import OsuApiClient
-from core.scanner import SongIndex
 from api.schemas import (
     BeatmapStatus,
     DownloadRequest,
@@ -27,7 +23,9 @@ from api.schemas import (
     SearchResponse,
     SearchResult,
 )
-
+from core.downloader import DownloadManager
+from core.filter_schema import FilterRequest
+from core.scanner import SongIndex
 
 API_PREFIX = "/api"
 logger = logging.getLogger("osu_sync.api")
@@ -82,10 +80,13 @@ def reveal_in_file_manager(path: Path, *, select: bool = False) -> None:
     subprocess.run(["xdg-open", str(target)], check=False)
 
 
-def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
+def create_app(dist_dir: Path | None = None) -> FastAPI:
     # ルートロガーのデフォルト設定が無ければ最低限 INFO で出す
     if not logging.getLogger().handlers:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        )
 
     app = FastAPI(title="osu-sync", version="0.1.0")
     api = APIRouter(prefix=API_PREFIX)
@@ -99,7 +100,7 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
         allow_headers=["*"],
     )
 
-    # フロントエンド配信（build 済み dist があれば）
+    # フロントエンド配信 (build 済み dist があれば)
     if dist_dir is None:
         root_dir = Path(__file__).resolve().parents[2]
         dist_dir = root_dir / "ui" / "dist"
@@ -114,7 +115,9 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
         # dist が無い場合でも / を生かす
         @app.get("/")
         async def fallback_index() -> dict:
-            return {"message": "ui/dist がまだありません。`npm install && npm run build` を実行してください。"}
+            return {
+                "message": "ui/dist がまだありません。`npm install && npm run build` を実行してください。"
+            }
 
     # 共有状態
     app.state.index = SongIndex(
@@ -140,9 +143,11 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
 
     def build_osu_client() -> None:
         try:
-            app.state.osu = OsuApiClient(settings.osu_client_id, settings.osu_client_secret)
+            app.state.osu = OsuApiClient(
+                settings.osu_client_id, settings.osu_client_secret
+            )
             app.state.osu_enabled = True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             app.state.osu = exc
             app.state.osu_enabled = False
 
@@ -152,11 +157,14 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
         set_id = item.get("id")
         covers = item.get("covers") or {}
         cover_url = (
-            covers.get("card@2x") or covers.get("cover@2x") or covers.get("card") or covers.get("cover")
+            covers.get("card@2x")
+            or covers.get("cover@2x")
+            or covers.get("card")
+            or covers.get("cover")
         )
         beatmaps = item.get("beatmaps") or []
         total_length = None
-        difficulties: List[Dict[str, Any]] = []
+        difficulties: list[dict[str, Any]] = []
         if beatmaps:
             lengths = [bm.get("total_length") or 0 for bm in beatmaps]
             if any(lengths):
@@ -216,10 +224,12 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
 
     @app.on_event("startup")
     async def startup() -> None:
-        # DBから既存データを読み込み（即時完了）
+        # DBから既存データを読み込み (即時完了)
         await app.state.index._load_hybrid()
-        # バックグラウンドスキャンを完全非同期で実行（サーバー起動をブロックしない）
-        asyncio.create_task(app.state.index._start_background_scan())
+        # バックグラウンドスキャンを完全非同期で実行 (サーバー起動をブロックしない)
+        app.state.background_scan_task = asyncio.create_task(
+            app.state.index._start_background_scan()
+        )
         await app.state.downloader.start_workers()
 
     # 依存関数
@@ -287,36 +297,44 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
         try:
             target.relative_to(songs_root)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail="Path is outside songs directory") from exc
+            raise HTTPException(
+                status_code=400, detail="Path is outside songs directory"
+            ) from exc
 
         select = target.is_file() and target.exists()
-        resolved_target = target if select else (target if target.exists() else target.parent)
+        resolved_target = (
+            target if select else (target if target.exists() else target.parent)
+        )
 
         if not resolved_target.exists():
             raise HTTPException(status_code=404, detail="Path does not exist")
 
         try:
-            reveal_in_file_manager(resolved_target if not select else target, select=select)
-        except Exception as exc:  # noqa: BLE001
-            raise HTTPException(status_code=500, detail=f"Failed to open path: {exc}") from exc
+            reveal_in_file_manager(
+                resolved_target if not select else target, select=select
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to open path: {exc}"
+            ) from exc
 
         return {"status": "ok"}
 
     @api.get("/search", response_model=SearchResponse)
     async def search(
-        q: Optional[str] = None,
+        q: str | None = None,
         page: int = 1,
         limit: int = 20,
-        s: Optional[str] = None,  # status
-        m: Optional[str] = None,  # mode
-        e: Optional[str] = None,  # extra
-        c: Optional[str] = None,  # general
-        g: Optional[str] = None,  # genre
-        l: Optional[str] = None,  # language (公式APIの短縮形)  # noqa: E741
-        nsfw: Optional[bool] = None,
-        sort: Optional[str] = None,
-        played: Optional[str] = None,
-        rank: Optional[str] = None,
+        s: str | None = None,  # status
+        m: str | None = None,  # mode
+        e: str | None = None,  # extra
+        c: str | None = None,  # general
+        g: str | None = None,  # genre
+        l: str | None = None,  # language (公式APIの短縮形)  # noqa: E741
+        nsfw: bool | None = None,
+        sort: str | None = None,
+        played: str | None = None,
+        rank: str | None = None,
         osu: OsuApiClient = Depends(require_osu_client),
     ) -> SearchResponse:
         # 公式APIのURL短縮形パラメータに完全に対応
@@ -339,7 +357,7 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
             nsfw=nsfw,
             sort=sort,
             played=played,
-            r=rank  # rank パラメータ
+            r=rank,  # rank パラメータ
         )
 
         # API v2はbeatmapsetsを配列で返す
@@ -372,7 +390,7 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
         osu: OsuApiClient = Depends(require_osu_client),
     ) -> SearchResponse:
         """
-        先人プロジェクト（batch-beatmap-downloader）の FilterRequest 互換の簡易実装。
+        先人プロジェクト (batch-beatmap-downloader) の FilterRequest 互換の簡易実装。
         Rule を osu!web 検索クエリ文字列に変換して /search を叩く。
         例: field=Cs, operator='>', value='5' => 'cs>5'
         """
@@ -438,14 +456,20 @@ def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
         settings.persist(filtered)
 
         # songs_dir, download_url_template, max_concurrency, requests_per_minute が変更された場合のみ再構築
-        needs_rebuild = any(key in filtered for key in [
-            "songs_dir", "download_url_template", "max_concurrency", "requests_per_minute"
-        ])
+        needs_rebuild = any(
+            key in filtered
+            for key in [
+                "songs_dir",
+                "download_url_template",
+                "max_concurrency",
+                "requests_per_minute",
+            ]
+        )
 
         # osu_client_id, osu_client_secret が変更された場合のみ再構築
-        needs_client_rebuild = any(key in filtered for key in [
-            "osu_client_id", "osu_client_secret"
-        ])
+        needs_client_rebuild = any(
+            key in filtered for key in ["osu_client_id", "osu_client_secret"]
+        )
 
         if needs_rebuild:
             app.state.index = SongIndex(

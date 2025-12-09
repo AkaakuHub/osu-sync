@@ -35,6 +35,20 @@ osu-sync = "src.main:main"
 line-length = 88
 target-version = "py311"
 
+[tool.ruff.lint]
+# Ruff formatter prefers breaking before binary operators; ignore W503 to avoid conflicts.
+# E203 is incompatible with Black/Ruff slicing style; E501 is handled by the formatter.
+# E203: formatter-compatible slices, E501: handled by formatter
+ignore = ["E203", "E501"]
+# Keep a focused set of rules; extend as needed.
+select = [
+    "E",  # pycodestyle (core)
+    "F",  # pyflakes
+    "I",  # import sorting
+    "UP", # pyupgrade
+    "RUF" # Ruff-specific (light)
+]
+
 [tool.black]
 line-length = 88
 target-version = ["py311"]

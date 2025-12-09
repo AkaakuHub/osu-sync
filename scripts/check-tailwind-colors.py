@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Tuple
 
 DEFAULT_COLORS: Sequence[str] = (
     "white",
@@ -103,8 +103,8 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def normalize_extensions(extensions: Sequence[str]) -> List[str]:
-    normalized: List[str] = []
+def normalize_extensions(extensions: Sequence[str]) -> list[str]:
+    normalized: list[str] = []
     for ext in extensions:
         value = ext.strip()
         if not value:
@@ -113,7 +113,7 @@ def normalize_extensions(extensions: Sequence[str]) -> List[str]:
     return [value.lower() for value in normalized]
 
 
-def build_patterns(colors: Sequence[str]) -> List[re.Pattern[str]]:
+def build_patterns(colors: Sequence[str]) -> list[re.Pattern[str]]:
     unique_colors = sorted(
         {color.strip() for color in colors if color and color.strip()}
     )
@@ -121,11 +121,14 @@ def build_patterns(colors: Sequence[str]) -> List[re.Pattern[str]]:
         raise ValueError("Color list is empty")
     color_group = f"({'|'.join(unique_colors)})"
     return [
-        re.compile(template.format(colors=color_group)) for template in PATTERN_TEMPLATES
+        re.compile(template.format(colors=color_group))
+        for template in PATTERN_TEMPLATES
     ]
 
 
-def iter_target_files(roots: Sequence[Path], extensions: Sequence[str]) -> Iterable[Path]:
+def iter_target_files(
+    roots: Sequence[Path], extensions: Sequence[str]
+) -> Iterable[Path]:
     for root in roots:
         for file_path in root.rglob("*"):
             if file_path.is_file() and file_path.suffix.lower() in extensions:
@@ -136,9 +139,9 @@ def scan_file(
     file_path: Path,
     patterns: Sequence[re.Pattern[str]],
     ignore_token: str,
-    limit: Optional[int],
-) -> Tuple[List[Match], bool]:
-    matches: List[Match] = []
+    limit: int | None,
+) -> tuple[list[Match], bool]:
+    matches: list[Match] = []
     truncated = False
     try:
         with file_path.open("r", encoding="utf-8") as handle:
@@ -155,7 +158,9 @@ def scan_file(
                             skip_next = True
                     continue
 
-                has_forbidden_color = any(pattern.search(stripped) for pattern in patterns)
+                has_forbidden_color = any(
+                    pattern.search(stripped) for pattern in patterns
+                )
 
                 if contains_ignore_token:
                     # Always skip if ignore token is on same line.
@@ -166,7 +171,9 @@ def scan_file(
 
                 if has_forbidden_color:
                     if limit is None or len(matches) < limit:
-                        matches.append(Match(file_path=file_path, line_no=line_no, line=stripped))
+                        matches.append(
+                            Match(file_path=file_path, line_no=line_no, line=stripped)
+                        )
                     else:
                         truncated = True
     except UnicodeDecodeError:
@@ -199,14 +206,16 @@ def main(argv: Sequence[str]) -> int:
     missing_roots = [path for path in root_paths if not path.exists()]
 
     for missing in missing_roots:
-        print(f"WARNING: Specified directory does not exist: {missing}", file=sys.stderr)
+        print(
+            f"WARNING: Specified directory does not exist: {missing}", file=sys.stderr
+        )
     if args.fail_on_missing_dir and missing_roots:
         return 2
     if not existing_roots:
         print("WARNING: No valid directories specified. Exiting.", file=sys.stderr)
         return 2
 
-    limit: Optional[int] = None
+    limit: int | None = None
     if not args.show_all and args.max_matches_per_file > 0:
         limit = args.max_matches_per_file
 
@@ -228,10 +237,14 @@ def main(argv: Sequence[str]) -> int:
     if any_errors:
         print("!!! Tailwind default color usage detected!\n")
         print("Please use the following semantic colors instead:")
-        print("  Backgrounds: bg-surface, bg-surface-variant, bg-primary, bg-error, etc.")
+        print(
+            "  Backgrounds: bg-surface, bg-surface-variant, bg-primary, bg-error, etc."
+        )
         print("  Text: text-text, text-text-secondary, text-primary, text-error, etc.")
         print("  Borders: border-border, border-border-muted, border-primary, etc.\n")
-        print("For available semantic colors, check the @theme section in src/app/globals.css.")
+        print(
+            "For available semantic colors, check the @theme section in src/app/globals.css."
+        )
         return 1
 
     print("OK: No Tailwind default color usage detected.")
