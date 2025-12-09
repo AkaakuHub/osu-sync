@@ -15,15 +15,11 @@ env:
   PYTHON_VERSION: "3.11.9"
   NODE_VERSION: "20"
   PNPM_VERSION: "10.22.0"
-  UV_CACHE_DIR: ~/.cache/uv
 
 jobs:
-  web-build:
-    name: Build web UI
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ui
+  build-windows:
+    name: Build (UI + exe + installer) on Windows
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +36,8 @@ jobs:
 
       - name: Resolve pnpm store path
         id: pnpm-store
-        run: echo "store_path=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+        shell: pwsh
+        run: echo "store_path=$(pnpm store path --silent)" >> $Env:GITHUB_OUTPUT
 
       - name: Cache pnpm store
         uses: actions/cache@v4
@@ -50,36 +47,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-      - name: Install deps
+      - name: Install frontend deps
+        working-directory: ui
         run: |
-          if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile
-          else
-            pnpm install --no-frozen-lockfile
-          fi
+          if (Test-Path pnpm-lock.yaml) { pnpm install --frozen-lockfile } else { pnpm install --no-frozen-lockfile }
 
-      - name: Build
+      - name: Build frontend
+        working-directory: ui
         run: pnpm run build
 
-      - name: Upload dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: ui-dist
-          path: ui/dist
-
-  win-exe:
-    name: Build Windows executable
-    needs: web-build
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download web bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: ui-dist
-          path: ui/dist
-
+      # Backend build (uv + Nuitka)
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -118,12 +95,14 @@ jobs:
         shell: pwsh
         run: uv run python -m nuitka --onefile --standalone --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --cache-dir=$Env:NUITKA_CACHE_DIR --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
 
+      # Inno Setup installer
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
       - name: Build installer (Inno Setup)
         run: '"C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer\\osu-sync.iss'
 
+      # Release
       - name: Create GitHub Release (attach portable & installer)
         uses: softprops/action-gh-release@v1
         with:
