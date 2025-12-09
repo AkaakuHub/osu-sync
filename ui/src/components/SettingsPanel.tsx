@@ -27,6 +27,7 @@ export default function SettingsPanel() {
 		refetchOnWindowFocus: false,
 	});
 	const [form, setForm] = useState<Partial<Settings & { osu_client_secret: string }>>({});
+	const [updating, setUpdating] = useState(false);
 
 	const mutation = useMutation({
 		mutationFn: saveSettings,
@@ -37,6 +38,8 @@ export default function SettingsPanel() {
 	});
 
 	const startUpdate = async () => {
+		if (updating) return;
+		setUpdating(true);
 		try {
 			const res = await apiClient.post<{ status: string }>("/update/start", {});
 			if (res.status === "started") {
@@ -48,6 +51,7 @@ export default function SettingsPanel() {
 			toast.error(e?.response?.data?.detail || e.message || "Update failed");
 		} finally {
 			refetchUpdate();
+			setUpdating(false);
 		}
 	};
 
@@ -77,7 +81,7 @@ export default function SettingsPanel() {
 						</span>
 					</div>
 					<Button onClick={startUpdate} variant="primary" className="text-sm px-3 py-1.5">
-						Download & Install
+						{updating ? "Downloading…" : "Download & Install"}
 					</Button>
 				</div>
 			);
@@ -100,6 +104,7 @@ export default function SettingsPanel() {
 					}
 					variant="secondary"
 					className="text-sm px-3 py-1.5"
+					disabled={updating}
 				>
 					Check again
 				</Button>

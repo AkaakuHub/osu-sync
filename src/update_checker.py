@@ -94,6 +94,8 @@ async def download_and_run_installer(url: str) -> str:
             "/NORESTART",
             "/CLOSEAPPLICATIONS",
             "/RESTARTAPPLICATIONS",
+            "/FORCECLOSEAPPLICATIONS",
+            "/NOCANCEL",
             f"/LOG={log_path}",
         ],
         close_fds=True,
