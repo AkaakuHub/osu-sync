@@ -13,8 +13,8 @@ const SettingsPage: React.FC = () => {
 			</div>
 
 			{/* Settings Panel */}
-			<div className="flex-1 min-h-0 px-4 pb-4 overflow-hidden">
-				<div className="h-full rounded-lg border border-border bg-surface p-2 shadow-sm">
+			<div className="flex-1 min-h-0 px-2 pb-5 overflow-hidden">
+				<div className="h-full rounded-xl border border-border bg-surface p-2 shadow-sm">
 					<SettingsPanel />
 				</div>
 			</div>
