@@ -224,12 +224,17 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
 
     @app.on_event("startup")
     async def startup() -> None:
-        # DBから既存データを読み込み (即時完了)
-        await app.state.index._load_hybrid()
-        # バックグラウンドスキャンを完全非同期で実行 (サーバー起動をブロックしない)
-        app.state.background_scan_task = asyncio.create_task(
-            app.state.index._start_background_scan()
-        )
+        # 先にサーバーを立ち上げるため、インデックス読み込みは非同期タスクに回す
+        async def load_index_and_scan() -> None:
+            try:
+                await app.state.index._load_hybrid()
+                app.state.background_scan_task = asyncio.create_task(
+                    app.state.index._start_background_scan()
+                )
+            except Exception:
+                logger.exception("Failed to load osu!.db / start background scan")
+
+        app.state.index_load_task = asyncio.create_task(load_index_and_scan())
         await app.state.downloader.start_workers()
 
     # 依存関数
