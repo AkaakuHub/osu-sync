@@ -16,6 +16,9 @@ env:
   NODE_VERSION: "20"
   PNPM_VERSION: "10.22.0"
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     name: Build (UI + exe + installer) on Windows
