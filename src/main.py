@@ -26,6 +26,43 @@ import webview
 
 from api.main import create_app
 
+LOADING_HTML = """
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0f172a;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      color: #e2e8f0;
+    }
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border: 6px solid rgba(148, 163, 184, 0.35);
+      border-top-color: #34d399;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      box-shadow: 0 0 16px rgba(52, 211, 153, 0.4);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .label { margin-top: 14px; font-size: 13px; letter-spacing: 0.2px; color: #cbd5e1; }
+  </style>
+</head>
+<body>
+  <div class="spinner" aria-label="loading"></div>
+  <div class="label">Launching osu-sync…</div>
+</body>
+</html>
+"""
+
 
 def resolve_dist_dir() -> Path:
     """Locate bundled ui/dist for both dev and Nuitka onefile."""
@@ -106,7 +143,6 @@ def main() -> None:
 
     if args.dev:
         port = pick_port()
-        port = pick_port()
         procs: list[subprocess.Popen] = []
         try:
             # 1) uvicorn --reload (factory)
@@ -135,14 +171,15 @@ def main() -> None:
             wait_for_server(host, port, timeout=10.0)
             time.sleep(1.5)  # give Vite time to bind 5173
 
-            # 4) launch webview pointing to Vite dev server
-            webview.create_window(
-                "osu-sync (dev)",
-                f"http://127.0.0.1:5173/?api_port={port}",
-                width=1280,
-                height=780,
+            target_url = f"http://127.0.0.1:5173/?api_port={port}"
+            window = webview.create_window(
+                "osu-sync (dev)", html=LOADING_HTML, width=1280, height=780
             )
-            webview.start(gui="edgechromium", debug=True)
+
+            def _load():
+                window.load_url(target_url)
+
+            webview.start(gui="edgechromium", debug=True, func=_load)
         finally:
             for p in procs:
                 if p.poll() is None:
@@ -163,8 +200,14 @@ def main() -> None:
     wait_for_server(host, port, timeout=8.0)
 
     url = f"http://{host}:{port}"
-    webview.create_window("osu-sync", url, width=1280, height=780)
-    webview.start(gui="edgechromium", debug=False)
+    window = webview.create_window(
+        "osu-sync", html=LOADING_HTML, width=1280, height=780
+    )
+
+    def _load_prod():
+        window.load_url(url)
+
+    webview.start(gui="edgechromium", debug=False, func=_load_prod)
 
     # Request graceful shutdown
     server.should_exit = True

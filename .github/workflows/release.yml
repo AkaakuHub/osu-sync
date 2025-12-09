@@ -93,7 +93,7 @@ jobs:
         env:
           NUITKA_CACHE_DIR: ${{ steps.nuitka-cache-path.outputs.path }}
         shell: pwsh
-        run: uv run python -m nuitka --onefile --standalone --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --cache-dir=$Env:NUITKA_CACHE_DIR --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
+        run: uv run python -m nuitka --onefile --standalone --windows-console-mode=disable --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --cache-dir=$Env:NUITKA_CACHE_DIR --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
 
       # Inno Setup installer
       - name: Install Inno Setup
