@@ -15,6 +15,7 @@ type UpdateStatus = {
 	current_version: string;
 	installer_url?: string;
 	release_name?: string;
+	rate_limited?: boolean;
 };
 
 const fetchUpdateStatus = () => apiClient.get<UpdateStatus>("/update/status");
@@ -22,11 +23,15 @@ const fetchUpdateStatus = () => apiClient.get<UpdateStatus>("/update/status");
 export default function SettingsPanel() {
 	const client = useQueryClient();
 	const { data } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
-	const { data: updateInfo, refetch: refetchUpdate } = useQuery<UpdateStatus>({
-		queryKey: ["update-status"],
-		queryFn: fetchUpdateStatus,
-		refetchOnWindowFocus: false,
-	});
+	const { data: updateInfo, refetch: refetchUpdate } = useQuery<UpdateStatus>(
+		{
+			queryKey: ["update-status"],
+			queryFn: fetchUpdateStatus,
+			refetchOnWindowFocus: false,
+			retry: 0,
+		},
+		client,
+	);
 	const [form, setForm] = useState<Partial<Settings & { osu_client_secret: string }>>({});
 	const [updating, setUpdating] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
@@ -76,6 +81,38 @@ export default function SettingsPanel() {
 					</div>
 					<Button variant="ghost" className="text-sm px-3 py-1.5" disabled>
 						…
+					</Button>
+				</div>
+			);
+		}
+
+		// Rate limit or fetch failure fallback
+		if (updateInfo.rate_limited) {
+			return (
+				<div className="flex items-center justify-between gap-3">
+					<div className="flex flex-col gap-0.5">
+						<span className="text-sm font-semibold text-text">Update check failed</span>
+						<span className="text-xs text-text-secondary">Rate limited or offline. Try again.</span>
+					</div>
+					<Button
+						onClick={() =>
+							refetchUpdate().then((res) => {
+								const info = res.data as UpdateStatus | undefined;
+								if (info?.update_available) {
+									toast.success("Update available.");
+								} else if (info?.rate_limited) {
+									toast.error("Still rate limited. Try later or set GITHUB_TOKEN.");
+								} else {
+									toast("Already up to date.");
+								}
+							})
+						}
+						variant="secondary"
+						className="text-sm px-3 py-1.5"
+						disabled={updating}
+						isLoading={updating}
+					>
+						Check again
 					</Button>
 				</div>
 			);

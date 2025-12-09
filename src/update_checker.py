@@ -13,6 +13,7 @@ import os
 import platform
 import subprocess
 import tempfile
+import time
 from dataclasses import dataclass
 from importlib import metadata
 
@@ -31,6 +32,7 @@ class UpdateInfo:
     update_available: bool
     installer_url: str | None = None
     release_name: str | None = None
+    rate_limited: bool = False
 
 
 def get_current_version() -> str:
@@ -40,12 +42,50 @@ def get_current_version() -> str:
         return "0.0.0"
 
 
+_CACHE_TTL = 3600  # seconds
+_cache_at: float | None = None
+_cache_info: UpdateInfo | None = None
+
+
 async def fetch_latest(timeout: float = 10.0) -> UpdateInfo:
+    global _cache_at, _cache_info
+    now = time.time()
+    if _cache_at and _cache_info and now - _cache_at < _CACHE_TTL:
+        return _cache_info
+
     current = get_current_version()
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        resp = await client.get(RELEASES_API)
-        resp.raise_for_status()
-        data = resp.json()
+    headers = {}
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN_READONLY")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+            resp = await client.get(RELEASES_API)
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPStatusError:
+        _cache_info = UpdateInfo(
+            current_version=current,
+            latest_version=current,
+            update_available=False,
+            installer_url=None,
+            release_name=None,
+            rate_limited=True,
+        )
+        _cache_at = now
+        return _cache_info
+    except Exception:
+        _cache_info = UpdateInfo(
+            current_version=current,
+            latest_version=current,
+            update_available=False,
+            installer_url=None,
+            release_name=None,
+            rate_limited=True,
+        )
+        _cache_at = now
+        return _cache_info
 
     tag = data.get("tag_name") or data.get("name") or "0.0.0"
     latest = tag.lstrip("v")
@@ -57,13 +97,16 @@ async def fetch_latest(timeout: float = 10.0) -> UpdateInfo:
             break
 
     update_available = Version(latest) > Version(current)
-    return UpdateInfo(
+    _cache_info = UpdateInfo(
         current_version=current,
         latest_version=latest,
         update_available=update_available,
         installer_url=installer,
         release_name=data.get("name"),
+        rate_limited=False,
     )
+    _cache_at = now
+    return _cache_info
 
 
 async def download_and_run_installer(url: str) -> str:

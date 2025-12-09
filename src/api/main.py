@@ -259,6 +259,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             "update_available": info.update_available,
             "installer_url": info.installer_url,
             "release_name": info.release_name,
+            "rate_limited": info.rate_limited,
         }
 
     @api.post("/update/start")

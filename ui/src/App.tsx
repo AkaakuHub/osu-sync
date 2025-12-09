@@ -26,6 +26,7 @@ function App() {
 				update_available: boolean;
 				latest_version: string;
 				current_version: string;
+				rate_limited?: boolean;
 			}>("/update/status")
 			.then((info) => {
 				if (cancelled) return;
@@ -34,6 +35,8 @@ function App() {
 						id: "update-available",
 						duration: 8000,
 					});
+				} else if (info.rate_limited) {
+					toast.error("Update check rate limited. Try again later or set GITHUB_TOKEN.");
 				}
 			})
 			.catch(() => {
