@@ -40,10 +40,19 @@ export default function SettingsPanel() {
 	const startUpdate = async () => {
 		if (updating) return;
 		setUpdating(true);
+		const ok = window.confirm(
+			"This will close osu-sync and run the installer. Do you want to continue?",
+		);
+		if (!ok) {
+			setUpdating(false);
+			return;
+		}
 		try {
 			const res = await apiClient.post<{ status: string }>("/update/start", {});
 			if (res.status === "started") {
 				toast.success("Downloading updater…", { id: "update-started" });
+				// Request backend to quit so installer can replace files
+				await apiClient.post("/update/quit", {});
 			} else {
 				toast("Already up to date.");
 			}

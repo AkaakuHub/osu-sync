@@ -4,6 +4,7 @@ import logging
 import os
 import platform
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -274,6 +275,12 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
         # Optionally request UI to quit; here we just respond.
         return {"status": "started", "path": path}
+
+    @api.post("/update/quit")
+    async def update_quit() -> dict:
+        # Immediately exit the process to allow installer to replace files
+        asyncio.get_running_loop().call_soon(sys.exit, 0)
+        return {"status": "exiting"}
 
     # ルータ
     @api.get("/health")
