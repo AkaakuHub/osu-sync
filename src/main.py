@@ -141,12 +141,17 @@ def main() -> None:
     args = parser.parse_args()
 
     host = "127.0.0.1"
+    port = pick_port()
+
+    # Show loading screen immediately
+    window = webview.create_window(
+        "osu-sync", html=LOADING_HTML, width=1280, height=780
+    )
 
     if args.dev:
-        port = pick_port()
         procs: list[subprocess.Popen] = []
         try:
-            # 1) uvicorn --reload (factory)
+            # Start uvicorn (reload) and Vite without blocking UI
             procs.append(
                 start_proc(
                     [
@@ -164,23 +169,15 @@ def main() -> None:
                     cwd=Path(__file__).resolve().parent,
                 )
             )
-
-            # 2) Vite dev server
             procs.append(start_proc(["pnpm", "dev"], cwd=resolve_dist_dir().parent))
 
-            # 3) wait for servers
-            wait_for_server(host, port, timeout=10.0)
-            time.sleep(1.5)  # give Vite time to bind 5173
+            def _wait_and_load_dev() -> None:
+                wait_for_server(host, port, timeout=15.0)
+                time.sleep(1.0)  # small buffer for Vite bind
+                window.load_url(f"http://127.0.0.1:5173/?api_port={port}")
 
-            target_url = f"http://127.0.0.1:5173/?api_port={port}"
-            window = webview.create_window(
-                "osu-sync (dev)", html=LOADING_HTML, width=1280, height=780
-            )
-
-            def _load():
-                window.load_url(target_url)
-
-            webview.start(gui="edgechromium", debug=True, func=_load)
+            threading.Thread(target=_wait_and_load_dev, daemon=True).start()
+            webview.start(gui="edgechromium", debug=True)
         finally:
             for p in procs:
                 if p.poll() is None:
@@ -194,23 +191,16 @@ def main() -> None:
 
     # Production path
     dist_dir = resolve_dist_dir()
-    port = pick_port()
     app = create_app(dist_dir=dist_dir)
-
     thread, server = start_uvicorn(app, host=host, port=port)
-    wait_for_server(host, port, timeout=8.0)
 
-    url = f"http://{host}:{port}"
-    window = webview.create_window(
-        "osu-sync", html=LOADING_HTML, width=1280, height=780
-    )
+    def _wait_and_load_prod() -> None:
+        wait_for_server(host, port, timeout=15.0)
+        window.load_url(f"http://{host}:{port}")
 
-    def _load_prod():
-        window.load_url(url)
+    threading.Thread(target=_wait_and_load_prod, daemon=True).start()
+    webview.start(gui="edgechromium", debug=False)
 
-    webview.start(gui="edgechromium", debug=False, func=_load_prod)
-
-    # Request graceful shutdown
     server.should_exit = True
     thread.join(timeout=5)
 
