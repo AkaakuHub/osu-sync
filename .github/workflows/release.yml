@@ -91,19 +91,50 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
 
+      - name: Resolve Nuitka cache path
+        id: nuitka-cache-path
+        shell: pwsh
+        run: |
+          $cache = Join-Path $Env:RUNNER_TEMP "nuitka-cache"
+          echo "path=$cache" >> $Env:GITHUB_OUTPUT
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+
+      - name: Cache Nuitka build artifacts
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.nuitka-cache-path.outputs.path }}
+          key: ${{ runner.os }}-nuitka-cache-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-nuitka-cache-
+
       - name: Install Python deps (uv)
         run: |
           uv venv
           uv pip install . nuitka==2.8.9
 
       - name: Build exe with Nuitka (includes FastAPI + webview + dist)
-        run: uv run python -m nuitka --onefile --standalone --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\\dist=ui\\dist --output-filename=osu-sync.exe src/main.py
+        env:
+          NUITKA_CACHE_DIR: ${{ steps.nuitka-cache-path.outputs.path }}
+        shell: pwsh
+        run: uv run python -m nuitka --onefile --standalone --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --cache-dir=$Env:NUITKA_CACHE_DIR src/main.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer (Inno Setup)
+        run: '"C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer\\osu-sync.iss'
 
       - name: Upload exe
         uses: actions/upload-artifact@v4
         with:
           name: osu-sync-windows-x64
           path: build\\osu-sync.exe
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: osu-sync-installer
+          path: installer\\Output\\osu-sync-installer.exe
 
   release-notes:
     name: Aggregate artifacts
