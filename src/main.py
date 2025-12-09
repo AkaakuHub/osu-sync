@@ -83,11 +83,11 @@ def wait_for_server(host: str, port: int, timeout: float = 10.0) -> None:
     # Time out silently; webview will show if server not ready, but this avoids long hang.
 
 
-def start_proc(cmd: List[str], cwd: Path | None = None) -> subprocess.Popen:
+def start_proc(cmd: List[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> subprocess.Popen:
     creationflags = 0
     if os.name == "nt":
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
-    return subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags)
+    return subprocess.Popen(cmd, cwd=cwd, creationflags=creationflags, env=env)
 
 
 def main() -> None:
@@ -98,6 +98,7 @@ def main() -> None:
     host = "127.0.0.1"
 
     if args.dev:
+        port = pick_port()
         port = pick_port()
         procs: list[subprocess.Popen] = []
         try:
@@ -128,7 +129,12 @@ def main() -> None:
             time.sleep(1.5)  # give Vite time to bind 5173
 
             # 4) launch webview pointing to Vite dev server
-            webview.create_window("osu-sync (dev)", "http://127.0.0.1:5173", width=1280, height=780)
+            webview.create_window(
+                "osu-sync (dev)",
+                f"http://127.0.0.1:5173/?api_port={port}",
+                width=1280,
+                height=780,
+            )
             webview.start(gui="edgechromium", debug=True)
         finally:
             for p in procs:
