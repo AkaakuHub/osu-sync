@@ -82,7 +82,7 @@ def reveal_in_file_manager(path: Path, *, select: bool = False) -> None:
     subprocess.run(["xdg-open", str(target)], check=False)
 
 
-def create_app() -> FastAPI:
+def create_app(dist_dir: Optional[Path] = None) -> FastAPI:
     # ルートロガーのデフォルト設定が無ければ最低限 INFO で出す
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -100,8 +100,10 @@ def create_app() -> FastAPI:
     )
 
     # フロントエンド配信（build 済み dist があれば）
-    root_dir = Path(__file__).resolve().parents[2]
-    dist_dir = root_dir / "ui" / "dist"
+    if dist_dir is None:
+        root_dir = Path(__file__).resolve().parents[2]
+        dist_dir = root_dir / "ui" / "dist"
+
     if dist_dir.exists():
         app.mount("/web", StaticFiles(directory=dist_dir, html=True), name="frontend")
 
@@ -310,7 +312,7 @@ def create_app() -> FastAPI:
         e: Optional[str] = None,  # extra
         c: Optional[str] = None,  # general
         g: Optional[str] = None,  # genre
-        l: Optional[str] = None,  # language (公式APIの短縮形)
+        l: Optional[str] = None,  # language (公式APIの短縮形)  # noqa: E741
         nsfw: Optional[bool] = None,
         sort: Optional[str] = None,
         played: Optional[str] = None,
