@@ -61,6 +61,13 @@ def update_versions(version: str) -> None:
         r"\g<1>" + version,
     )
 
+    # uv.lock project version
+    update_file(
+        ROOT / "uv.lock",
+        r'(name\s*=\s*"osu-sync"\s*\nversion\s*=\s*")([^"]+)(")',
+        r"\g<1>" + version + r"\g<3>",
+    )
+
 
 def git_tag(version: str) -> None:
     tag = f"v{version}" if not version.startswith("v") else version
