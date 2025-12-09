@@ -42,8 +42,7 @@ export function CustomToast() {
 							<>
 								{icon}
 								<div style={{ flex: 1, whiteSpace: "pre-line" }}>{message}</div>
-								{/* 閉じるボタン - ローディング時は表示しない */}
-								{t.type !== "loading" && (
+								{
 									<button
 										onClick={() => toast.dismiss(t.id)}
 										style={{
@@ -69,9 +68,8 @@ export function CustomToast() {
 									>
 										<X size={16} />
 									</button>
-								)}
-								{/* プログレスバー - ToastBar内に配置 */}
-								{t.type !== "loading" && (
+								}
+								{
 									<div
 										style={{
 											position: "absolute",
@@ -95,7 +93,7 @@ export function CustomToast() {
 											zIndex: 1,
 										}}
 									/>
-								)}
+								}
 							</>
 						)}
 					</ToastBar>

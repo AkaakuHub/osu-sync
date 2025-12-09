@@ -29,35 +29,31 @@ export function ScanProgress() {
 							toastIdRef.current = toast.loading(
 								`スキャン中... (${status.processed_files}/${status.total_files} ファイル)`,
 								{
-									duration: Infinity,
+									duration: 5000,
 								},
 							);
 							break;
 						case "completed":
 							toastIdRef.current = toast.success(
 								`スキャン完了！ (${status.processed_files ?? 0} ファイル)`,
+								{ duration: 5000 },
 							);
-							// 完了toastは5秒後に自動で消える
-							setTimeout(() => {
-								if (toastIdRef.current) {
-									toastIdRef.current = null;
-								}
-							}, 5000);
 							break;
 						case "error":
 							toastIdRef.current = toast.error(
 								`スキャンエラー: ${status.error_message || "不明なエラー"}`,
+								{ duration: 5000 },
 							);
 							break;
 					}
 					previousStatusRef.current = status.status;
 				} else if (status.status === "scanning" && toastIdRef.current) {
-					// スキャン中は進捗を更新
+					// スキャン中は進捗を更新（同じIDで上書き）
 					toast.loading(
 						`スキャン中... (${status.processed_files}/${status.total_files} ファイル)${status.current_file ? `\n現在: ${status.current_file}` : ""}`,
 						{
 							id: toastIdRef.current,
-							duration: Infinity,
+							duration: 5000,
 						},
 					);
 				}
