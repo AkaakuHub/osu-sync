@@ -6,6 +6,7 @@ DefaultGroupName=osu-sync
 OutputBaseFilename=osu-sync-installer
 Compression=lzma
 SolidCompression=yes
+SetupIconFile=icon\osu-sync.ico
 
 [Files]
 Source: "..\build\osu-sync.exe"; DestDir: "{app}"; Flags: ignoreversion

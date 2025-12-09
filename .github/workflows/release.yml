@@ -116,7 +116,7 @@ jobs:
         env:
           NUITKA_CACHE_DIR: ${{ steps.nuitka-cache-path.outputs.path }}
         shell: pwsh
-        run: uv run python -m nuitka --onefile --standalone --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --cache-dir=$Env:NUITKA_CACHE_DIR src/main.py
+        run: uv run python -m nuitka --onefile --standalone --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --cache-dir=$Env:NUITKA_CACHE_DIR --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
@@ -124,42 +124,7 @@ jobs:
       - name: Build installer (Inno Setup)
         run: '"C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer\\osu-sync.iss'
 
-      - name: Upload exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: osu-sync-windows-x64
-          path: build\\osu-sync.exe
-
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: osu-sync-installer
-          path: installer\\Output\\osu-sync-installer.exe
-
-  release-notes:
-    name: Release publish
-    needs: [web-build, win-exe]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download portable exe
-        uses: actions/download-artifact@v4
-        with:
-          name: osu-sync-windows-x64
-          path: release-bin
-
-      - name: Download installer
-        uses: actions/download-artifact@v4
-        with:
-          name: osu-sync-installer
-          path: release-bin
-
-      - name: Download web bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: ui-dist
-          path: release-bin/ui-dist
-
-      - name: Create GitHub Release
+      - name: Create GitHub Release (attach portable & installer)
         uses: softprops/action-gh-release@v1
         with:
           name: ${{ github.ref_name }}
@@ -167,7 +132,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            release-bin/osu-sync.exe
-            release-bin/osu-sync-installer.exe
+            build/osu-sync.exe
+            installer/Output/osu-sync-installer.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
