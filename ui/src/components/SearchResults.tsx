@@ -14,8 +14,8 @@ import Toggle from "./ui/Toggle";
 import Button from "./ui/Button";
 
 type Props = {
-	ownedOnly: boolean;
-	setOwnedOnly: (v: boolean) => void;
+	notOwnedOnly: boolean;
+	setNotOwnedOnly: (v: boolean) => void;
 	onQueueUpdate: () => void;
 	queue?: QueueStatus;
 	searchData?: SearchResponse;
@@ -30,8 +30,8 @@ type Props = {
 };
 
 const SearchResults: React.FC<Props> = ({
-	ownedOnly,
-	setOwnedOnly,
+	notOwnedOnly,
+	setNotOwnedOnly,
 	onQueueUpdate,
 	queue,
 	searchData,
@@ -172,8 +172,8 @@ const SearchResults: React.FC<Props> = ({
 	);
 
 	const filtered = React.useMemo(
-		() => allResults?.filter((r) => (ownedOnly ? isOwned(r.set_id, r.owned) : true)) ?? [],
-		[allResults, isOwned, ownedOnly],
+		() => allResults?.filter((r) => (notOwnedOnly ? !isOwned(r.set_id, r.owned) : true)) ?? [],
+		[allResults, isOwned, notOwnedOnly],
 	);
 
 	// utilsから移動したtriggerDownloadを使用
@@ -292,7 +292,7 @@ const SearchResults: React.FC<Props> = ({
 						<Languages className="w-3.5 h-3.5" />
 						{showUnicode ? "Unicode" : "Normal"}
 					</button>
-					<Toggle checked={ownedOnly} onChange={setOwnedOnly} label="Owned Only" />
+					<Toggle checked={notOwnedOnly} onChange={setNotOwnedOnly} label="Not Owned Only" />
 					<Button
 						variant="ghost"
 						onClick={onRefreshIndex}

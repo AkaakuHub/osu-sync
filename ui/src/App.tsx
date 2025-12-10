@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 import { apiClient } from "./hooks/useApiClient";
 
 function App() {
-	const [ownedOnly, setOwnedOnly] = useState(false);
+	const [notOwnedOnly, setNotOwnedOnly] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
 	const [showUnicode, setShowUnicode] = useState(false);
@@ -55,8 +55,8 @@ function App() {
 			icon: <Search className="w-4 h-4" />,
 			content: (
 				<SearchPage
-					ownedOnly={ownedOnly}
-					setOwnedOnly={setOwnedOnly}
+					notOwnedOnly={notOwnedOnly}
+					setNotOwnedOnly={setNotOwnedOnly}
 					searchQuery={searchQuery}
 					setSearchQuery={setSearchQuery}
 					searchFilters={searchFilters}

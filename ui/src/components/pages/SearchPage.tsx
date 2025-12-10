@@ -17,8 +17,8 @@ import { resetFilters } from "../search/utils";
 import { getEventSource } from "../../utils/eventSource";
 
 type Props = {
-	ownedOnly: boolean;
-	setOwnedOnly: (value: boolean) => void;
+	notOwnedOnly: boolean;
+	setNotOwnedOnly: (value: boolean) => void;
 	searchQuery?: string;
 	setSearchQuery?: (query: string) => void;
 	searchFilters?: SearchFilters | null;
@@ -28,8 +28,8 @@ type Props = {
 };
 
 const SearchPage: React.FC<Props> = ({
-	ownedOnly,
-	setOwnedOnly,
+	notOwnedOnly,
+	setNotOwnedOnly,
 	searchQuery: propSearchQuery,
 	setSearchQuery: propSetSearchQuery,
 	searchFilters: propSearchFilters,
@@ -306,8 +306,8 @@ const SearchPage: React.FC<Props> = ({
 					{/* Search Results */}
 					<div className="flex-1 min-h-0">
 						<SearchResults
-							ownedOnly={ownedOnly}
-							setOwnedOnly={setOwnedOnly}
+							notOwnedOnly={notOwnedOnly}
+							setNotOwnedOnly={setNotOwnedOnly}
 							onQueueUpdate={refetchQueue}
 							queue={queue}
 							searchData={searchResults}
