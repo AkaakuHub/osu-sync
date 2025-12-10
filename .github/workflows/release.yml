@@ -78,7 +78,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.NUITKA_CACHE_DIR }}
-          key: ${{ runner.os }}-nuitka-cache-${{ env.PYTHON_VERSION }}-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-nuitka-cache-${{ env.PYTHON_VERSION }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-nuitka-cache-${{ env.PYTHON_VERSION }}-
             ${{ runner.os }}-nuitka-cache-
@@ -91,7 +91,7 @@ jobs:
           NUITKA_CACHE_DIR: ${{ env.NUITKA_CACHE_DIR }}
           CLCACHE_DIR: ${{ env.CLCACHE_DIR }}
         shell: pwsh
-        run: uv run python -m nuitka --onefile --standalone --windows-console-mode=disable --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
+        run: .\.venv\Scripts\python -m nuitka --onefile --standalone --windows-console-mode=disable --output-dir=build --remove-output --assume-yes-for-downloads --include-data-dir=ui\dist=ui\dist --output-filename=osu-sync.exe --windows-icon-from-ico=installer\icon\osu-sync.ico src/main.py
 
       # Inno Setup installer
       - name: Install Inno Setup
