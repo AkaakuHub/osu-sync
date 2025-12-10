@@ -319,6 +319,7 @@ const SearchPage: React.FC<Props> = ({
 							indexSummary={index}
 							indexLoading={indexLoading}
 							onRefreshIndex={refetchIndex}
+							setSearchQuery={setSearchQuery}
 						/>
 					</div>
 				</div>

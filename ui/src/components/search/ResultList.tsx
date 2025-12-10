@@ -16,6 +16,7 @@ type Props = {
 	triggerDownload: (setId: number) => void;
 	getActionState: (setId: number, baseOwned: boolean) => ActionState;
 	endReached?: () => void;
+	setSearchQuery: (value: string) => void;
 };
 
 const ResultList: React.FC<Props> = ({
@@ -30,6 +31,7 @@ const ResultList: React.FC<Props> = ({
 	triggerDownload,
 	getActionState,
 	endReached,
+	setSearchQuery,
 }) => {
 	// Pair items for 2-column layout
 	const pairedItems = items.reduce<
@@ -79,6 +81,7 @@ const ResultList: React.FC<Props> = ({
 												togglePreview={togglePreview}
 												triggerDownload={triggerDownload}
 												failureMessage={failureMessage}
+												setSearchQuery={setSearchQuery}
 											/>
 										);
 									})()}
@@ -108,6 +111,7 @@ const ResultList: React.FC<Props> = ({
 												togglePreview={togglePreview}
 												triggerDownload={triggerDownload}
 												failureMessage={failureMessage}
+												setSearchQuery={setSearchQuery}
 											/>
 										);
 									})()}

@@ -27,6 +27,7 @@ type Props = {
 	indexSummary?: IndexSummary;
 	indexLoading?: boolean;
 	onRefreshIndex: () => void;
+	setSearchQuery: (value: string) => void;
 };
 
 const SearchResults: React.FC<Props> = ({
@@ -43,6 +44,7 @@ const SearchResults: React.FC<Props> = ({
 	indexSummary,
 	indexLoading,
 	onRefreshIndex,
+	setSearchQuery,
 }) => {
 	const client = useQueryClient();
 
@@ -328,6 +330,7 @@ const SearchResults: React.FC<Props> = ({
 						triggerDownload={handleDownload}
 						getActionState={getActionState}
 						endReached={handleLoadMore}
+						setSearchQuery={setSearchQuery}
 					/>
 
 					{/* ローディングインジケーター */}

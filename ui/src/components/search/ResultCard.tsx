@@ -29,6 +29,7 @@ type Props = {
 	togglePreview: (item: PreviewableItem) => void;
 	triggerDownload: (setId: number) => void;
 	failureMessage?: string | null;
+	setSearchQuery: (value: string) => void;
 };
 
 // 背景色に基づいてテキスト色（黒or白）を計算する関数
@@ -106,6 +107,7 @@ const ResultCard: React.FC<Props> = ({
 	togglePreview,
 	triggerDownload,
 	failureMessage,
+	setSearchQuery,
 }) => {
 	const [isHovered, setIsHovered] = useState(false);
 	const [isHoveringOverPanel, setIsHoveringOverPanel] = useState(false);
@@ -328,12 +330,29 @@ const ResultCard: React.FC<Props> = ({
 							<div className="min-w-0 space-y-1">
 								<div className="flex items-start gap-2">
 									<div className={card.titleSection()}>
-										<h3 className={card.title()}>
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												setSearchQuery(`title=""${item.title}""`);
+											}}
+											className={`${card.title()} text-left hover:text-primary transition-colors`}
+										>
 											{showUnicode && item.title_unicode ? item.title_unicode : item.title}
-										</h3>
-										<p className={card.artist()}>
-											{showUnicode && item.artist_unicode ? item.artist_unicode : item.artist}
-										</p>
+										</button>
+										<div className="flex flex-col">
+											<button
+												type="button"
+												onClick={(e) => {
+													e.stopPropagation();
+													setSearchQuery(`artist=""${item.artist}""`);
+												}}
+												className={`${card.artist()} text-left hover:text-primary transition-colors rounded px-0 py-0 inline-block w-fit`}
+												aria-label={`Search by artist ${item.artist}`}
+											>
+												{showUnicode && item.artist_unicode ? item.artist_unicode : item.artist}
+											</button>
+										</div>
 										<p className={card.creator()}>{item.creator}</p>
 									</div>
 								</div>
