@@ -86,12 +86,7 @@ function App() {
 			<ScanProgress />
 			<QueueNotificationManager />
 
-			<div className="h-screen flex flex-col p-4">
-				{/* App Header */}
-				<header className="flex-shrink-0">
-					<h1 className="text-xl font-bold text-text">osu! sync</h1>
-				</header>
-
+			<div className="h-screen flex flex-col p-2">
 				{/* Tab Navigation */}
 				<div className="flex-1 min-h-0">
 					<Tabs tabs={tabs} defaultTab="search" />
