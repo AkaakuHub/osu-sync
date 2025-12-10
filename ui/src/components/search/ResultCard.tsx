@@ -352,8 +352,18 @@ const ResultCard: React.FC<Props> = ({
 											>
 												{showUnicode && item.artist_unicode ? item.artist_unicode : item.artist}
 											</button>
+											<button
+												type="button"
+												onClick={(e) => {
+													e.stopPropagation();
+													setSearchQuery(`creator=""${item.creator}""`);
+												}}
+												className={`${card.creator()} text-left hover:text-primary transition-colors rounded px-0 py-0 inline-block w-fit`}
+												aria-label={`Search by mapper ${item.creator}`}
+											>
+												{item.creator}
+											</button>
 										</div>
-										<p className={card.creator()}>{item.creator}</p>
 									</div>
 								</div>
 
