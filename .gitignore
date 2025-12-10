@@ -13,7 +13,6 @@ dist/
 
 # Node / pnpm / frontend
 node_modules/
-pnpm-lock.yaml
 .yarn/
 .pnpm-store/
 src/ui/dist/

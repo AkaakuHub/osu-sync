@@ -84,9 +84,7 @@ jobs:
             ${{ runner.os }}-nuitka-cache-
 
       - name: Install Python deps (uv)
-        run: |
-          uv venv
-          uv pip install . nuitka==2.8.9
+        run: uv sync --frozen
 
       - name: Build exe with Nuitka (includes FastAPI + webview + dist)
         env:
