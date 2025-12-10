@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import React from "react";
-import { RotateCcw, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import {
 	apiClient,
 	type IndexSummary,
@@ -10,8 +10,6 @@ import {
 	type SearchResponse,
 } from "../../hooks/useApiClient";
 import Input from "../ui/Input";
-import Button from "../ui/Button";
-import Toggle from "../ui/Toggle";
 import SearchResults from "../SearchResults";
 import { FilterPanel } from "../search/FilterPanel";
 import { type SearchFilters } from "../search/types";
@@ -267,33 +265,6 @@ const SearchPage: React.FC<Props> = ({
 	return (
 		<div className="h-full flex flex-col bg-surface">
 			{/* Status Header */}
-			<div>
-				<div className="max-w-7xl mx-auto flex items-center justify-between">
-					<div className="flex items-center gap-6 text-sm">
-						<div className="flex items-center gap-2">
-							<span className="text-text-muted">Owned:</span>
-							<span className="font-semibold text-text">{index?.owned_sets ?? "-"}</span>
-						</div>
-						<div className="flex items-center gap-2">
-							<span className="text-text-muted">With Metadata:</span>
-							<span className="font-semibold text-text">{index?.with_metadata ?? "-"}</span>
-						</div>
-					</div>
-					<div className="flex items-center gap-3">
-						<Toggle checked={ownedOnly} onChange={setOwnedOnly} label="Owned Only" />
-						<Button
-							variant="ghost"
-							onClick={() => refetchIndex()}
-							disabled={indexLoading}
-							size="sm"
-							className="text-xs px-3 py-1.5 h-7"
-						>
-							<RotateCcw className="w-3.5 h-3.5" />
-						</Button>
-					</div>
-				</div>
-			</div>
-
 			{/* Main Content Area */}
 			<div className="flex-1 min-h-0">
 				<div className="max-w-7xl mx-auto h-full flex flex-col p-2 pt-1 gap-2">
@@ -336,6 +307,7 @@ const SearchPage: React.FC<Props> = ({
 					<div className="flex-1 min-h-0">
 						<SearchResults
 							ownedOnly={ownedOnly}
+							setOwnedOnly={setOwnedOnly}
 							onQueueUpdate={refetchQueue}
 							queue={queue}
 							searchData={searchResults}
@@ -344,6 +316,9 @@ const SearchPage: React.FC<Props> = ({
 							searchFilters={searchFilters}
 							showUnicode={showUnicode}
 							setShowUnicode={setShowUnicode}
+							indexSummary={index}
+							indexLoading={indexLoading}
+							onRefreshIndex={refetchIndex}
 						/>
 					</div>
 				</div>

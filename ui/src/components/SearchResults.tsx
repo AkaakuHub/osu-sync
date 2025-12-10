@@ -1,13 +1,21 @@
 import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Languages } from "lucide-react";
-import { apiClient, type QueueStatus, type SearchResponse } from "../hooks/useApiClient";
+import { Languages, RotateCcw } from "lucide-react";
+import {
+	apiClient,
+	type QueueStatus,
+	type SearchResponse,
+	type IndexSummary,
+} from "../hooks/useApiClient";
 import { triggerDownload } from "../utils/downloadUtils";
 import ResultList from "./search/ResultList";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
+import Toggle from "./ui/Toggle";
+import Button from "./ui/Button";
 
 type Props = {
 	ownedOnly: boolean;
+	setOwnedOnly: (v: boolean) => void;
 	onQueueUpdate: () => void;
 	queue?: QueueStatus;
 	searchData?: SearchResponse;
@@ -16,10 +24,14 @@ type Props = {
 	searchFilters: any;
 	showUnicode: boolean;
 	setShowUnicode: (v: boolean) => void;
+	indexSummary?: IndexSummary;
+	indexLoading?: boolean;
+	onRefreshIndex: () => void;
 };
 
 const SearchResults: React.FC<Props> = ({
 	ownedOnly,
+	setOwnedOnly,
 	onQueueUpdate,
 	queue,
 	searchData,
@@ -28,6 +40,9 @@ const SearchResults: React.FC<Props> = ({
 	searchFilters,
 	showUnicode,
 	setShowUnicode,
+	indexSummary,
+	indexLoading,
+	onRefreshIndex,
 }) => {
 	const client = useQueryClient();
 
@@ -249,13 +264,26 @@ const SearchResults: React.FC<Props> = ({
 	return (
 		<div className="h-full flex flex-col pb-3">
 			{/* Results Header */}
-			<div className="flex items-center justify-between mb-3">
+			<div className="flex items-center justify-between mb-2">
 				<div className="flex items-center gap-3">
 					<h2 className="text-lg font-semibold">Results</h2>
-					<span className="text-xs text-text-secondary bg-surface-variant/70 px-2 py-1 rounded-md border border-border">
+					<span className="text-sm text-text-secondary bg-surface-variant/70 px-2 py-1 rounded-md border border-border">
 						Total: {data.total.toLocaleString("en-US")} | Showing:{" "}
 						{filtered.length.toLocaleString("en-US")}
 					</span>
+					{indexSummary && (
+						<div className="flex items-center gap-3 text-sm text-text-secondary">
+							<span className="flex items-center gap-1">
+								Owned <span className="font-semibold text-text">{indexSummary.owned_sets}</span>
+							</span>
+							<span className="flex items-center gap-1">
+								Metadata{" "}
+								<span className="font-semibold text-text">{indexSummary.with_metadata}</span>
+							</span>
+						</div>
+					)}
+				</div>
+				<div className="flex items-center gap-2">
 					<button
 						onClick={() => setShowUnicode(!showUnicode)}
 						className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"
@@ -264,6 +292,17 @@ const SearchResults: React.FC<Props> = ({
 						<Languages className="w-3.5 h-3.5" />
 						{showUnicode ? "Unicode" : "Normal"}
 					</button>
+					<Toggle checked={ownedOnly} onChange={setOwnedOnly} label="Owned Only" />
+					<Button
+						variant="ghost"
+						onClick={onRefreshIndex}
+						disabled={indexLoading}
+						size="sm"
+						className="text-xs px-2 py-1 h-8"
+						title="Refresh local index"
+					>
+						<RotateCcw className="w-3.5 h-3.5" />
+					</Button>
 				</div>
 			</div>
 
