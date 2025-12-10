@@ -14,6 +14,8 @@ type Props = {
 	isLoading?: boolean;
 	searchQuery: string;
 	searchFilters: any;
+	showUnicode: boolean;
+	setShowUnicode: (v: boolean) => void;
 };
 
 const SearchResults: React.FC<Props> = ({
@@ -24,9 +26,10 @@ const SearchResults: React.FC<Props> = ({
 	isLoading,
 	searchQuery,
 	searchFilters,
+	showUnicode,
+	setShowUnicode,
 }) => {
 	const client = useQueryClient();
-	const [showUnicode, setShowUnicode] = React.useState(false);
 
 	// 無限スクロール用の状態
 	const [allResults, setAllResults] = React.useState<SearchResponse["results"]>([]);
@@ -254,7 +257,7 @@ const SearchResults: React.FC<Props> = ({
 						{filtered.length.toLocaleString("en-US")}
 					</span>
 					<button
-						onClick={() => setShowUnicode((prev) => !prev)}
+						onClick={() => setShowUnicode(!showUnicode)}
 						className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"
 						title={showUnicode ? "Display in Normal" : "Display in Unicode"}
 					>

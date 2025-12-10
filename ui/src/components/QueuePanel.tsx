@@ -7,14 +7,15 @@ import Button from "./ui/Button";
 
 type Props = {
 	data?: QueueStatus;
+	showUnicode: boolean;
+	setShowUnicode: (v: boolean) => void;
 };
 
 type RunningEntry = QueueEntry;
 type RunningWithProjection = RunningEntry & { projectedProgress: number };
 
-function QueuePanel({ data }: Props) {
+function QueuePanel({ data, showUnicode, setShowUnicode }: Props) {
 	const [ticker, setTicker] = useState(0);
-	const [showUnicode, setShowUnicode] = useState(false);
 
 	useEffect(() => {
 		const id = setInterval(() => {
@@ -108,7 +109,7 @@ function QueuePanel({ data }: Props) {
 			<div className="flex items-center justify-between">
 				<h2 className="text-lg font-semibold">Download Queue</h2>
 				<button
-					onClick={() => setShowUnicode((prev) => !prev)}
+					onClick={() => setShowUnicode(!showUnicode)}
 					className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"
 					title={showUnicode ? "Display in Normal" : "Display in Unicode"}
 				>

@@ -25,6 +25,8 @@ type Props = {
 	setSearchQuery?: (query: string) => void;
 	searchFilters?: SearchFilters | null;
 	setSearchFilters?: (filters: SearchFilters | null) => void;
+	showUnicode: boolean;
+	setShowUnicode: (v: boolean) => void;
 };
 
 const SearchPage: React.FC<Props> = ({
@@ -34,6 +36,8 @@ const SearchPage: React.FC<Props> = ({
 	setSearchQuery: propSetSearchQuery,
 	searchFilters: propSearchFilters,
 	setSearchFilters: propSetSearchFilters,
+	showUnicode,
+	setShowUnicode,
 }) => {
 	const initialQuery = propSearchQuery ?? "";
 	const [internalSearchQuery, setInternalSearchQuery] = useState("");
@@ -338,6 +342,8 @@ const SearchPage: React.FC<Props> = ({
 							isLoading={searchLoading}
 							searchQuery={debouncedSearchQuery}
 							searchFilters={searchFilters}
+							showUnicode={showUnicode}
+							setShowUnicode={setShowUnicode}
 						/>
 					</div>
 				</div>

@@ -17,6 +17,7 @@ function App() {
 	const [ownedOnly, setOwnedOnly] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
+	const [showUnicode, setShowUnicode] = useState(false);
 
 	// App起動時に一度だけアップデート確認し、あればトースト通知
 	useEffect(() => {
@@ -60,6 +61,8 @@ function App() {
 					setSearchQuery={setSearchQuery}
 					searchFilters={searchFilters}
 					setSearchFilters={setSearchFilters}
+					showUnicode={showUnicode}
+					setShowUnicode={setShowUnicode}
 				/>
 			),
 		},
@@ -67,7 +70,7 @@ function App() {
 			id: "queue",
 			label: "Queue",
 			icon: <Download className="w-4 h-4" />,
-			content: <QueuePage />,
+			content: <QueuePage showUnicode={showUnicode} setShowUnicode={setShowUnicode} />,
 		},
 		{
 			id: "settings",

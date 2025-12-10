@@ -4,7 +4,12 @@ import { apiClient, type QueueStatus } from "../../hooks/useApiClient";
 import QueuePanel from "../QueuePanel";
 import Button from "../ui/Button";
 
-const QueuePage: React.FC = () => {
+type Props = {
+	showUnicode: boolean;
+	setShowUnicode: (v: boolean) => void;
+};
+
+const QueuePage: React.FC<Props> = ({ showUnicode, setShowUnicode }) => {
 	const { data: queue, refetch: refetchQueue } = useQuery<QueueStatus>({
 		queryKey: ["queue"],
 		queryFn: () => apiClient.get<QueueStatus>("/queue"),
@@ -34,7 +39,7 @@ const QueuePage: React.FC = () => {
 			{/* Queue Panel */}
 			<div className="flex-1 min-h-0 px-2 pb-5 overflow-hidden">
 				<div className="h-full rounded-xl border border-border bg-surface p-3 shadow-sm overflow-auto">
-					<QueuePanel data={queue} />
+					<QueuePanel data={queue} showUnicode={showUnicode} setShowUnicode={setShowUnicode} />
 				</div>
 			</div>
 		</div>

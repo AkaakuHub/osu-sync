@@ -39,8 +39,17 @@ const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
 				</nav>
 			</div>
 
-			{/* Tab Content */}
-			<div className="flex-1 min-h-0 mt-2">{tabs.find((tab) => tab.id === activeTab)?.content}</div>
+			{/* Tab Content (kept mounted to preserve scroll/state) */}
+			<div className="flex-1 min-h-0 mt-2 relative">
+				{tabs.map((tab) => (
+					<div
+						key={tab.id}
+						className={`${activeTab === tab.id ? "block" : "hidden"} h-full w-full`}
+					>
+						{tab.content}
+					</div>
+				))}
+			</div>
 		</div>
 	);
 };
