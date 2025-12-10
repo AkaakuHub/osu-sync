@@ -131,6 +131,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
     app.state.downloader = DownloadManager(
         songs_dir=settings.songs_dir,
         url_template=settings.download_url_template,
+        query_options=settings.download_query_options,
         max_concurrency=settings.max_concurrency,
         requests_per_minute=settings.requests_per_minute,
         index=app.state.index,
@@ -483,6 +484,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             "osu_client_secret_set": bool(settings.osu_client_secret),
             "songs_dir": settings.songs_dir,
             "download_url_template": settings.download_url_template,
+            "download_query_options": settings.download_query_options,
             "max_concurrency": settings.max_concurrency,
             "requests_per_minute": settings.requests_per_minute,
             "player_volume": settings.player_volume,
@@ -495,6 +497,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             "osu_client_secret",
             "songs_dir",
             "download_url_template",
+            "download_query_options",
             "max_concurrency",
             "requests_per_minute",
             "player_volume",
@@ -508,6 +511,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             for key in [
                 "songs_dir",
                 "download_url_template",
+                "download_query_options",
                 "max_concurrency",
                 "requests_per_minute",
             ]
@@ -528,6 +532,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             app.state.downloader = DownloadManager(
                 songs_dir=settings.songs_dir,
                 url_template=settings.download_url_template,
+                query_options=settings.download_query_options,
                 max_concurrency=settings.max_concurrency,
                 requests_per_minute=settings.requests_per_minute,
                 index=app.state.index,

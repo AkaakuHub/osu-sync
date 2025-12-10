@@ -25,6 +25,15 @@ const Input = React.forwardRef<
 		variant?: "default" | "search";
 	}
 >(({ className, error, variant, ...props }, ref) => {
+	const isRange = props.type === "range";
+
+	if (isRange) {
+		const merged = ["w-full h-2 accent-primary bg-border rounded-lg", className]
+			.filter(Boolean)
+			.join(" ");
+		return <input className={merged} ref={ref} {...props} />;
+	}
+
 	return (
 		<div className="space-y-1">
 			<input className={input({ error: !!error, variant, className })} ref={ref} {...props} />

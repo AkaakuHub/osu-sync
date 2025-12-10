@@ -44,6 +44,7 @@ class DownloadManager:
         self,
         songs_dir: str,
         url_template: str,
+        query_options: str = "",
         max_concurrency: int = 3,
         requests_per_minute: int = 60,
         index: SongIndex | None = None,
@@ -51,6 +52,7 @@ class DownloadManager:
     ) -> None:
         self.songs_dir = Path(songs_dir)
         self.url_template = url_template
+        self.query_options = query_options
         self.max_concurrency = max_concurrency
         self.index = index
         self._queue: asyncio.Queue[DownloadTask] = asyncio.Queue()
@@ -78,7 +80,7 @@ class DownloadManager:
                 "running",
             }:
                 continue
-            url = self.url_template.format(set_id=set_id)
+            url = self._build_url(set_id)
             task = DownloadTask(set_id=set_id, url=url)
             # Use provided metadata first, then fall back to index
             if metadata and set_id in metadata:
@@ -99,6 +101,17 @@ class DownloadManager:
             logger.info("Enqueued downloads: %s", [t.set_id for t in new_tasks])
             self._publish_status()
         return new_tasks
+
+    def _build_url(self, set_id: int) -> str:
+        base = self.url_template.format(set_id=set_id)
+        options = (self.query_options or "").strip()
+        if not options:
+            return base
+        # allow comma-separated or ampersand-separated custom query string
+        normalized = options.replace(",", "&")
+        if "?" in base:
+            return f"{base}&{normalized}"
+        return f"{base}?{normalized}"
 
     async def start_workers(self) -> None:
         if self._workers_started:

@@ -124,6 +124,7 @@ export interface Settings {
 	osu_client_secret_set: boolean;
 	songs_dir: string;
 	download_url_template: string;
+	download_query_options: string;
 	max_concurrency: number;
 	requests_per_minute: number;
 	player_volume: number;

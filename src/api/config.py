@@ -50,6 +50,7 @@ class Settings:
             "osu_db_path": os.path.expanduser("~/AppData/Local/osu!/osu!.db"),
             # 公式DLはクッキーが必要なため、デフォルトミラーを nerinyan に
             "download_url_template": "https://api.nerinyan.moe/d/{set_id}",
+            "download_query_options": "",
             "max_concurrency": 3,
             "requests_per_minute": 60,
             "player_volume": 0.7,
@@ -79,6 +80,9 @@ class Settings:
 
         self.download_url_template: str = os.getenv(
             "OSU_DOWNLOAD_URL_TEMPLATE", data.get("download_url_template")
+        )
+        self.download_query_options: str = os.getenv(
+            "OSU_DOWNLOAD_QUERY_OPTIONS", data.get("download_query_options", "")
         )
 
         self.max_concurrency: int = int(

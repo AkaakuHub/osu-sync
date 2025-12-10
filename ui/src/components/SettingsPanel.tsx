@@ -203,93 +203,97 @@ export default function SettingsPanel() {
 			)}
 			{/* Compact Form Layout */}
 			<div className="grid grid-cols-2 gap-4 text-sm">
-				{/* Column 1 */}
-				<div className="space-y-3">
+				{/* Row 1 */}
+				<div className="space-y-1">
+					<label className="text-text-secondary text-xs font-medium">Client ID</label>
+					<Input
+						type="number"
+						defaultValue={data.osu_client_id ?? ""}
+						onChange={(e) => update("osu_client_id", Number(e.target.value))}
+						className="text-xs"
+					/>
+				</div>
+				<div className="space-y-1">
+					<label className="text-text-secondary text-xs font-medium">Client Secret</label>
+					<Input
+						type="password"
+						placeholder={data.osu_client_secret_set ? "••••••••" : "Secret"}
+						onChange={(e) => update("osu_client_secret", e.target.value)}
+						className="text-xs"
+					/>
+				</div>
+
+				{/* Row 2 */}
+				<div className="space-y-1">
+					<label className="text-text-secondary text-xs font-medium">Download URL</label>
+					<Input
+						className="font-mono text-xs"
+						defaultValue={data.download_url_template}
+						onChange={(e) => update("download_url_template", e.target.value)}
+					/>
+				</div>
+				<div className="space-y-1">
+					<label className="text-text-secondary text-xs font-medium">Download query params</label>
+					<Input
+						className="font-mono text-xs"
+						defaultValue={data.download_query_options}
+						onChange={(e) => update("download_query_options", e.target.value)}
+					/>
+				</div>
+
+				{/* Row 3 */}
+				<div className="space-y-1">
+					<label className="text-text-secondary text-xs font-medium">Songs Dir</label>
+					<Input
+						defaultValue={data.songs_dir}
+						onChange={(e) => update("songs_dir", e.target.value)}
+						className="text-xs"
+					/>
+				</div>
+				<div className="grid grid-cols-2 gap-2">
 					<div className="space-y-1">
-						<label className="text-text-secondary text-xs font-medium">Client ID</label>
+						<label className="text-text-secondary text-xs font-medium">Concurrency</label>
 						<Input
 							type="number"
-							defaultValue={data.osu_client_id ?? ""}
-							onChange={(e) => update("osu_client_id", Number(e.target.value))}
-							placeholder="ID"
+							min="1"
+							max="10"
+							defaultValue={data.max_concurrency}
+							onChange={(e) => update("max_concurrency", Number(e.target.value))}
 							className="text-xs"
 						/>
 					</div>
-
 					<div className="space-y-1">
-						<label className="text-text-secondary text-xs font-medium">Client Secret</label>
+						<label className="text-text-secondary text-xs font-medium">Req/min</label>
 						<Input
-							type="password"
-							placeholder={data.osu_client_secret_set ? "••••••••" : "Secret"}
-							onChange={(e) => update("osu_client_secret", e.target.value)}
-							className="text-xs"
-						/>
-					</div>
-
-					<div className="space-y-1">
-						<label className="text-text-secondary text-xs font-medium">Songs Dir</label>
-						<Input
-							defaultValue={data.songs_dir}
-							onChange={(e) => update("songs_dir", e.target.value)}
-							placeholder="/path/to/songs"
+							type="number"
+							min="10"
+							max="1000"
+							step="10"
+							defaultValue={data.requests_per_minute}
+							onChange={(e) => update("requests_per_minute", Number(e.target.value))}
 							className="text-xs"
 						/>
 					</div>
 				</div>
 
-				{/* Column 2 */}
-				<div className="space-y-3">
-					<div className="space-y-1">
-						<label className="text-text-secondary text-xs font-medium">Download URL</label>
-						<Input
-							className="font-mono text-xs"
-							defaultValue={data.download_url_template}
-							onChange={(e) => update("download_url_template", e.target.value)}
-							placeholder="https://.../d/{set_id}"
-						/>
-					</div>
-
-					<div className="space-y-1">
-						<label className="text-text-secondary text-xs font-medium">Player Volume</label>
+				{/* Row 4 */}
+				<div className="space-y-1">
+					<label className="text-text-secondary text-xs font-medium">Player Volume</label>
+					<div className="flex items-center gap-2">
 						<Input
 							type="range"
-							min="0"
-							max="100"
+							min={0}
+							max={100}
 							defaultValue={Math.round(data.player_volume * 100)}
 							onChange={(e) => update("player_volume", Number(e.target.value) / 100)}
-							className="text-xs w-full"
+							className="w-full"
 						/>
-						<div className="text-center text-xs text-text-muted">
+						<span className="text-xs text-text-muted w-10 text-right">
 							{Math.round(data.player_volume * 100)}%
-						</div>
-					</div>
-
-					<div className="grid grid-cols-2 gap-2">
-						<div className="space-y-1">
-							<label className="text-text-secondary text-xs font-medium">Concurrency</label>
-							<Input
-								type="number"
-								min="1"
-								max="10"
-								defaultValue={data.max_concurrency}
-								onChange={(e) => update("max_concurrency", Number(e.target.value))}
-								className="text-xs"
-							/>
-						</div>
-						<div className="space-y-1">
-							<label className="text-text-secondary text-xs font-medium">Req/min</label>
-							<Input
-								type="number"
-								min="10"
-								max="1000"
-								step="10"
-								defaultValue={data.requests_per_minute}
-								onChange={(e) => update("requests_per_minute", Number(e.target.value))}
-								className="text-xs"
-							/>
-						</div>
+						</span>
 					</div>
 				</div>
+				<div />
 			</div>
 
 			{/* Save Area */}
