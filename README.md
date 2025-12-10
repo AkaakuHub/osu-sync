@@ -20,9 +20,15 @@ In the settings tab, set `download_url_template` like `https://api.nerinyan.moe/
 
 ## development
 
-First, install dependencies:
+First, install dependencies for python:
 ```bash
 uv sync
+```
+
+and for frontend:
+```bash
+cd ui
+pnpm install
 ```
 
 Then, start the development environment:
