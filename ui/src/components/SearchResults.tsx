@@ -1,6 +1,7 @@
 import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Languages, RotateCcw } from "lucide-react";
+import { Download, Languages, RotateCcw } from "lucide-react";
+import toast from "react-hot-toast";
 import {
 	apiClient,
 	type QueueStatus,
@@ -12,6 +13,7 @@ import ResultList from "./search/ResultList";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
 import Toggle from "./ui/Toggle";
 import Button from "./ui/Button";
+import { hasActiveFilters } from "./search/utils";
 
 type Props = {
 	notOwnedOnly: boolean;
@@ -64,7 +66,7 @@ const SearchResults: React.FC<Props> = ({
 			setHasMore(searchData.results.length < searchData.total);
 			setInternalCurrentPage(1);
 		}
-	}, [searchData?.results.length, searchData?.total]);
+	}, [searchData]);
 
 	// 次のページを読み込む
 	const handleLoadMore = React.useCallback(async () => {
@@ -177,6 +179,10 @@ const SearchResults: React.FC<Props> = ({
 		() => allResults?.filter((r) => (notOwnedOnly ? !isOwned(r.set_id, r.owned) : true)) ?? [],
 		[allResults, isOwned, notOwnedOnly],
 	);
+	const filtersActive = React.useMemo(() => {
+		if (!searchFilters) return notOwnedOnly || !!searchQuery?.trim();
+		return hasActiveFilters(searchFilters) || notOwnedOnly || !!searchQuery?.trim();
+	}, [notOwnedOnly, searchFilters, searchQuery]);
 
 	// utilsから移動したtriggerDownloadを使用
 	const handleDownload = (setId: number) => {
@@ -254,6 +260,36 @@ const SearchResults: React.FC<Props> = ({
 		[isOwned, queueState.failed, queueState.queued, queueState.runningEntries],
 	);
 
+	const eligibleItems = React.useMemo(
+		() => filtered.filter((item) => !getActionState(item.set_id, item.owned).disabled),
+		[filtered, getActionState],
+	);
+	const eligibleCount = eligibleItems.length;
+
+	const handleQueueFiltered = React.useCallback(async () => {
+		if (eligibleItems.length === 0) return;
+		const setIds = eligibleItems.map((item) => item.set_id);
+		const metadata = eligibleItems.reduce<Record<number, Record<string, string>>>((acc, item) => {
+			acc[item.set_id] = {
+				artist: item.artist,
+				title: item.title,
+				artist_unicode: item.artist_unicode || item.artist,
+				title_unicode: item.title_unicode || item.title,
+			};
+			return acc;
+		}, {});
+
+		try {
+			await apiClient.post("/download", { set_ids: setIds, metadata });
+			client.invalidateQueries({ queryKey: ["queue"] });
+			onQueueUpdate();
+			toast.success(`Queued ${setIds.length} beatmaps`);
+		} catch (error) {
+			console.error("Failed to queue filtered results:", error);
+			toast.error("Failed to queue filtered results");
+		}
+	}, [eligibleItems, client, onQueueUpdate]);
+
 	if (!data) {
 		return (
 			<div className="space-y-4">
@@ -286,6 +322,23 @@ const SearchResults: React.FC<Props> = ({
 					)}
 				</div>
 				<div className="flex items-center gap-2">
+					{filtersActive && (
+						<Button
+							variant="osu"
+							onClick={handleQueueFiltered}
+							disabled={eligibleCount === 0}
+							size="sm"
+							className="text-xs px-2 py-1 h-8"
+							title={
+								eligibleCount === 0
+									? "No eligible beatmaps to queue"
+									: `Queue ${eligibleCount} beatmaps`
+							}
+						>
+							<Download className="w-3.5 h-3.5 mr-1" />
+							Download filtered{eligibleCount > 0 ? ` (${eligibleCount})` : ""}
+						</Button>
+					)}
 					<button
 						onClick={() => setShowUnicode(!showUnicode)}
 						className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Languages } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiClient, type QueueEntry, type QueueStatus } from "../hooks/useApiClient";
@@ -15,15 +15,6 @@ type RunningEntry = QueueEntry;
 type RunningWithProjection = RunningEntry & { projectedProgress: number };
 
 function QueuePanel({ data, showUnicode, setShowUnicode }: Props) {
-	const [ticker, setTicker] = useState(0);
-
-	useEffect(() => {
-		const id = setInterval(() => {
-			setTicker((tick) => (tick + 1) % Number.MAX_SAFE_INTEGER);
-		}, 100);
-		return () => clearInterval(id);
-	}, []);
-
 	const handleOpen = async (path?: string | null) => {
 		if (!path) return;
 		try {
@@ -86,23 +77,12 @@ function QueuePanel({ data, showUnicode, setShowUnicode }: Props) {
 
 	const runningEntries = useMemo<RunningWithProjection[]>(() => {
 		if (!data?.running) return [];
-		const now = Date.now() / 1000;
 		return data.running.map((entry) => {
 			const total = entry.total_bytes ?? 0;
-			if (!total || !entry.speed_bps || !entry.updated_at) {
-				return { ...entry, projectedProgress: entry.progress ?? 0 };
-			}
-			const deltaSeconds = Math.max(0, now - entry.updated_at);
-			const projectedBytes = Math.min(
-				total,
-				entry.bytes_downloaded + entry.speed_bps * deltaSeconds,
-			);
-			return {
-				...entry,
-				projectedProgress: Math.min(1, projectedBytes / total),
-			};
+			const baseProgress = total ? entry.bytes_downloaded / total : (entry.progress ?? 0);
+			return { ...entry, projectedProgress: Math.min(1, Math.max(0, baseProgress)) };
 		});
-	}, [data?.running, ticker]);
+	}, [data?.running]);
 
 	return (
 		<div className="space-y-6">

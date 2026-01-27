@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import React from "react";
 import { Search } from "lucide-react";
@@ -43,6 +43,9 @@ const SearchPage: React.FC<Props> = ({
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
 	const [currentPage, setCurrentPage] = useState(1);
+	const searchHistoryRef = useRef<string[]>([]);
+	const historyIndexRef = useRef<number | null>(null);
+	const historyDraftRef = useRef<string>("");
 	// デフォルトフィルターを最初から持たせて、有効化待ちの遅延をなくす
 	const [internalSearchFilters, setInternalSearchFilters] = useState<SearchFilters | null>(() =>
 		resetFilters(),
@@ -62,6 +65,69 @@ const SearchPage: React.FC<Props> = ({
 
 		return () => clearTimeout(timer);
 	}, [searchQuery]);
+
+	const recordSearchHistory = useCallback((value: string) => {
+		const trimmed = value.trim();
+		if (!trimmed) return;
+		const history = searchHistoryRef.current;
+		if (history.length === 0 || history[history.length - 1] !== trimmed) {
+			history.push(trimmed);
+		}
+		historyIndexRef.current = null;
+		historyDraftRef.current = "";
+	}, []);
+
+	const handleSearchKeyDown = useCallback(
+		(event: React.KeyboardEvent<HTMLInputElement>) => {
+			if (event.key === "Enter") {
+				recordSearchHistory(searchQuery);
+				return;
+			}
+
+			if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+				return;
+			}
+
+			event.preventDefault();
+
+			const history = searchHistoryRef.current;
+			if (history.length === 0) return;
+
+			if (event.key === "ArrowUp") {
+				if (historyIndexRef.current === null) {
+					historyDraftRef.current = searchQuery;
+					historyIndexRef.current = history.length - 1;
+				} else if (historyIndexRef.current > 0) {
+					historyIndexRef.current -= 1;
+				}
+				const nextValue = history[historyIndexRef.current];
+				if (nextValue !== undefined) {
+					setSearchQuery(nextValue);
+				}
+				return;
+			}
+
+			if (event.key === "ArrowDown") {
+				if (historyIndexRef.current === null) return;
+				if (historyIndexRef.current < history.length - 1) {
+					historyIndexRef.current += 1;
+					const nextValue = history[historyIndexRef.current];
+					if (nextValue !== undefined) {
+						setSearchQuery(nextValue);
+					}
+				} else {
+					historyIndexRef.current = null;
+					setSearchQuery(historyDraftRef.current);
+				}
+			}
+		},
+		[recordSearchHistory, searchQuery, setSearchQuery],
+	);
+
+	useEffect(() => {
+		if (historyIndexRef.current !== null) return;
+		recordSearchHistory(debouncedSearchQuery);
+	}, [debouncedSearchQuery, recordSearchHistory]);
 
 	// currentPageの変化を監視
 	useEffect(() => {
@@ -274,7 +340,14 @@ const SearchPage: React.FC<Props> = ({
 							<Input
 								placeholder="Search by artist, title, or creator..."
 								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
+								onChange={(e) => {
+									setSearchQuery(e.target.value);
+									if (historyIndexRef.current !== null) {
+										historyIndexRef.current = null;
+										historyDraftRef.current = e.target.value;
+									}
+								}}
+								onKeyDown={handleSearchKeyDown}
 								variant="search"
 								className="beatmapsets-search__input pr-12 text-base my-1"
 							/>

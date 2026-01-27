@@ -3,7 +3,7 @@ import { useState } from "react";
 
 type TabItem = {
 	id: string;
-	label: string;
+	label: React.ReactNode;
 	content: React.ReactNode;
 	icon?: React.ReactNode;
 };

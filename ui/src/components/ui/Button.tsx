@@ -2,7 +2,7 @@ import React from "react";
 import { tv } from "tailwind-variants";
 
 const button = tv({
-	base: "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-60 disabled:!bg-muted disabled:!text-muted-foreground disabled:!border-muted disabled:!shadow-none disabled:hover:shadow-none shadow-sm hover:shadow-md",
+	base: "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60 disabled:!bg-muted disabled:!text-muted-foreground disabled:!border-muted disabled:!shadow-none disabled:hover:shadow-none shadow-sm hover:shadow-md",
 	variants: {
 		variant: {
 			primary:
@@ -17,12 +17,17 @@ const button = tv({
 			warning:
 				"bg-warning text-warning-foreground hover:bg-warning/90 focus-visible:ring-warning/50",
 			error: "bg-error text-error-foreground hover:bg-error/90 focus-visible:ring-error/50",
-			osu: "bg-gradient-to-r from-accent to-osu-pink text-osu-foreground hover:from-accent/90 hover:to-osu-pink/90 focus-visible:ring-accent/50 shadow-lg hover:shadow-xl",
+			osu: "bg-osu-pink text-surface-foreground hover:bg-osu-pink/90 focus-visible:ring-accent/50 shadow-lg hover:shadow-xl",
+			cardPrimary: "bg-osu-pink text-surface-foreground hover:bg-osu-pink/90 shadow-lg",
+			cardSecondary:
+				"bg-surface-variant/40 text-text-secondary border border-border hover:bg-surface-variant/60",
+			cardDanger: "bg-error/20 text-error/90 border border-error/70 hover:bg-error/30",
 		},
 		size: {
 			sm: "text-xs px-3 py-1.5",
 			md: "text-sm px-4 py-2",
 			lg: "text-base px-6 py-3",
+			card: "text-xs px-3 py-2.5 font-semibold",
 		},
 	},
 	defaultVariants: {
@@ -42,19 +47,18 @@ const Button = React.forwardRef<
 			| "success"
 			| "warning"
 			| "error"
-			| "osu";
-		size?: "sm" | "md" | "lg";
+			| "osu"
+			| "cardPrimary"
+			| "cardSecondary"
+			| "cardDanger";
+		size?: "sm" | "md" | "lg" | "card";
 		isLoading?: boolean;
 		children: React.ReactNode;
 	}
 >(({ className, variant, size, isLoading, children, disabled, ...props }, ref) => {
+	const resolvedClassName = button({ variant, size, className });
 	return (
-		<button
-			className={button({ variant, size, className })}
-			ref={ref}
-			disabled={disabled || isLoading}
-			{...props}
-		>
+		<button className={resolvedClassName} ref={ref} disabled={disabled || isLoading} {...props}>
 			{isLoading && (
 				<svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 					<circle

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Download, Settings } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Tabs from "./components/ui/Tabs";
 import { CustomToast } from "./components/ui/Toast";
 import SearchPage from "./components/pages/SearchPage";
@@ -9,15 +10,21 @@ import { ScanProgress } from "./components/ScanProgress";
 import { QueueNotificationManager } from "./components/QueueNotificationManager";
 import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
 import { type SearchFilters } from "./components/search/types";
-import { useEffect } from "react";
 import toast from "react-hot-toast";
-import { apiClient } from "./hooks/useApiClient";
+import { apiClient, type QueueStatus } from "./hooks/useApiClient";
+import Badge from "./components/ui/Badge";
 
 function App() {
 	const [notOwnedOnly, setNotOwnedOnly] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
 	const [showUnicode, setShowUnicode] = useState(false);
+	const { data: queue } = useQuery<QueueStatus>({
+		queryKey: ["queue"],
+		queryFn: () => apiClient.get<QueueStatus>("/queue"),
+		refetchOnWindowFocus: false,
+	});
+	const remainingCount = (queue?.queued?.length ?? 0) + (queue?.running?.length ?? 0);
 
 	// App起動時に一度だけアップデート確認し、あればトースト通知
 	useEffect(() => {
@@ -68,7 +75,21 @@ function App() {
 		},
 		{
 			id: "queue",
-			label: "Queue",
+			label: (
+				<span className="relative inline-flex items-center">
+					<span>Queue</span>
+					{remainingCount > 0 && (
+						<span className="absolute -top-2 -right-4">
+							<Badge
+								variant="default"
+								className="h-4 w-4 min-w-0 rounded-full bg-primary text-primary-foreground text-[10px] leading-none ring-2 ring-surface/70 p-0 inline-flex items-center justify-center"
+							>
+								{remainingCount}
+							</Badge>
+						</span>
+					)}
+				</span>
+			),
 			icon: <Download className="w-4 h-4" />,
 			content: <QueuePage showUnicode={showUnicode} setShowUnicode={setShowUnicode} />,
 		},

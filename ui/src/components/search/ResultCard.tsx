@@ -1,6 +1,7 @@
 import type React from "react";
 import { useMemo, useState } from "react";
 import { Download, Heart, Music4, Play, Pause, CalendarDays, ExternalLink, X } from "lucide-react";
+import Button from "../ui/Button";
 import { tv } from "tailwind-variants";
 import type { SearchResponse } from "../../hooks/useApiClient";
 import {
@@ -145,12 +146,12 @@ const ResultCard: React.FC<Props> = ({
 		setIsHovered(false);
 	};
 
-	const buttonClass =
+	const buttonVariant =
 		action.variant === "danger"
-			? "bg-error/20 text-error/90 border border-error/70 hover:bg-error/30"
+			? "cardDanger"
 			: action.variant === "secondary"
-				? "bg-surface-variant/40 text-text-secondary border border-border hover:bg-surface-variant/60"
-				: "bg-osu-pink text-surface-foreground hover:bg-osu-pink/90 shadow-lg";
+				? "cardSecondary"
+				: "cardPrimary";
 
 	const difficulties = useMemo(
 		() => (item.difficulties ?? []).slice().sort((a, b) => a.rating - b.rating),
@@ -436,13 +437,15 @@ const ResultCard: React.FC<Props> = ({
 							</div>
 
 							<div className="flex items-end">
-								<button
-									className={`${buttonClass} inline-flex items-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+								<Button
+									variant={buttonVariant}
+									size="card"
+									className="gap-2 rounded-lg"
 									disabled={action.disabled}
 									onClick={() => triggerDownload(item.set_id)}
 								>
 									<Download className="w-4 h-4" />
-								</button>
+								</Button>
 							</div>
 						</div>
 					</div>
