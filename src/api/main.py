@@ -503,13 +503,23 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             "player_volume",
         }
         filtered = {k: v for k, v in payload.items() if k in allowed}
+        prev_values = {
+            "osu_client_id": settings.osu_client_id,
+            "osu_client_secret": settings.osu_client_secret,
+            "songs_dir": settings.songs_dir,
+            "download_url_template": settings.download_url_template,
+            "download_query_options": settings.download_query_options,
+            "max_concurrency": settings.max_concurrency,
+            "requests_per_minute": settings.requests_per_minute,
+        }
         settings.persist(filtered)
 
-        # songs_dir, download_url_template, max_concurrency, requests_per_minute が変更された場合のみ再構築
-        needs_rebuild = any(
-            key in filtered
+        songs_dir_changed = (
+            "songs_dir" in filtered and settings.songs_dir != prev_values["songs_dir"]
+        )
+        downloader_changed = any(
+            key in filtered and settings.__getattribute__(key) != prev_values[key]
             for key in [
-                "songs_dir",
                 "download_url_template",
                 "download_query_options",
                 "max_concurrency",
@@ -519,16 +529,20 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
 
         # osu_client_id, osu_client_secret が変更された場合のみ再構築
         needs_client_rebuild = any(
-            key in filtered for key in ["osu_client_id", "osu_client_secret"]
+            key in filtered and settings.__getattribute__(key) != prev_values[key]
+            for key in ["osu_client_id", "osu_client_secret"]
         )
 
-        if needs_rebuild:
+        if songs_dir_changed:
             app.state.index = SongIndex(
                 osu_db_path=settings.osu_db_path,
                 songs_dir=settings.songs_dir,
                 event_bus=app.state.event_bus,
             )
             await app.state.index.refresh()
+            downloader_changed = True
+
+        if songs_dir_changed or downloader_changed:
             app.state.downloader = DownloadManager(
                 songs_dir=settings.songs_dir,
                 url_template=settings.download_url_template,
