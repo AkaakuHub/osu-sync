@@ -234,19 +234,14 @@ class SongIndex:
 
                     owned.add(set_id)
 
-                    # メタデータを整形 (Unicode版を優先)
-                    def get_string_value(s):
-                        return getattr(s, "value", "")
-
-                    artist = get_string_value(
-                        beatmap.artist_name_unicode
-                    ) or get_string_value(beatmap.artist_name)
-                    title = get_string_value(
-                        beatmap.song_title_unicode
-                    ) or get_string_value(beatmap.song_title)
-                    creator = get_string_value(beatmap.creator_name)
-
                     if set_id not in metadata:
+                        artist = getattr(
+                            beatmap.artist_name_unicode, "value", ""
+                        ) or getattr(beatmap.artist_name, "value", "")
+                        title = getattr(
+                            beatmap.song_title_unicode, "value", ""
+                        ) or getattr(beatmap.song_title, "value", "")
+                        creator = getattr(beatmap.creator_name, "value", "")
                         metadata[set_id] = (set_id, artist, title, creator)
 
         except Exception as e:
