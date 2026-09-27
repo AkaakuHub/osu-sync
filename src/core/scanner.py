@@ -1,9 +1,11 @@
 import asyncio
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 from kaitaistruct import KaitaiStream
 
+from core.index_cache import OsuDbIndexCache
 from osu_db_construct.osu_db import OsuDb
 
 
@@ -16,17 +18,20 @@ class SongIndex:
         self,
         osu_db_path: str | None = None,
         songs_dir: str | None = None,
+        cache_path: Path | None = None,
         event_bus=None,
     ) -> None:
         self.osu_db_path = osu_db_path
         self.songs_dir = Path(songs_dir) if songs_dir else None
+        self._cache = OsuDbIndexCache(cache_path) if cache_path else None
         self._owned: set[int] = set()
         self._metadata: dict[
             int, tuple[int, str, str, str]
         ] = {}  # (set_id, artist, title, creator)
         self._state_lock = asyncio.Lock()
-        self._scan_task: asyncio.Task | None = None
+        self._scan_lock = asyncio.Lock()
         self._scanning = False
+        self._marked_during_scan: dict[int, tuple[int, str, str, str] | None] = {}
         self._event_bus = event_bus
 
     @property
@@ -38,13 +43,26 @@ class SongIndex:
         return self._metadata
 
     async def refresh(self) -> None:
-        """
-        osu!.db + .oszファイルから楽曲情報をハイブリッドで読み込む。
-        """
-        await self._load_hybrid()
+        async with self._scan_lock:
+            self._scanning = True
+            await self._emit_scan_event(
+                {
+                    "status": "scanning",
+                    "total_files": 0,
+                    "processed_files": 0,
+                    "current_file": "osu!.db",
+                    "started_at": None,
+                    "completed_at": None,
+                    "error_message": None,
+                    "updated_at": None,
+                }
+            )
+            try:
+                await self._load_hybrid()
+            finally:
+                self._scanning = False
 
     async def _load_hybrid(self) -> None:
-        """osu!.dbと.oszファイルのハイブリッド読み込み"""
         osu_owned, osu_metadata = set(), {}
         osz_owned, osz_metadata = set(), {}
 
@@ -52,8 +70,9 @@ class SongIndex:
             # 1. osu!.dbから読み込み
             if self.osu_db_path and Path(self.osu_db_path).exists():
                 try:
-                    self._scan_task = asyncio.create_task(self._parse_osu_db())
-                    osu_owned, osu_metadata = await self._scan_task
+                    osu_owned, osu_metadata = await asyncio.to_thread(
+                        self._read_osu_db_sync
+                    )
                 except Exception as e:
                     print(f"Error parsing osu!.db: {e}")
             else:
@@ -61,16 +80,21 @@ class SongIndex:
 
             # 2. .oszファイルから読み込み
             try:
-                self._scan_task = asyncio.create_task(self._scan_osz_fast())
-                osz_owned, osz_metadata = await self._scan_task
+                osz_owned, osz_metadata = await self._scan_osz_fast()
             except Exception as e:
                 print(f"Error scanning .osz files: {e}")
 
             # 3. マージ (osu!.dbのメタデータを優先)
             async with self._state_lock:
-                self._owned = osu_owned.union(osz_owned)
+                self._owned = osu_owned.union(osz_owned, self._marked_during_scan)
                 # osu!.dbのメタデータを優先し、.oszで補完
                 self._metadata = {**osz_metadata, **osu_metadata}
+                self._metadata.update(
+                    (set_id, details)
+                    for set_id, details in self._marked_during_scan.items()
+                    if details is not None
+                )
+                self._marked_during_scan.clear()
 
             print(
                 f"Hybrid scan complete: {len(self._owned)} sets total "
@@ -95,42 +119,18 @@ class SongIndex:
             await self._emit_scan_event({"status": "error", "error_message": str(exc)})
             raise
 
-    async def _start_background_scan(self) -> None:
-        """バックグラウンドでハイブリッドスキャンを開始"""
-        # 既に進行中なら新しいスキャンは開始しない
-        if self._scan_task and not self._scan_task.done():
-            return
-
-        await self._emit_scan_event(
-            {
-                "status": "scanning",
-                "total_files": 0,
-                "processed_files": 0,
-                "current_file": "osu!.db",
-                "started_at": None,
-                "completed_at": None,
-                "error_message": None,
-                "updated_at": None,
-            }
-        )
-        self._scan_task = asyncio.create_task(self._load_hybrid())
-
-    async def _parse_osu_db(
+    def _read_osu_db_sync(
         self,
     ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
-        """osu!.dbを解析してメタデータを抽出"""
-        async with self._state_lock:
-            if self._scanning:
-                return set(), {}
-            self._scanning = True
-
-        try:
-            # 同期処理なのでスレッドで実行
-            owned, metadata = await asyncio.to_thread(self._parse_osu_db_sync)
-            return owned, metadata
-        finally:
-            async with self._state_lock:
-                self._scanning = False
+        source = Path(self.osu_db_path)
+        if self._cache:
+            cached = self._cache.load(source)
+            if cached is not None:
+                return cached
+        owned, metadata = self._parse_osu_db_sync()
+        if self._cache:
+            self._cache.save(source, metadata)
+        return owned, metadata
 
     def _parse_osu_db_sync(
         self,
@@ -141,17 +141,20 @@ class SongIndex:
 
         try:
             with open(self.osu_db_path, "rb") as f:
-                osu_data = OsuDb(KaitaiStream(f))
+                stream = KaitaiStream(f)
+                version = stream.read_u4le()
+                stream.read_u4le()
+                stream.read_u1()
+                stream.read_u8le()
+                OsuDb.String(stream)
+                beatmap_count = stream.read_u4le()
+                root = SimpleNamespace(osu_version=version)
 
-                print(f"Loaded osu!.db version {osu_data.osu_version}")
-                print(f"Found {len(osu_data.beatmaps)} beatmaps")
-
-                for beatmap in osu_data.beatmaps:
+                for _ in range(beatmap_count):
+                    beatmap = OsuDb.Beatmap(stream, _root=root)
                     # folder_nameからbeatmapset_idを抽出
                     # 例: "539007 $44,000 - PISSCORD" → 539007
-                    folder_name = beatmap.folder_name
-                    if hasattr(folder_name, "value"):
-                        folder_name = folder_name.value
+                    folder_name = getattr(beatmap.folder_name, "value", "")
 
                     if not folder_name:
                         continue
@@ -169,7 +172,7 @@ class SongIndex:
 
                     # メタデータを整形 (Unicode版を優先)
                     def get_string_value(s):
-                        return s.value if hasattr(s, "value") else s or ""
+                        return getattr(s, "value", "")
 
                     artist = get_string_value(
                         beatmap.artist_name_unicode
@@ -206,10 +209,7 @@ class SongIndex:
         self, owned: set[int], metadata: dict[int, tuple[int, str, str, str]]
     ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
         """同期版.oszスキャン"""
-        osz_files = list(self.songs_dir.rglob("*.osz"))
-        print(f"Scanning {len(osz_files)} .osz files...")
-
-        for osz_path in osz_files:
+        for osz_path in self.songs_dir.rglob("*.osz"):
             filename = osz_path.name
             # "123456 Artist - Title.osz" → 123456
             match = re.match(r"^(\d+)", filename)
@@ -301,6 +301,8 @@ class SongIndex:
         self._owned.add(set_id)
         if metadata:
             self._metadata[set_id] = metadata
+        if self._scanning:
+            self._marked_during_scan[set_id] = metadata
 
     async def _emit_scan_event(self, payload: dict[str, any]) -> None:
         """Push scan status to SSE subscribers."""

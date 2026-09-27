@@ -21,6 +21,7 @@ from api.schemas import (
     DownloadRequest,
     IndexSummary,
     OpenPathRequest,
+    OwnedRequest,
     QueueStatus,
     SearchResponse,
     SearchResult,
@@ -126,6 +127,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
     app.state.index = SongIndex(
         osu_db_path=settings.osu_db_path,
         songs_dir=settings.songs_dir,
+        cache_path=settings.store.path.with_name("osu-db-index.json"),
         event_bus=app.state.event_bus,
     )
     app.state.downloader = DownloadManager(
@@ -228,17 +230,13 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
 
     @app.on_event("startup")
     async def startup() -> None:
-        # 先にサーバーを立ち上げるため、インデックス読み込みは非同期タスクに回す
-        async def load_index_and_scan() -> None:
+        async def load_index() -> None:
             try:
-                await app.state.index._load_hybrid()
-                app.state.background_scan_task = asyncio.create_task(
-                    app.state.index._start_background_scan()
-                )
+                await app.state.index.refresh()
             except Exception:
-                logger.exception("Failed to load osu!.db / start background scan")
+                logger.exception("Failed to load local song index")
 
-        app.state.index_load_task = asyncio.create_task(load_index_and_scan())
+        app.state.index_load_task = asyncio.create_task(load_index())
         await app.state.downloader.start_workers()
 
     # 依存関数
@@ -326,6 +324,14 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
     async def local_index() -> IndexSummary:
         summary = app.state.index.summary()
         return IndexSummary(**summary, songs_dir=str(app.state.index.songs_dir))
+
+    @api.post("/local/owned")
+    async def local_owned(body: OwnedRequest) -> dict[str, list[int]]:
+        return {
+            "set_ids": [
+                set_id for set_id in body.set_ids if app.state.index.owned(set_id)
+            ]
+        }
 
     @api.get("/local/scan-status")
     async def scan_status() -> dict:
@@ -537,6 +543,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             app.state.index = SongIndex(
                 osu_db_path=settings.osu_db_path,
                 songs_dir=settings.songs_dir,
+                cache_path=settings.store.path.with_name("osu-db-index.json"),
                 event_bus=app.state.event_bus,
             )
             await app.state.index.refresh()

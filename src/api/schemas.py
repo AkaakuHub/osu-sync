@@ -86,5 +86,9 @@ class IndexSummary(BaseModel):
     songs_dir: str
 
 
+class OwnedRequest(BaseModel):
+    set_ids: list[int]
+
+
 class OpenPathRequest(BaseModel):
     path: str

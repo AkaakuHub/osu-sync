@@ -1,20 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useRef, useCallback } from "react";
-import toast from "react-hot-toast";
-import React from "react";
 import { Search } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import {
 	apiClient,
 	type IndexSummary,
 	type QueueStatus,
 	type SearchResponse,
 } from "../../hooks/useApiClient";
-import Input from "../ui/Input";
+import { getEventSource } from "../../utils/eventSource";
 import SearchResults from "../SearchResults";
 import { FilterPanel } from "../search/FilterPanel";
 import { type SearchFilters } from "../search/types";
 import { resetFilters } from "../search/utils";
-import { getEventSource } from "../../utils/eventSource";
+import Input from "../ui/Input";
 
 type Props = {
 	notOwnedOnly: boolean;
@@ -42,7 +41,6 @@ const SearchPage: React.FC<Props> = ({
 	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialQuery);
 	const searchQuery = propSearchQuery ?? internalSearchQuery;
 	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
-	const [currentPage, setCurrentPage] = useState(1);
 	const searchHistoryRef = useRef<string[]>([]);
 	const historyIndexRef = useRef<number | null>(null);
 	const historyDraftRef = useRef<string>("");
@@ -53,14 +51,12 @@ const SearchPage: React.FC<Props> = ({
 	const searchFilters = propSearchFilters ?? internalSearchFilters;
 	const setSearchFilters = propSetSearchFilters ?? setInternalSearchFilters;
 	const filtersReady = !!searchFilters;
-	// スキャン完了までは検索を走らせない
-	const [scanReady, setScanReady] = useState(false);
+	const [scanRevision, setScanRevision] = useState(0);
 
 	// 500msデバウンスの実装
 	useEffect(() => {
 		const timer = setTimeout(() => {
 			setDebouncedSearchQuery(searchQuery);
-			setCurrentPage(1); // 検索時にページをリセット
 		}, 500);
 
 		return () => clearTimeout(timer);
@@ -129,16 +125,11 @@ const SearchPage: React.FC<Props> = ({
 		recordSearchHistory(debouncedSearchQuery);
 	}, [debouncedSearchQuery, recordSearchHistory]);
 
-	// currentPageの変化を監視
-	useEffect(() => {
-		console.log("DEBUG: currentPage changed to:", currentPage);
-	}, [currentPage]);
-
 	// フィルターパラメータを構築 - 公式APIのURL短縮形に完全対応
 	const buildSearchQuery = () => {
 		const params = new URLSearchParams();
 
-		const filters: SearchFilters = searchFilters || ({} as SearchFilters);
+		const filters = searchFilters ?? resetFilters();
 
 		// 基本検索クエリ（全検索の場合も空文字で送信）
 		params.set("q", debouncedSearchQuery || "");
@@ -194,7 +185,7 @@ const SearchPage: React.FC<Props> = ({
 
 		// ページネーション
 		params.set("limit", "20");
-		params.set("page", currentPage.toString());
+		params.set("page", "1");
 
 		return params.toString();
 	};
@@ -204,13 +195,13 @@ const SearchPage: React.FC<Props> = ({
 		isFetching: searchLoading,
 		error: searchError,
 	} = useQuery<SearchResponse>({
-		queryKey: ["search", debouncedSearchQuery, currentPage, searchFilters ?? "nofilters"],
+		queryKey: ["search", debouncedSearchQuery, searchFilters],
 		queryFn: async () => {
 			const query = buildSearchQuery();
 			const endpoint = `/search?${query}`;
 			return apiClient.get(endpoint);
 		},
-		enabled: filtersReady && scanReady,
+		enabled: filtersReady && searchQuery === debouncedSearchQuery,
 		staleTime: 60_000,
 		refetchOnMount: false,
 		refetchOnWindowFocus: false,
@@ -219,20 +210,11 @@ const SearchPage: React.FC<Props> = ({
 
 	useEffect(() => {
 		if (!searchError) return;
-		const anyErr = searchError as any;
-		const message = anyErr?.response?.data?.detail || anyErr?.message || "Search failed";
+		const message = searchError instanceof Error ? searchError.message : "Search failed";
 		toast.error(`${message}\nPlease set osu! API Client ID/Secret in Settings tab.`, {
 			duration: 5000,
 		});
 	}, [searchError]);
-
-	// 新規クエリで検索した場合はページングをリセット
-	// TODO: これがページングと干渉している可能性があるため一時的に無効化
-	/*
-	useEffect(() => {
-		setCurrentPage(1);
-	}, [searchQuery, searchFilters]);
-	*/
 
 	const {
 		data: index,
@@ -248,85 +230,44 @@ const SearchPage: React.FC<Props> = ({
 		queryFn: () => apiClient.get<QueueStatus>("/queue"),
 		refetchOnWindowFocus: false,
 	});
+	const handleFiltersChange = useCallback(
+		(filters: SearchFilters) => setSearchFilters(filters),
+		[setSearchFilters],
+	);
 
-	// スキャン完了を待ってから検索を開始する
 	useEffect(() => {
-		let mounted = true;
-		apiClient
-			.get<{ status: string }>("/local/scan-status")
-			.then((res) => {
-				if (!mounted) return;
-				if (res.status === "completed" || res.status === "error") {
-					setScanReady(true);
-				}
-			})
-			.catch(() => mounted && setScanReady(true));
-
 		const es = getEventSource();
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		let disposed = false;
+		const refreshOwnership = () => {
+			clearTimeout(timer);
+			timer = setTimeout(() => {
+				refetchIndex();
+				setScanRevision((revision) => revision + 1);
+			}, 300);
+		};
 		const handler = (event: MessageEvent) => {
 			try {
 				const parsed = JSON.parse(event.data);
-				if (parsed.topic !== "scan") return;
-				const st = parsed.data?.status;
-				if (st === "completed" || st === "error") {
-					setScanReady(true);
-					refetchIndex();
-					refetchQueue();
-				}
-			} catch (e) {
-				console.error("Failed to handle scan event", e);
+				if (parsed.topic !== "scan" || parsed.data?.status !== "completed") return;
+				refreshOwnership();
+			} catch (error) {
+				console.error("Failed to handle scan event", error);
 			}
 		};
 		es.addEventListener("message", handler);
+		apiClient
+			.get<{ status: string }>("/local/scan-status")
+			.then(({ status }) => {
+				if (!disposed && status === "completed") refreshOwnership();
+			})
+			.catch((error) => console.error("Failed to read scan status", error));
 		return () => {
-			mounted = false;
+			disposed = true;
+			clearTimeout(timer);
 			es.removeEventListener("message", handler);
 		};
-	}, [refetchIndex, refetchQueue]);
-
-	// スキャン完了までローディング画面を出す
-	if (!scanReady) {
-		// Use the exact same loader style as main.py LOADING_HTML
-		return (
-			<div
-				style={{
-					height: "100vh",
-					margin: 0,
-					display: "grid",
-					placeItems: "center",
-					background: "#0f172a",
-					color: "#e2e8f0",
-					fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
-				}}
-			>
-				<div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-					<div
-						style={{
-							width: "56px",
-							height: "56px",
-							border: "6px solid rgba(148, 163, 184, 0.35)",
-							borderTopColor: "#34d399",
-							borderRadius: "50%",
-							animation: "spin 0.8s linear infinite",
-							boxShadow: "0 0 16px rgba(52, 211, 153, 0.4)",
-							marginTop: "-80px",
-						}}
-					/>
-					<div
-						style={{
-							marginTop: "14px",
-							fontSize: "13px",
-							letterSpacing: "0.2px",
-							color: "#cbd5e1",
-						}}
-					>
-						Launching osu-sync…
-					</div>
-				</div>
-				<style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-			</div>
-		);
-	}
+	}, [refetchIndex]);
 
 	return (
 		<div className="h-full flex flex-col bg-surface">
@@ -365,11 +306,7 @@ const SearchPage: React.FC<Props> = ({
 					{/* Filter Panel */}
 					<div className="flex-shrink-0">
 						<FilterPanel
-							onFiltersChange={(filters) => {
-								// フィルター変更時に即時反映
-								setSearchFilters(filters);
-								setCurrentPage(1); // ページをリセット
-							}}
+							onFiltersChange={handleFiltersChange}
 							isSupporter={false} // TODO: ユーザーのサポーター状態を取得
 							initialFilters={searchFilters}
 							searchQuery={searchQuery}
@@ -384,6 +321,7 @@ const SearchPage: React.FC<Props> = ({
 							onQueueUpdate={refetchQueue}
 							queue={queue}
 							searchData={searchResults}
+							scanRevision={scanRevision}
 							isLoading={searchLoading}
 							searchQuery={debouncedSearchQuery}
 							searchFilters={searchFilters}

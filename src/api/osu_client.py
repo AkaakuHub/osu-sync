@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from collections import OrderedDict
 from typing import Any
 
 import httpx
@@ -24,8 +25,8 @@ class OsuApiClient:
         self._token: str | None = None
         self._token_exp: float = 0.0
         self._client = httpx.AsyncClient(timeout=20, follow_redirects=True)
-        self._cache: dict[str, tuple[float, dict[str, Any]]] = {}
-        self._cache_ttl = 3600  # seconds
+        self._cache: OrderedDict[str, tuple[float, dict[str, Any]]] = OrderedDict()
+        self._cache_ttl = 60
         self._cache_lock = asyncio.Lock()
 
     async def _ensure_token(self) -> str:
@@ -34,7 +35,6 @@ class OsuApiClient:
         if self._token and now < (self._token_exp - 300):
             return self._token
 
-        print("DEBUG: Token expired or missing, getting new token...")
         return await self._get_new_token()
 
     async def _get_new_token(self) -> str:
@@ -72,7 +72,6 @@ class OsuApiClient:
         played: str | None = None,
         r: str | None = None,
     ) -> dict[str, Any]:
-        token = await self._ensure_token()
         params = {"q": q, "page": page, "limit": limit}
 
         # osu! API v2は個別パラメータ形式をサポート
@@ -107,22 +106,15 @@ class OsuApiClient:
             if cached:
                 exp, data = cached
                 if time.time() < exp:
-                    print("DEBUG: Serving from cache")
+                    self._cache.move_to_end(key)
                     return data
                 else:
                     self._cache.pop(key, None)
 
+        token = await self._ensure_token()
         headers = {"Authorization": f"Bearer {token}"}
 
-        # デバッグ: 実際に送信しているURLをログ出力
-        import urllib.parse
-
-        query_string = urllib.parse.urlencode(params)
-        full_url = f"{self.SEARCH_URL}?{query_string}"
-        print(f"DEBUG: Sending request to: {full_url}")
-
         resp = await self._client.get(self.SEARCH_URL, params=params, headers=headers)
-        print(f"DEBUG: Response status: {resp.status_code}")
 
         if resp.status_code != 200:
             raise HTTPException(
@@ -131,8 +123,9 @@ class OsuApiClient:
             )
 
         result = resp.json()
-        print(f"DEBUG: Response total: {result.get('total', 'unknown')}")
         # store to cache
         async with self._cache_lock:
             self._cache[key] = (time.time() + self._cache_ttl, result)
+            if len(self._cache) > 128:
+                self._cache.popitem(last=False)
         return result

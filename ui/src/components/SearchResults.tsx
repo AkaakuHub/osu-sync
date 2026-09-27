@@ -1,19 +1,22 @@
-import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Download, Languages, RotateCcw } from "lucide-react";
+import React from "react";
 import toast from "react-hot-toast";
 import {
 	apiClient,
+	type IndexSummary,
 	type QueueStatus,
 	type SearchResponse,
-	type IndexSummary,
 } from "../hooks/useApiClient";
 import { triggerDownload } from "../utils/downloadUtils";
-import ResultList from "./search/ResultList";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
-import Toggle from "./ui/Toggle";
-import Button from "./ui/Button";
+import type { PreviewableItem } from "./search/ResultCard";
+import ResultList from "./search/ResultList";
+import type { SearchFilters } from "./search/types";
+import { DEFAULT_FILTERS } from "./search/types";
 import { hasActiveFilters } from "./search/utils";
+import Button from "./ui/Button";
+import Toggle from "./ui/Toggle";
 
 type Props = {
 	notOwnedOnly: boolean;
@@ -21,9 +24,10 @@ type Props = {
 	onQueueUpdate: () => void;
 	queue?: QueueStatus;
 	searchData?: SearchResponse;
+	scanRevision: number;
 	isLoading?: boolean;
 	searchQuery: string;
-	searchFilters: any;
+	searchFilters: SearchFilters | null;
 	showUnicode: boolean;
 	setShowUnicode: (v: boolean) => void;
 	indexSummary?: IndexSummary;
@@ -38,6 +42,7 @@ const SearchResults: React.FC<Props> = ({
 	onQueueUpdate,
 	queue,
 	searchData,
+	scanRevision,
 	isLoading,
 	searchQuery,
 	searchFilters,
@@ -55,6 +60,7 @@ const SearchResults: React.FC<Props> = ({
 	const [internalCurrentPage, setInternalCurrentPage] = React.useState(1);
 	const [hasMore, setHasMore] = React.useState(true);
 	const [isFetchingMore, setIsFetchingMore] = React.useState(false);
+	const checkedOwnershipKey = React.useRef<string | null>(null);
 
 	const data = searchData;
 
@@ -68,6 +74,29 @@ const SearchResults: React.FC<Props> = ({
 		}
 	}, [searchData]);
 
+	React.useEffect(() => {
+		if (scanRevision === 0 || allResults.length === 0) return;
+		const setIds = allResults.map((item) => item.set_id);
+		const key = `${scanRevision}:${setIds.join(",")}`;
+		if (checkedOwnershipKey.current === key) return;
+		let cancelled = false;
+		apiClient
+			.post<{ set_ids: number[] }>("/local/owned", { set_ids: setIds })
+			.then(({ set_ids }) => {
+				if (cancelled) return;
+				checkedOwnershipKey.current = key;
+				const owned = new Set(set_ids);
+				setAllResults((items) => {
+					if (items.every((item) => item.owned === owned.has(item.set_id))) return items;
+					return items.map((item) => ({ ...item, owned: owned.has(item.set_id) }));
+				});
+			})
+			.catch((error) => console.error("Failed to update ownership", error));
+		return () => {
+			cancelled = true;
+		};
+	}, [allResults, scanRevision]);
+
 	// 次のページを読み込む
 	const handleLoadMore = React.useCallback(async () => {
 		if (!hasMore || isFetchingMore || !searchData) return;
@@ -76,6 +105,7 @@ const SearchResults: React.FC<Props> = ({
 		setIsFetchingMore(true);
 		const nextPage = internalCurrentPage + 1;
 
+		const filters = searchFilters ?? DEFAULT_FILTERS;
 		try {
 			// SearchPageのbuildSearchQueryと同じロジックでURLを構築
 			const params = new URLSearchParams();
@@ -88,35 +118,35 @@ const SearchResults: React.FC<Props> = ({
 			params.set("limit", "20");
 
 			// フィルターパラメータ
-			if (searchFilters.status && searchFilters.status !== "any") {
-				params.set("s", searchFilters.status);
+			if (filters.status && filters.status !== "any") {
+				params.set("s", filters.status);
 			}
-			if (searchFilters.mode && searchFilters.mode !== "null") {
-				params.set("m", searchFilters.mode.toString());
+			if (filters.mode && filters.mode !== "null") {
+				params.set("m", filters.mode.toString());
 			}
-			if (searchFilters.genre && searchFilters.genre.length > 0) {
-				params.set("g", searchFilters.genre.join(","));
+			if (filters.genre && filters.genre.length > 0) {
+				params.set("g", filters.genre.join(","));
 			}
-			if (searchFilters.language && searchFilters.language.length > 0) {
-				params.set("l", searchFilters.language.join(","));
+			if (filters.language && filters.language.length > 0) {
+				params.set("l", filters.language.join(","));
 			}
-			if (searchFilters.extra && searchFilters.extra.length > 0) {
-				params.set("e", searchFilters.extra.join("."));
+			if (filters.extra && filters.extra.length > 0) {
+				params.set("e", filters.extra.join("."));
 			}
-			if (searchFilters.general && searchFilters.general.length > 0) {
-				params.set("c", searchFilters.general.join("."));
+			if (filters.general && filters.general.length > 0) {
+				params.set("c", filters.general.join("."));
 			}
-			if (searchFilters.nsfw !== undefined) {
-				params.set("nsfw", searchFilters.nsfw.toString());
+			if (filters.nsfw !== undefined) {
+				params.set("nsfw", filters.nsfw.toString());
 			}
-			if (searchFilters.played && searchFilters.played !== "any") {
-				params.set("played", searchFilters.played);
+			if (filters.played && filters.played !== "any") {
+				params.set("played", filters.played);
 			}
-			if (searchFilters.rank && searchFilters.rank.length > 0) {
-				params.set("r", searchFilters.rank.join("."));
+			if (filters.rank && filters.rank.length > 0) {
+				params.set("r", filters.rank.join("."));
 			}
-			if (searchFilters.sortField && searchFilters.sortOrder) {
-				params.set("sort", `${searchFilters.sortField}_${searchFilters.sortOrder}`);
+			if (filters.sortField && filters.sortOrder) {
+				params.set("sort", `${filters.sortField}_${filters.sortOrder}`);
 			}
 
 			const endpoint = `/search?${params.toString()}`;
@@ -200,10 +230,11 @@ const SearchResults: React.FC<Props> = ({
 	};
 
 	// GlobalPreviewPlayerからグローバル関数を取得
-	const togglePreview = React.useCallback((item: any) => {
-		if ((window as any).togglePreview) {
-			(window as any).togglePreview(item);
-		}
+	const togglePreview = React.useCallback((item: PreviewableItem) => {
+		const previewWindow = window as Window & {
+			togglePreview?: (item: PreviewableItem) => void;
+		};
+		previewWindow.togglePreview?.(item);
 	}, []);
 
 	// GlobalPreviewPlayerの状態をリアルタイムで取得（useEffectで定期更新）
@@ -217,12 +248,20 @@ const SearchResults: React.FC<Props> = ({
 	// グローバル状態の監視と同期
 	React.useEffect(() => {
 		const updatePreviewState = () => {
-			const state = (window as any).previewPlayerState || {};
+			const previewWindow = window as Window & {
+				previewPlayerState?: {
+					previewingId: number | null;
+					isLoadingPreview: boolean;
+					playbackProgress: number;
+					isActuallyPlaying: boolean;
+				};
+			};
+			const state = previewWindow.previewPlayerState;
 			setPreviewState({
-				previewingId: state.previewingId || null,
-				isLoadingPreview: state.isLoadingPreview || false,
-				playbackProgress: state.playbackProgress || 0,
-				isActuallyPlaying: state.isActuallyPlaying || false,
+				previewingId: state?.previewingId ?? null,
+				isLoadingPreview: state?.isLoadingPreview ?? false,
+				playbackProgress: state?.playbackProgress ?? 0,
+				isActuallyPlaying: state?.isActuallyPlaying ?? false,
 			});
 		};
 
