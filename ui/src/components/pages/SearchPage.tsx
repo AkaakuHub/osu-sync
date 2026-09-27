@@ -154,6 +154,7 @@ const SearchPage: React.FC<Props> = ({
 	const { data: index, refetch: refetchIndex } = useQuery<IndexSummary>({
 		queryKey: ["index"],
 		queryFn: () => apiClient.get<IndexSummary>("/local/index"),
+		refetchOnWindowFocus: false,
 	});
 
 	const { data: queue, refetch: refetchQueue } = useQuery<QueueStatus>({
