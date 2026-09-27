@@ -3,8 +3,7 @@
 バージョン一括更新 & タグ付けツール
 
 使い方:
-  python scripts/bump_version.py 1.2.3           # 各所のバージョンを書き換え
-  python scripts/bump_version.py 1.2.3 --tag     # 書き換え + git tag v1.2.3 を作成
+  python scripts/bump_version.py 1.2.3           # 各所のバージョンを書き換え、コミットして git tag v1.2.3 を作成
 
 更新対象:
 - pyproject.toml          ([project].version)
@@ -77,26 +76,19 @@ def git_tag(version: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("version", help="セットする新しいバージョン (例: 0.1.3)")
-    parser.add_argument(
-        "--tag",
-        action="store_true",
-        help="バージョン更新後に git tag (v<version>) を作成する",
-    )
     args = parser.parse_args()
 
-    version = args.version.lstrip("v")
+    version = args.version
     if not re.match(r"^\d+\.\d+\.\d+$", version):
         raise SystemExit("バージョンは SemVer 形式 (x.y.z) で指定してください")
 
     update_versions(version)
-    if args.tag:
-        msg = f"chore: v{version}"
-        subprocess.run(["git", "commit", "-am", msg], cwd=ROOT, check=True)
-        git_tag(version)
+    msg = f"chore: v{version}"
+    subprocess.run(["git", "commit", "-am", msg], cwd=ROOT, check=True)
+    git_tag(version)
 
     print(f"Updated version to {version}")
-    if args.tag:
-        print(f"Committed and tagged v{version}")
+    print(f"Committed and tagged v{version}")
 
 
 if __name__ == "__main__":
