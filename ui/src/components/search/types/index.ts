@@ -54,98 +54,11 @@ export type GeneralFilter =
 	| "spotlights"
 	| "featured_artists";
 
-// NSFWフィルター
-type NsfwFilter = boolean;
-
 // プレイ済みフィルター（サポーター用）
 export type PlayedFilter = "any" | "played" | "unplayed";
 
 // ランクフィルター（サポーター用）
 export type RankFilter = "XH" | "X" | "SH" | "S" | "A" | "B" | "C" | "D";
-
-// ジャンル
-export interface Genre {
-	id: string;
-	name: string;
-}
-
-// 言語
-export interface Language {
-	id: string;
-	name: string;
-}
-
-// 高度な検索クエリ
-export interface AdvancedSearchQuery {
-	stars?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	ar?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	dr?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	cs?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	od?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	bpm?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	length?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number; // 秒単位
-	};
-	circles?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	sliders?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	keys?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	divisor?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	favourites?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: number;
-	};
-	featured_artist?: number;
-	status?: StatusFilter;
-	creator?: string;
-	difficulty?: string;
-	artist?: string;
-	source?: string;
-	tag?: string;
-	title?: string;
-	created?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: string; // YYYY-MM-DD形式
-	};
-	ranked?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: string; // YYYY-MM-DD形式
-	};
-	updated?: {
-		operator: ">" | ">=" | "<" | "<=" | "=";
-		value: string; // YYYY-MM-DD形式
-	};
-}
 
 // フィルター状態全体
 export interface SearchFilters {
@@ -164,14 +77,11 @@ export interface SearchFilters {
 	language: string[]; // language IDs
 
 	// ブール値フィルター
-	nsfw: NsfwFilter;
+	nsfw: boolean;
 
 	// サポーター専用フィルター
 	played?: PlayedFilter;
 	rank?: RankFilter[];
-
-	// 高度な検索
-	advancedQuery?: AdvancedSearchQuery;
 }
 
 // デフォルトフィルター状態
@@ -186,24 +96,6 @@ export const DEFAULT_FILTERS: SearchFilters = {
 	language: [],
 	nsfw: false,
 };
-
-// 検索パラメータ（API用）
-export interface SearchParams {
-	q?: string;
-	page?: number;
-	limit?: number;
-	s?: StatusFilter;
-	m?: GameMode;
-	e?: string; // extra filters (dot-separated)
-	c?: string; // general filters (dot-separated)
-	g?: string; // genre (comma-separated)
-	l?: string; // language (comma-separated)
-	nsfw?: boolean;
-	sort?: string; // "field_order" format
-	played?: PlayedFilter;
-	rank?: string; // comma-separated
-	// 高度な検索はクエリ文字列に直接含める
-}
 
 // 利用可能なオプション定数
 export const AVAILABLE_STATUSES: StatusFilter[] = [

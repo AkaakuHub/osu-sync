@@ -1,318 +1,103 @@
-// 検索フィルター用のカスタムフック
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-	AdvancedSearchQuery,
 	DEFAULT_FILTERS,
-	ExtraFilter,
-	GameMode,
-	GeneralFilter,
-	Genre,
-	Language,
-	PlayedFilter,
-	RankFilter,
-	SearchFilters,
-	SortField,
-	SortOrder,
-	StatusFilter,
+	type ExtraFilter,
+	type GameMode,
+	type GeneralFilter,
+	type PlayedFilter,
+	type RankFilter,
+	type SearchFilters,
+	type SortField,
+	type SortOrder,
+	type StatusFilter,
 } from "../types";
-import {
-	activeFilterFlags,
-	advancedQueryToString,
-	filtersToParams,
-	getDefaultSortField,
-	hasActiveFilters,
-	needsSupporter,
-	parseAdvancedQuery,
-	resetFilters,
-	resetFilterType,
-	toggleArrayFilter,
-} from "../utils";
+import { resetFilters, toggleArrayFilter } from "../utils";
 
-interface UseSearchFiltersOptions {
+type Options = {
 	onFiltersChange?: (filters: SearchFilters) => void;
 	initialFilters?: SearchFilters | null;
 	searchQuery?: string;
-}
+};
 
-export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
-	const { onFiltersChange, initialFilters, searchQuery: externalQuery } = options;
+export function useSearchFilters({ onFiltersChange, initialFilters, searchQuery = "" }: Options) {
+	const [filters, setFilters] = useState<SearchFilters>(() => initialFilters ?? resetFilters());
+	const previousQuery = useRef("");
 
-	// フィルター状態の初期化
-	const [filters, setFiltersState] = useState<SearchFilters>(() => {
-		return initialFilters ?? resetFilters();
-	});
-
-	// ジャンルと言語のデータ（将来的にAPIから取得）
-	const [genres] = useState<Genre[]>([]);
-	const [languages] = useState<Language[]>([]);
-
-	// initialFilters が後から変わったときに同期
 	useEffect(() => {
-		if (!initialFilters) return;
-		// 同じなら何もしない
-		if (JSON.stringify(initialFilters) === JSON.stringify(filters)) return;
-		setFiltersState(initialFilters);
+		if (initialFilters) setFilters(initialFilters);
 	}, [initialFilters]);
 
-	// 空文字 → 非空 のクエリ入力を検知して、デフォルトソートが ranked のままなら relevance に一度だけ切り替える
-	const previousQuery = useRef<string>("");
 	useEffect(() => {
-		const currentQuery = externalQuery ?? "";
-		const wasEmpty = previousQuery.current.trim() === "";
-		const isNowFilled = currentQuery.trim() !== "";
-
-		if (wasEmpty && isNowFilled) {
-			setFiltersState((prev) => {
-				const isDefaultSort =
-					(!prev.sortField && !prev.sortOrder) ||
-					(prev.sortField === DEFAULT_FILTERS.sortField &&
-						(prev.sortOrder || DEFAULT_FILTERS.sortOrder) === DEFAULT_FILTERS.sortOrder);
-
-				if (isDefaultSort) {
-					return {
-						...prev,
-						sortField: "relevance",
-						sortOrder: prev.sortOrder || DEFAULT_FILTERS.sortOrder,
-					};
-				}
-
-				return prev;
-			});
+		if (previousQuery.current.trim() === "" && searchQuery.trim() !== "") {
+			setFilters((current) =>
+				current.sortField === DEFAULT_FILTERS.sortField
+					? { ...current, sortField: "relevance" }
+					: current,
+			);
 		}
+		previousQuery.current = searchQuery;
+	}, [searchQuery]);
 
-		previousQuery.current = currentQuery;
-	}, [externalQuery]);
-
-	// フィルター変更通知
 	useEffect(() => {
 		onFiltersChange?.(filters);
 	}, [filters, onFiltersChange]);
 
-	// フィルター更新関数
-	const setFilters = useCallback((newFilters: Partial<SearchFilters>) => {
-		setFiltersState((prev) => {
-			const updated = { ...prev, ...newFilters };
-
-			// ソートフィールドが未設定の場合は自動設定
-			if (!newFilters.sortField && !prev.sortField) {
-				updated.sortField = getDefaultSortField(updated);
-			}
-
-			return updated;
-		});
+	const setSort = useCallback((sortField: SortField, sortOrder: SortOrder) => {
+		setFilters((current) => ({ ...current, sortField, sortOrder }));
 	}, []);
-
-	// ソート設定
-	const setSort = useCallback(
-		(field: SortField, order: SortOrder) => {
-			setFilters({ sortField: field, sortOrder: order });
-		},
-		[setFilters],
-	);
-
-	// ステータス設定
-	const setStatus = useCallback(
-		(status: StatusFilter) => {
-			setFilters({ status });
-		},
-		[setFilters],
-	);
-
-	// モード設定
-	const setMode = useCallback(
-		(mode: GameMode) => {
-			setFilters({ mode });
-		},
-		[setFilters],
-	);
-
-	// エクストラフィルター設定
-	const setExtra = useCallback(
-		(extra: ExtraFilter[]) => {
-			setFilters({ extra });
-		},
-		[setFilters],
-	);
-
-	// エクストラフィルターの切り替え
+	const setStatus = useCallback((status: StatusFilter) => {
+		setFilters((current) => ({ ...current, status }));
+	}, []);
+	const setMode = useCallback((mode: GameMode) => {
+		setFilters((current) => ({ ...current, mode }));
+	}, []);
 	const toggleExtra = useCallback((extra: ExtraFilter) => {
-		setFiltersState((prev) => ({
-			...prev,
-			extra: toggleArrayFilter(prev.extra, extra),
-		}));
+		setFilters((current) => ({ ...current, extra: toggleArrayFilter(current.extra, extra) }));
 	}, []);
-
-	// 一般フィルター設定
-	const setGeneral = useCallback(
-		(general: GeneralFilter[]) => {
-			setFilters({ general });
-		},
-		[setFilters],
-	);
-
-	// 一般フィルターの切り替え
 	const toggleGeneral = useCallback((general: GeneralFilter) => {
-		setFiltersState((prev) => ({
-			...prev,
-			general: toggleArrayFilter(prev.general, general),
+		setFilters((current) => ({
+			...current,
+			general: toggleArrayFilter(current.general, general),
 		}));
 	}, []);
-
-	// ジャンル設定
-	const setGenre = useCallback(
-		(genre: string[]) => {
-			setFilters({ genre });
-		},
-		[setFilters],
-	);
-
-	// ジャンルの切り替え
-	const toggleGenre = useCallback((genreId: string) => {
-		setFiltersState((prev) => ({
-			...prev,
-			genre: genreId === "any" ? [] : toggleArrayFilter(prev.genre, genreId),
+	const toggleGenre = useCallback((genre: string) => {
+		setFilters((current) => ({
+			...current,
+			genre: genre === "any" ? [] : toggleArrayFilter(current.genre, genre),
 		}));
 	}, []);
-
-	// 言語設定
-	const setLanguage = useCallback(
-		(language: string[]) => {
-			setFilters({ language });
-		},
-		[setFilters],
-	);
-
-	// 言語の切り替え
-	const toggleLanguage = useCallback((languageId: string) => {
-		setFiltersState((prev) => ({
-			...prev,
-			language: languageId === "any" ? [] : toggleArrayFilter(prev.language, languageId),
+	const toggleLanguage = useCallback((language: string) => {
+		setFilters((current) => ({
+			...current,
+			language: language === "any" ? [] : toggleArrayFilter(current.language, language),
 		}));
 	}, []);
-
-	// NSFW設定
-	const setNsfw = useCallback(
-		(nsfw: boolean) => {
-			setFilters({ nsfw });
-		},
-		[setFilters],
-	);
-
-	// プレイ済みフィルター設定（サポーター用）
-	const setPlayed = useCallback(
-		(played: PlayedFilter) => {
-			setFilters({ played });
-		},
-		[setFilters],
-	);
-
-	// ランクフィルター設定（サポーター用）
-	const setRank = useCallback(
-		(rank: RankFilter[]) => {
-			setFilters({ rank });
-		},
-		[setFilters],
-	);
-
-	// ランクフィルターの切り替え（サポーター用）
+	const setNsfw = useCallback((nsfw: boolean) => {
+		setFilters((current) => ({ ...current, nsfw }));
+	}, []);
+	const setPlayed = useCallback((played: PlayedFilter) => {
+		setFilters((current) => ({ ...current, played }));
+	}, []);
 	const toggleRank = useCallback((rank: RankFilter) => {
-		setFiltersState((prev) => ({
-			...prev,
-			rank: toggleArrayFilter(prev.rank || [], rank),
+		setFilters((current) => ({
+			...current,
+			rank: toggleArrayFilter(current.rank ?? [], rank),
 		}));
 	}, []);
-
-	// 高度な検索クエリ設定
-	const setAdvancedQuery = useCallback(
-		(query: AdvancedSearchQuery) => {
-			setFilters({ advancedQuery: query });
-		},
-		[setFilters],
-	);
-
-	// 高度な検索クエリ文字列から設定
-	const setAdvancedQueryString = useCallback(
-		(queryString: string) => {
-			const query = parseAdvancedQuery(queryString);
-			setAdvancedQuery(query);
-		},
-		[setAdvancedQuery],
-	);
-
-	// すべてのフィルターをリセット
-	const resetAllFilters = useCallback(() => {
-		setFiltersState(resetFilters());
-	}, []);
-
-	// 特定のフィルタータイプをリセット
-	const resetFilter = useCallback(<T extends keyof SearchFilters>(filterType: T) => {
-		setFiltersState((prev) => resetFilterType(prev, filterType));
-	}, []);
-
-	// APIパラメータを取得
-	const getApiParams = useCallback(() => {
-		const params = filtersToParams(filters);
-
-		// 高度な検索クエリを追加
-		if (filters.advancedQuery && Object.keys(filters.advancedQuery).length > 0) {
-			const queryString = advancedQueryToString(filters.advancedQuery);
-			if (queryString) {
-				params.q = (params.q || "") + " " + queryString;
-			}
-		}
-
-		return params;
-	}, [filters]);
-
-	// フィルターがアクティブかチェック
-	const isActive = hasActiveFilters(filters);
-
-	// サポーター機能が必要かチェック
-	const requiresSupporter = needsSupporter(filters);
-
-	// フィルターの統計情報
-	const getFilterStats = useCallback(() => {
-		const activeFilters = activeFilterFlags(filters);
-		return {
-			totalActive: Object.values(activeFilters).filter(Boolean).length,
-			activeFilters,
-		};
-	}, [filters]);
+	const resetAllFilters = useCallback(() => setFilters(resetFilters()), []);
 
 	return {
-		// 状態
 		filters,
-		genres,
-		languages,
-		isActive,
-		requiresSupporter,
-
-		// 更新関数
-		setFilters,
 		setSort,
 		setStatus,
 		setMode,
-		setExtra,
 		toggleExtra,
-		setGeneral,
 		toggleGeneral,
-		setGenre,
 		toggleGenre,
-		setLanguage,
 		toggleLanguage,
 		setNsfw,
 		setPlayed,
-		setRank,
 		toggleRank,
-		setAdvancedQuery,
-		setAdvancedQueryString,
-
-		// リセット関数
 		resetAllFilters,
-		resetFilter,
-
-		// ユーティリティ
-		getApiParams,
-		getFilterStats,
 	};
 }

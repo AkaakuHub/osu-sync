@@ -1,7 +1,7 @@
 // 検索フィルターパネル - osu!公式風のシンプルなレイアウト
 
 import { ChevronDown } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { tv } from "tailwind-variants";
 import {
 	ArrayFilterControls,
@@ -24,6 +24,7 @@ import {
 	SORT_FIELD_LABELS,
 	STATUS_LABELS,
 } from "./types";
+import { activeFilterFlags } from "./utils";
 
 // 手動定義のジャンルと言語
 const GENRES = [
@@ -93,12 +94,11 @@ export function FilterPanel({
 		setPlayed,
 		toggleRank,
 		resetAllFilters,
-		getFilterStats,
 		toggleGenre,
 		toggleLanguage,
 	} = useSearchFilters({ onFiltersChange, initialFilters, searchQuery });
 
-	const filterStats = useMemo(() => getFilterStats(), [getFilterStats]);
+	const activeFilterCount = Object.values(activeFilterFlags(filters)).filter(Boolean).length;
 
 	const headerClass = tv({
 		base: "flex items-center justify-between px-4 py-1 cursor-pointer border-b hover:bg-surface-variant/50 transition-colors",
@@ -121,14 +121,14 @@ export function FilterPanel({
 			>
 				<div className="flex items-center gap-2">
 					<span className="font-medium text-text">Filters</span>
-					{filterStats.totalActive > 0 && (
+					{activeFilterCount > 0 && (
 						<span className="inline-flex items-center justify-center min-w-[20px] h-5 px-2 bg-accent text-accent-foreground text-xs font-medium rounded-full">
-							{filterStats.totalActive}
+							{activeFilterCount}
 						</span>
 					)}
 				</div>
 				<div className="flex items-center gap-2">
-					{filterStats.totalActive > 0 && (
+					{activeFilterCount > 0 && (
 						<button
 							onClick={(e) => {
 								e.stopPropagation(); // ヘッダーのクリックイベントを伝播させない
