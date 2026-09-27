@@ -1,7 +1,5 @@
 import asyncio
 import logging
-import os
-import re
 import time
 import zipfile
 from dataclasses import dataclass, field
@@ -62,8 +60,6 @@ class DownloadManager:
         self._tasks: dict[int, DownloadTask] = {}
         self._worker_handles: dict[int, asyncio.Task[None]] = {}
         self._workers_started = False
-        self._archive_paths: dict[int, Path] = {}
-        self._archive_mtime_ns: int | None = None
         self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
         self._client = httpx.AsyncClient(follow_redirects=True, timeout=60)
         self._event_bus = event_bus
@@ -132,8 +128,6 @@ class DownloadManager:
         index: SongIndex,
     ) -> None:
         self.songs_dir = Path(songs_dir)
-        self._archive_paths.clear()
-        self._archive_mtime_ns = None
         self.url_template = url_template
         self.query_options = query_options
         self.index = index
@@ -195,9 +189,7 @@ class DownloadManager:
             finally:
                 if task.temp_path is not None:
                     try:
-                        mtime_ns = task.temp_path.parent.stat().st_mtime_ns
                         task.temp_path.unlink(missing_ok=True)
-                        self._record_directory_mutation(task.temp_path.parent, mtime_ns)
                     except OSError:
                         logger.exception(
                             "Failed to remove partial download %s", task.temp_path
@@ -210,10 +202,6 @@ class DownloadManager:
         songs_dir = self.songs_dir
         index = self.index
         songs_dir.mkdir(parents=True, exist_ok=True)
-        existing_archive = self._find_existing_archive(task.set_id, songs_dir)
-        if existing_archive:
-            self._skip_existing_archive(task, existing_archive, index)
-            return
 
         async with self._limiter:
             async with self._client.stream("GET", task.url) as resp:
@@ -254,9 +242,7 @@ class DownloadManager:
 
                 downloaded = 0
                 last_emit = time.time()
-                mtime_before_temp = songs_dir.stat().st_mtime_ns
                 with tmp_path.open("wb") as f:
-                    self._record_directory_mutation(songs_dir, mtime_before_temp)
                     async for chunk in resp.aiter_bytes(4096):
                         f.write(chunk)
                         downloaded += len(chunk)
@@ -285,11 +271,7 @@ class DownloadManager:
                 if archive_path.exists():
                     self._skip_existing_archive(task, archive_path, index)
                     return
-                mtime_before_archive = songs_dir.stat().st_mtime_ns
                 tmp_path.rename(archive_path)
-                if songs_dir == self.songs_dir:
-                    self._archive_paths[task.set_id] = archive_path
-                self._record_directory_mutation(songs_dir, mtime_before_archive)
                 task.archive_path = archive_path
                 task.path = archive_path
                 duration = time.time() - (task.started_at or time.time())
@@ -321,11 +303,7 @@ class DownloadManager:
                         task.url,
                     )
                     try:
-                        mtime_before_remove = songs_dir.stat().st_mtime_ns
                         archive_path.unlink()
-                        if songs_dir == self.songs_dir:
-                            self._archive_paths.pop(task.set_id, None)
-                        self._record_directory_mutation(songs_dir, mtime_before_remove)
                     except FileNotFoundError:
                         pass
                     return
@@ -355,8 +333,6 @@ class DownloadManager:
         task.total_bytes = path.stat().st_size
         task.bytes_downloaded = task.total_bytes
         task.updated_at = time.time()
-        if path.parent == self.songs_dir:
-            self._archive_paths[task.set_id] = path
         if index:
             index.mark_owned(task.set_id)
         self._publish_status()
@@ -419,29 +395,6 @@ class DownloadManager:
             "artist_unicode": task.artist_unicode,
             "title_unicode": task.title_unicode,
         }
-
-    def _find_existing_archive(self, set_id: int, songs_dir: Path) -> Path | None:
-        mtime_ns = songs_dir.stat().st_mtime_ns
-        if self._archive_mtime_ns != mtime_ns:
-            paths: dict[int, Path] = {}
-            with os.scandir(songs_dir) as entries:
-                for entry in entries:
-                    if not entry.name.lower().endswith(".osz") or not entry.is_file():
-                        continue
-                    match = re.match(r"^\(?(\d+)\)?", entry.name)
-                    if match:
-                        paths.setdefault(int(match.group(1)), Path(entry.path))
-            self._archive_paths = paths
-            self._archive_mtime_ns = (
-                mtime_ns if songs_dir.stat().st_mtime_ns == mtime_ns else None
-            )
-        return self._archive_paths.get(set_id)
-
-    def _record_directory_mutation(
-        self, songs_dir: Path, previous_mtime_ns: int
-    ) -> None:
-        if songs_dir == self.songs_dir and self._archive_mtime_ns == previous_mtime_ns:
-            self._archive_mtime_ns = songs_dir.stat().st_mtime_ns
 
     def _derive_metadata_from_archive(
         self, archive_path: Path

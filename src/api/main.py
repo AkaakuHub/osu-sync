@@ -438,6 +438,12 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
 
     @api.post("/download", response_model=QueueStatus)
     async def download(req: DownloadRequest) -> QueueStatus:
+        await app.state.index_load_task
+        if not app.state.index.loaded:
+            raise HTTPException(
+                status_code=503, detail="Local song index is unavailable"
+            )
+        await app.state.index.refresh_if_changed()
         missing = [s for s in req.set_ids if not app.state.index.owned(s)]
         logger.info(
             "POST /download requested=%s missing=%s metadata_keys=%s",

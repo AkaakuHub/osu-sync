@@ -320,6 +320,10 @@ class SongIndex:
     def owned(self, set_id: int) -> bool:
         return set_id in self._owned
 
+    @property
+    def loaded(self) -> bool:
+        return self._loaded
+
     def summary(self) -> dict[str, int]:
         return {
             "owned_sets": len(self._owned),
