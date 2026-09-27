@@ -57,6 +57,7 @@ const SearchResults: React.FC<Props> = ({
 	const [internalCurrentPage, setInternalCurrentPage] = React.useState(1);
 	const [hasMore, setHasMore] = React.useState(true);
 	const [isFetchingMore, setIsFetchingMore] = React.useState(false);
+	const [resultRevision, setResultRevision] = React.useState(0);
 	const checkedOwnershipKey = React.useRef<string | null>(null);
 
 	const data = searchData;
@@ -65,6 +66,7 @@ const SearchResults: React.FC<Props> = ({
 	React.useEffect(() => {
 		if (searchData) {
 			setAllResults(searchData.results);
+			setResultRevision((revision) => revision + 1);
 			setHasMore(searchData.results.length < searchData.total);
 			setInternalCurrentPage(1);
 		}
@@ -73,7 +75,7 @@ const SearchResults: React.FC<Props> = ({
 	React.useEffect(() => {
 		if (scanRevision === 0 || allResults.length === 0) return;
 		const setIds = allResults.map((item) => item.set_id);
-		const key = `${scanRevision}:${buildSearchParams(searchQuery, searchFilters)}:${setIds.join(",")}`;
+		const key = `${scanRevision}:${resultRevision}:${setIds.join(",")}`;
 		if (checkedOwnershipKey.current === key) return;
 		let cancelled = false;
 		apiClient
@@ -91,7 +93,7 @@ const SearchResults: React.FC<Props> = ({
 		return () => {
 			cancelled = true;
 		};
-	}, [allResults, scanRevision, searchQuery, searchFilters]);
+	}, [allResults, scanRevision, resultRevision]);
 
 	// 次のページを読み込む
 	const handleLoadMore = React.useCallback(async () => {
