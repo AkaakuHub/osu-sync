@@ -236,13 +236,28 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             except Exception:
                 logger.exception("Failed to load local song index")
 
+        async def monitor_archives() -> None:
+            await app.state.index_load_task
+            while True:
+                await asyncio.sleep(15)
+                try:
+                    await app.state.index.refresh_archives_if_changed()
+                except Exception:
+                    logger.exception("Failed to refresh archive index")
+
         app.state.index_load_task = asyncio.create_task(load_index())
+        app.state.archive_monitor_task = asyncio.create_task(monitor_archives())
         await app.state.downloader.start_workers()
 
     @app.on_event("shutdown")
     async def shutdown() -> None:
         app.state.index_load_task.cancel()
-        await asyncio.gather(app.state.index_load_task, return_exceptions=True)
+        app.state.archive_monitor_task.cancel()
+        await asyncio.gather(
+            app.state.index_load_task,
+            app.state.archive_monitor_task,
+            return_exceptions=True,
+        )
         await app.state.downloader.close()
         if app.state.osu_enabled:
             await app.state.osu.close()

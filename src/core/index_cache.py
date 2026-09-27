@@ -31,7 +31,8 @@ class SongIndexStore:
                 "PRIMARY KEY (songs_dir, set_id))"
             )
             connection.execute(
-                "CREATE TABLE IF NOT EXISTS archive_source (path TEXT PRIMARY KEY)"
+                "CREATE TABLE IF NOT EXISTS archive_state "
+                "(path TEXT PRIMARY KEY, mtime_ns INTEGER NOT NULL)"
             )
             connection.commit()
             return connection
@@ -109,19 +110,22 @@ class SongIndexStore:
             return None
         try:
             source_path = str(songs_dir.resolve())
+            mtime_ns = songs_dir.stat().st_mtime_ns
             with closing(self._connect()) as connection:
                 row = connection.execute(
-                    "SELECT path FROM archive_source WHERE path = ?", (source_path,)
+                    "SELECT mtime_ns FROM archive_state WHERE path = ?",
+                    (source_path,),
                 ).fetchone()
-                if row is None:
+                if row != (mtime_ns,):
                     return None
-                return {
+                owned = {
                     set_id
                     for (set_id,) in connection.execute(
                         "SELECT set_id FROM archives WHERE songs_dir = ?",
                         (source_path,),
                     )
                 }
+                return owned if songs_dir.stat().st_mtime_ns == mtime_ns else None
         except (OSError, sqlite3.DatabaseError):
             return None
 
@@ -143,9 +147,14 @@ class SongIndexStore:
             return None
 
     def save_archives(
-        self, songs_dir: Path, metadata: dict[int, tuple[int, str, str, str]]
+        self,
+        songs_dir: Path,
+        mtime_ns: int,
+        metadata: dict[int, tuple[int, str, str, str]],
     ) -> None:
         try:
+            if songs_dir.stat().st_mtime_ns != mtime_ns:
+                return
             source_path = str(songs_dir.resolve())
             with closing(self._connect()) as connection:
                 with connection:
@@ -156,10 +165,16 @@ class SongIndexStore:
                         "INSERT INTO archives VALUES (?, ?, ?, ?, ?)",
                         ((source_path, *fields) for fields in metadata.values()),
                     )
-                    connection.execute(
-                        "INSERT OR IGNORE INTO archive_source VALUES (?)",
-                        (source_path,),
-                    )
+                    if songs_dir.stat().st_mtime_ns == mtime_ns:
+                        connection.execute(
+                            "INSERT OR REPLACE INTO archive_state VALUES (?, ?)",
+                            (source_path, mtime_ns),
+                        )
+                    else:
+                        connection.execute(
+                            "DELETE FROM archive_state WHERE path = ?",
+                            (source_path,),
+                        )
         except (OSError, sqlite3.DatabaseError):
             logger.exception("Failed to save archive index")
 

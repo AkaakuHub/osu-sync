@@ -33,6 +33,7 @@ class SongIndex:
         self._owned: set[int] = set()
         self._db_owned: set[int] = set()
         self._archive_owned: set[int] = set()
+        self._archive_root_mtime_ns: int | None = None
         self._metadata: dict[
             int, tuple[int, str, str, str]
         ] = {}  # (set_id, artist, title, creator)
@@ -87,9 +88,16 @@ class SongIndex:
             finally:
                 self._scanning = False
 
+    async def refresh_archives_if_changed(self) -> None:
+        if self._scanning or not self.songs_dir.is_dir():
+            return
+        if self.songs_dir.stat().st_mtime_ns != self._archive_root_mtime_ns:
+            await self.refresh()
+
     async def _load_hybrid(self) -> None:
         osu_owned: set[int] = set()
         osz_owned: set[int] = set()
+        archive_mtime_ns: int | None = None
 
         try:
             # 1. osu!.dbから読み込み
@@ -103,12 +111,14 @@ class SongIndex:
 
             # 2. .oszファイルから読み込み
             try:
-                osz_owned = await self._load_archives()
+                osz_owned, archive_mtime_ns = await self._load_archives()
             except Exception as e:
                 print(f"Error scanning .osz files: {e}")
 
+            previous_owned = self._owned
             self._db_owned = osu_owned
             self._archive_owned = osz_owned.union(self._marked_during_scan)
+            self._archive_root_mtime_ns = archive_mtime_ns
             self._owned = osu_owned.union(osz_owned, self._marked_during_scan)
             self._metadata = {}
             self._metadata.update(
@@ -139,7 +149,8 @@ class SongIndex:
                     "completed_at": None,
                     "error_message": None,
                     "updated_at": None,
-                }
+                },
+                publish=self._owned != previous_owned,
             )
         except Exception as exc:
             await self._emit_scan_event({"status": "error", "error_message": str(exc)})
@@ -216,27 +227,31 @@ class SongIndex:
 
         return owned, metadata
 
-    async def _load_archives(self) -> set[int]:
-        if not self.songs_dir.exists():
+    async def _load_archives(self) -> tuple[set[int], int | None]:
+        if not self.songs_dir.is_dir():
             print(f"Songs directory not found at {self.songs_dir}")
-            return set()
+            return set(), None
 
         return await asyncio.to_thread(self._scan_osz_sync)
 
     def _scan_osz_sync(
         self,
-    ) -> set[int]:
-        """同期版.oszスキャン"""
+    ) -> tuple[set[int], int | None]:
         songs_dir = self.songs_dir
+        mtime_ns = songs_dir.stat().st_mtime_ns
         cached = self._cache.load_archives(songs_dir)
         if cached is not None:
-            return cached
+            return cached, mtime_ns
 
         owned: set[int] = set()
         metadata: dict[int, tuple[int, str, str, str]] = {}
-        for directory, _, filenames in os.walk(songs_dir):
-            for filename in filenames:
+        mtime_ns = songs_dir.stat().st_mtime_ns
+        with os.scandir(songs_dir) as entries:
+            for entry in entries:
+                filename = entry.name
                 if not filename.lower().endswith(".osz"):
+                    continue
+                if not entry.is_file(follow_symlinks=False):
                     continue
                 match = re.match(r"^(\d+)", filename)
                 if not match:
@@ -250,15 +265,16 @@ class SongIndex:
                     artist, title = self._extract_metadata_from_filename(filename)
                     metadata[set_id] = (set_id, artist, title, "")
 
-        self._cache.save_archives(songs_dir, metadata)
+        self._cache.save_archives(songs_dir, mtime_ns, metadata)
 
         print(f"Found {len(owned)} unique sets from .osz files")
-        return owned
+        current = self._cache.load_archives(songs_dir)
+        return (current, mtime_ns) if current is not None else (owned, None)
 
     def _extract_metadata_from_filename(self, filename: str) -> tuple[str, str]:
         """ファイル名からアーティストとタイトルを抽出"""
         # "123456 Artist - Title.osz" → ("Artist", "Title")
-        if filename.endswith(".osz"):
+        if filename.lower().endswith(".osz"):
             filename = filename[:-4]  # .oszを削除
 
         # 最初の数字部分を削除
@@ -266,11 +282,8 @@ class SongIndex:
 
         # " - " で分割
         if " - " in filename:
-            parts = filename.split(" - ", 1)
-            if len(parts) == 2:
-                artist = parts[0].strip()
-                title = parts[1].strip()
-                return artist, title
+            artist, title = filename.split(" - ", 1)
+            return artist.strip(), title.strip()
 
         # 分割できない場合は全体をタイトルとして扱う
         return "", filename.strip()
@@ -301,9 +314,13 @@ class SongIndex:
         if self._scanning:
             self._marked_during_scan[set_id] = metadata
 
-    async def _emit_scan_event(self, payload: dict[str, object]) -> None:
+    async def _emit_scan_event(
+        self, payload: dict[str, object], publish: bool = True
+    ) -> None:
         """Push scan status to SSE subscribers."""
         self._scan_status.update(payload)
+        if not publish:
+            return
         try:
             await self._event_bus.publish({"topic": "scan", "data": payload})
         except Exception as exc:
