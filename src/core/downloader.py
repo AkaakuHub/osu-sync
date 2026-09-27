@@ -23,6 +23,7 @@ class DownloadTask:
     message: str = ""
     path: Path | None = None
     archive_path: Path | None = None
+    temp_path: Path | None = None
     bytes_downloaded: int = 0
     total_bytes: int | None = None
     progress: float | None = 0.0
@@ -192,6 +193,14 @@ class DownloadManager:
                     exc,
                 )
             finally:
+                if task.temp_path is not None:
+                    try:
+                        task.temp_path.unlink(missing_ok=True)
+                    except OSError:
+                        logger.exception(
+                            "Failed to remove partial download %s", task.temp_path
+                        )
+                    task.temp_path = None
                 self._queue.task_done()
                 self._publish_status()
 
@@ -201,23 +210,7 @@ class DownloadManager:
         songs_dir.mkdir(parents=True, exist_ok=True)
         existing_archive = self._find_existing_archive(task.set_id, songs_dir)
         if existing_archive:
-            task.status = "skipped"
-            task.message = "already exists"
-            task.archive_path = existing_archive
-            task.path = existing_archive
-            task.display_name = existing_archive.stem
-            task.progress = 1.0
-            task.total_bytes = existing_archive.stat().st_size
-            task.bytes_downloaded = task.total_bytes
-            task.updated_at = time.time()
-            if index:
-                index.mark_owned(task.set_id)
-            self._publish_status()
-            logger.info(
-                "Skip download (exists) set_id=%s path=%s",
-                task.set_id,
-                existing_archive,
-            )
+            self._skip_existing_archive(task, existing_archive, index)
             return
 
         async with self._limiter:
@@ -248,6 +241,7 @@ class DownloadManager:
                     return
 
                 tmp_path = songs_dir / f"{task.set_id}-{int(time.time() * 1000)}.part"
+                task.temp_path = tmp_path
                 task.started_at = time.time()
                 task.updated_at = task.started_at
                 content_length = resp.headers.get("content-length")
@@ -285,7 +279,8 @@ class DownloadManager:
                 archive_path = songs_dir / f"{base_name}.osz"
                 archive_path.parent.mkdir(parents=True, exist_ok=True)
                 if archive_path.exists():
-                    archive_path.unlink()
+                    self._skip_existing_archive(task, archive_path, index)
+                    return
                 tmp_path.rename(archive_path)
                 self._archive_paths[task.set_id] = archive_path
                 if self._archive_mtime_ns is not None:
@@ -338,6 +333,24 @@ class DownloadManager:
             if task.artist or task.title:
                 meta = (task.set_id, task.artist or "", task.title or "", "")
             index.mark_owned(task.set_id, meta)
+
+    def _skip_existing_archive(
+        self, task: DownloadTask, path: Path, index: SongIndex | None
+    ) -> None:
+        task.status = "skipped"
+        task.message = "already exists"
+        task.archive_path = path
+        task.path = path
+        task.display_name = path.stem
+        task.progress = 1.0
+        task.total_bytes = path.stat().st_size
+        task.bytes_downloaded = task.total_bytes
+        task.updated_at = time.time()
+        self._archive_paths[task.set_id] = path
+        if index:
+            index.mark_owned(task.set_id)
+        self._publish_status()
+        logger.info("Skip download (exists) set_id=%s path=%s", task.set_id, path)
 
     def status(self) -> dict[str, object]:
         queued = [t for t in self._tasks.values() if t.status == "queued"]
