@@ -151,11 +151,7 @@ const SearchPage: React.FC<Props> = ({
 		});
 	}, [searchError]);
 
-	const {
-		data: index,
-		refetch: refetchIndex,
-		isFetching: indexLoading,
-	} = useQuery<IndexSummary>({
+	const { data: index, refetch: refetchIndex } = useQuery<IndexSummary>({
 		queryKey: ["index"],
 		queryFn: () => apiClient.get<IndexSummary>("/local/index"),
 	});
@@ -262,8 +258,6 @@ const SearchPage: React.FC<Props> = ({
 							showUnicode={showUnicode}
 							setShowUnicode={setShowUnicode}
 							indexSummary={index}
-							indexLoading={indexLoading}
-							onRefreshIndex={refetchIndex}
 							setSearchQuery={setSearchQuery}
 						/>
 					</div>

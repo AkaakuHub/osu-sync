@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Languages, RotateCcw } from "lucide-react";
+import { Download, Languages } from "lucide-react";
 import React from "react";
 import toast from "react-hot-toast";
 import {
@@ -32,8 +32,6 @@ type Props = {
 	showUnicode: boolean;
 	setShowUnicode: (v: boolean) => void;
 	indexSummary?: IndexSummary;
-	indexLoading?: boolean;
-	onRefreshIndex: () => void;
 	setSearchQuery: (value: string) => void;
 };
 
@@ -50,8 +48,6 @@ const SearchResults: React.FC<Props> = ({
 	showUnicode,
 	setShowUnicode,
 	indexSummary,
-	indexLoading,
-	onRefreshIndex,
 	setSearchQuery,
 }) => {
 	const client = useQueryClient();
@@ -310,16 +306,6 @@ const SearchResults: React.FC<Props> = ({
 						{showUnicode ? "Unicode" : "Normal"}
 					</button>
 					<Toggle checked={notOwnedOnly} onChange={setNotOwnedOnly} label="Not Owned Only" />
-					<Button
-						variant="ghost"
-						onClick={onRefreshIndex}
-						disabled={indexLoading}
-						size="sm"
-						className="text-xs px-2 py-1 h-8"
-						title="Refresh local index"
-					>
-						<RotateCcw className="w-3.5 h-3.5" />
-					</Button>
 				</div>
 			</div>
 
