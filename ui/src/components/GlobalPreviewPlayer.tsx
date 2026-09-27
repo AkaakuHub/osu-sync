@@ -1,9 +1,10 @@
-import React from "react";
-import { Howl } from "howler";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
-import type { PreviewableItem } from "./search/ResultCard";
+import { Howl } from "howler";
+import React from "react";
 import { apiClient, type Settings } from "../hooks/useApiClient";
+import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
+import { PREVIEW_STATE_EVENT } from "./search/previewBridge";
+import type { PreviewableItem } from "./search/ResultCard";
 
 // SearchResults.tsxから移動した状態
 const GlobalPreviewPlayer: React.FC = () => {
@@ -382,27 +383,20 @@ const GlobalPreviewPlayer: React.FC = () => {
 	// グローバルに機能を提供
 	React.useEffect(() => {
 		// グローバルにtogglePreview関数を公開
-		(window as any).togglePreview = togglePreview;
-		(window as any).previewPlayerState = {
+		window.togglePreview = togglePreview;
+		window.previewPlayerState = {
 			previewingId,
 			isLoadingPreview,
 			isActuallyPlaying,
 			playbackProgress,
-			currentTrack,
 		};
+		window.dispatchEvent(new Event(PREVIEW_STATE_EVENT));
 
 		return () => {
-			delete (window as any).togglePreview;
-			delete (window as any).previewPlayerState;
+			delete window.togglePreview;
+			delete window.previewPlayerState;
 		};
-	}, [
-		togglePreview,
-		previewingId,
-		isLoadingPreview,
-		isActuallyPlaying,
-		playbackProgress,
-		currentTrack,
-	]);
+	}, [togglePreview, previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress]);
 
 	// 設定読み込み前のみ非表示
 	if (!isSettingsLoaded) {

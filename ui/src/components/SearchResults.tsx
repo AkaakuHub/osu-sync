@@ -9,11 +9,12 @@ import {
 	type SearchResponse,
 } from "../hooks/useApiClient";
 import { triggerDownload } from "../utils/downloadUtils";
+import { buildSearchParams } from "./search/buildSearchParams";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
+import { PREVIEW_STATE_EVENT, type PreviewState } from "./search/previewBridge";
 import type { PreviewableItem } from "./search/ResultCard";
 import ResultList from "./search/ResultList";
 import type { SearchFilters } from "./search/types";
-import { DEFAULT_FILTERS } from "./search/types";
 import { hasActiveFilters } from "./search/utils";
 import Button from "./ui/Button";
 import Toggle from "./ui/Toggle";
@@ -67,7 +68,6 @@ const SearchResults: React.FC<Props> = ({
 	// 初回データまたは検索条件変更時に結果をリセット
 	React.useEffect(() => {
 		if (searchData) {
-			console.log("DEBUG: Resetting results with new data", searchData.results.length);
 			setAllResults(searchData.results);
 			setHasMore(searchData.results.length < searchData.total);
 			setInternalCurrentPage(1);
@@ -101,60 +101,13 @@ const SearchResults: React.FC<Props> = ({
 	const handleLoadMore = React.useCallback(async () => {
 		if (!hasMore || isFetchingMore || !searchData) return;
 
-		console.log("DEBUG: Loading more results, current page:", internalCurrentPage);
 		setIsFetchingMore(true);
 		const nextPage = internalCurrentPage + 1;
 
-		const filters = searchFilters ?? DEFAULT_FILTERS;
 		try {
-			// SearchPageのbuildSearchQueryと同じロジックでURLを構築
-			const params = new URLSearchParams();
-
-			// 基本検索クエリ
-			params.set("q", searchQuery || "");
-
-			// ページングパラメータ
-			params.set("page", nextPage.toString());
-			params.set("limit", "20");
-
-			// フィルターパラメータ
-			if (filters.status && filters.status !== "any") {
-				params.set("s", filters.status);
-			}
-			if (filters.mode && filters.mode !== "null") {
-				params.set("m", filters.mode.toString());
-			}
-			if (filters.genre && filters.genre.length > 0) {
-				params.set("g", filters.genre.join(","));
-			}
-			if (filters.language && filters.language.length > 0) {
-				params.set("l", filters.language.join(","));
-			}
-			if (filters.extra && filters.extra.length > 0) {
-				params.set("e", filters.extra.join("."));
-			}
-			if (filters.general && filters.general.length > 0) {
-				params.set("c", filters.general.join("."));
-			}
-			if (filters.nsfw !== undefined) {
-				params.set("nsfw", filters.nsfw.toString());
-			}
-			if (filters.played && filters.played !== "any") {
-				params.set("played", filters.played);
-			}
-			if (filters.rank && filters.rank.length > 0) {
-				params.set("r", filters.rank.join("."));
-			}
-			if (filters.sortField && filters.sortOrder) {
-				params.set("sort", `${filters.sortField}_${filters.sortOrder}`);
-			}
-
-			const endpoint = `/search?${params.toString()}`;
-			console.log("DEBUG: Loading more results from:", endpoint);
-
+			const endpoint = `/search?${buildSearchParams(searchQuery, searchFilters, nextPage)}`;
 			const newData = await apiClient.get<SearchResponse>(endpoint);
 
-			console.log("DEBUG: Loaded", newData.results.length, "more results");
 			setAllResults((prev) => [...prev, ...newData.results]);
 			setInternalCurrentPage(nextPage);
 			setHasMore(
@@ -231,49 +184,23 @@ const SearchResults: React.FC<Props> = ({
 
 	// GlobalPreviewPlayerからグローバル関数を取得
 	const togglePreview = React.useCallback((item: PreviewableItem) => {
-		const previewWindow = window as Window & {
-			togglePreview?: (item: PreviewableItem) => void;
-		};
-		previewWindow.togglePreview?.(item);
+		window.togglePreview?.(item);
 	}, []);
 
-	// GlobalPreviewPlayerの状態をリアルタイムで取得（useEffectで定期更新）
-	const [previewState, setPreviewState] = React.useState({
-		previewingId: null as number | null,
+	const [previewState, setPreviewState] = React.useState<PreviewState>({
+		previewingId: null,
 		isLoadingPreview: false,
 		playbackProgress: 0,
 		isActuallyPlaying: false,
 	});
 
-	// グローバル状態の監視と同期
 	React.useEffect(() => {
 		const updatePreviewState = () => {
-			const previewWindow = window as Window & {
-				previewPlayerState?: {
-					previewingId: number | null;
-					isLoadingPreview: boolean;
-					playbackProgress: number;
-					isActuallyPlaying: boolean;
-				};
-			};
-			const state = previewWindow.previewPlayerState;
-			setPreviewState({
-				previewingId: state?.previewingId ?? null,
-				isLoadingPreview: state?.isLoadingPreview ?? false,
-				playbackProgress: state?.playbackProgress ?? 0,
-				isActuallyPlaying: state?.isActuallyPlaying ?? false,
-			});
+			if (window.previewPlayerState) setPreviewState(window.previewPlayerState);
 		};
-
-		// 初期状態の取得
 		updatePreviewState();
-
-		// 定期的に状態を更新（100ms間隔）
-		const interval = setInterval(updatePreviewState, 100);
-
-		return () => {
-			clearInterval(interval);
-		};
+		window.addEventListener(PREVIEW_STATE_EVENT, updatePreviewState);
+		return () => window.removeEventListener(PREVIEW_STATE_EVENT, updatePreviewState);
 	}, []);
 
 	const getActionState = React.useCallback(

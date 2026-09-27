@@ -10,6 +10,7 @@ import {
 } from "../../hooks/useApiClient";
 import { getEventSource } from "../../utils/eventSource";
 import SearchResults from "../SearchResults";
+import { buildSearchParams } from "../search/buildSearchParams";
 import { FilterPanel } from "../search/FilterPanel";
 import { type SearchFilters } from "../search/types";
 import { resetFilters } from "../search/utils";
@@ -125,82 +126,16 @@ const SearchPage: React.FC<Props> = ({
 		recordSearchHistory(debouncedSearchQuery);
 	}, [debouncedSearchQuery, recordSearchHistory]);
 
-	// フィルターパラメータを構築 - 公式APIのURL短縮形に完全対応
-	const buildSearchQuery = () => {
-		const params = new URLSearchParams();
-
-		const filters = searchFilters ?? resetFilters();
-
-		// 基本検索クエリ（全検索の場合も空文字で送信）
-		params.set("q", debouncedSearchQuery || "");
-
-		// フィルターを適用 - 公式APIの短縮形パラメータ名を使用
-		if (filters.status && filters.status !== "any") {
-			params.set("s", filters.status);
-		}
-
-		if (filters.mode && filters.mode !== "null") {
-			params.set("m", filters.mode);
-		}
-
-		// ジャンル - カンマ区切り（公式形式）
-		if (filters.genre && filters.genre.length > 0) {
-			params.set("g", filters.genre.join(","));
-		}
-
-		// 言語 - カンマ区切り（公式形式）
-		if (filters.language && filters.language.length > 0) {
-			params.set("l", filters.language.join(",")); // lang -> l (公式API)
-		}
-
-		// エクストラ - ドット区切り（公式形式）
-		if (filters.extra && filters.extra.length > 0) {
-			params.set("e", filters.extra.join("."));
-		}
-
-		// 一般フィルター - ドット区切り（公式形式）
-		if (filters.general && filters.general.length > 0) {
-			params.set("c", filters.general.join("."));
-		}
-
-		// NSFW - 文字列で送信（公式形式）
-		if (filters.nsfw !== undefined) {
-			params.set("nsfw", filters.nsfw.toString());
-		}
-
-		// プレイ済みフィルター
-		if (filters.played && filters.played !== "any") {
-			params.set("played", filters.played);
-		}
-
-		// ランクフィルター - ドット区切り（公式形式）
-		if (filters.rank && filters.rank.length > 0) {
-			params.set("r", filters.rank.join(".")); // rank -> r (公式API)
-		}
-
-		// ソート - field_order形式（公式形式）
-		if (filters.sortField && filters.sortOrder) {
-			params.set("sort", `${filters.sortField}_${filters.sortOrder}`);
-		}
-
-		// ページネーション
-		params.set("limit", "20");
-		params.set("page", "1");
-
-		return params.toString();
-	};
-
 	const {
 		data: searchResults,
 		isFetching: searchLoading,
 		error: searchError,
 	} = useQuery<SearchResponse>({
 		queryKey: ["search", debouncedSearchQuery, searchFilters],
-		queryFn: async () => {
-			const query = buildSearchQuery();
-			const endpoint = `/search?${query}`;
-			return apiClient.get(endpoint);
-		},
+		queryFn: () =>
+			apiClient.get<SearchResponse>(
+				`/search?${buildSearchParams(debouncedSearchQuery, searchFilters)}`,
+			),
 		enabled: filtersReady && searchQuery === debouncedSearchQuery,
 		staleTime: 60_000,
 		refetchOnMount: false,
