@@ -73,7 +73,7 @@ const SearchResults: React.FC<Props> = ({
 	React.useEffect(() => {
 		if (scanRevision === 0 || allResults.length === 0) return;
 		const setIds = allResults.map((item) => item.set_id);
-		const key = `${scanRevision}:${setIds.join(",")}`;
+		const key = `${scanRevision}:${buildSearchParams(searchQuery, searchFilters)}:${setIds.join(",")}`;
 		if (checkedOwnershipKey.current === key) return;
 		let cancelled = false;
 		apiClient
@@ -91,7 +91,7 @@ const SearchResults: React.FC<Props> = ({
 		return () => {
 			cancelled = true;
 		};
-	}, [allResults, scanRevision]);
+	}, [allResults, scanRevision, searchQuery, searchFilters]);
 
 	// 次のページを読み込む
 	const handleLoadMore = React.useCallback(async () => {

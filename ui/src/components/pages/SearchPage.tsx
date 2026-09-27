@@ -187,6 +187,7 @@ const SearchPage: React.FC<Props> = ({
 			}
 		};
 		es.addEventListener("message", handler);
+		window.addEventListener("focus", refreshOwnership);
 		apiClient
 			.get<{ status: string }>("/local/scan-status")
 			.then(({ status }) => {
@@ -197,6 +198,7 @@ const SearchPage: React.FC<Props> = ({
 			disposed = true;
 			clearTimeout(timer);
 			es.removeEventListener("message", handler);
+			window.removeEventListener("focus", refreshOwnership);
 		};
 	}, [refetchIndex]);
 
