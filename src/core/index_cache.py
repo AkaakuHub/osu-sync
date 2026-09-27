@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import threading
 from contextlib import closing
 from pathlib import Path
 
@@ -9,36 +10,44 @@ logger = logging.getLogger("osu_sync.index_cache")
 class SongIndexStore:
     def __init__(self, path: Path) -> None:
         self.path = path
+        self._schema_ready = False
+        self._schema_lock = threading.Lock()
 
     def _connect(self) -> sqlite3.Connection:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(self.path)
-        try:
-            connection.execute(
-                "CREATE TABLE IF NOT EXISTS source "
-                "(id INTEGER PRIMARY KEY CHECK (id = 1), path TEXT NOT NULL, "
-                "size INTEGER NOT NULL, mtime_ns INTEGER NOT NULL)"
-            )
-            connection.execute(
-                "CREATE TABLE IF NOT EXISTS songs "
-                "(set_id INTEGER PRIMARY KEY, artist TEXT NOT NULL, "
-                "title TEXT NOT NULL, creator TEXT NOT NULL)"
-            )
-            connection.execute(
-                "CREATE TABLE IF NOT EXISTS archives "
-                "(songs_dir TEXT NOT NULL, set_id INTEGER NOT NULL, "
-                "artist TEXT NOT NULL, title TEXT NOT NULL, creator TEXT NOT NULL, "
-                "PRIMARY KEY (songs_dir, set_id))"
-            )
-            connection.execute(
-                "CREATE TABLE IF NOT EXISTS archive_state "
-                "(path TEXT PRIMARY KEY, mtime_ns INTEGER NOT NULL)"
-            )
-            connection.commit()
-            return connection
-        except sqlite3.DatabaseError:
-            connection.close()
-            raise
+        if self._schema_ready:
+            return sqlite3.connect(self.path)
+        with self._schema_lock:
+            if self._schema_ready:
+                return sqlite3.connect(self.path)
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            connection = sqlite3.connect(self.path)
+            try:
+                connection.execute(
+                    "CREATE TABLE IF NOT EXISTS source "
+                    "(id INTEGER PRIMARY KEY CHECK (id = 1), path TEXT NOT NULL, "
+                    "size INTEGER NOT NULL, mtime_ns INTEGER NOT NULL)"
+                )
+                connection.execute(
+                    "CREATE TABLE IF NOT EXISTS songs "
+                    "(set_id INTEGER PRIMARY KEY, artist TEXT NOT NULL, "
+                    "title TEXT NOT NULL, creator TEXT NOT NULL)"
+                )
+                connection.execute(
+                    "CREATE TABLE IF NOT EXISTS archives "
+                    "(songs_dir TEXT NOT NULL, set_id INTEGER NOT NULL, "
+                    "artist TEXT NOT NULL, title TEXT NOT NULL, creator TEXT NOT NULL, "
+                    "PRIMARY KEY (songs_dir, set_id))"
+                )
+                connection.execute(
+                    "CREATE TABLE IF NOT EXISTS archive_state "
+                    "(path TEXT PRIMARY KEY, mtime_ns INTEGER NOT NULL)"
+                )
+                connection.commit()
+                self._schema_ready = True
+                return connection
+            except sqlite3.DatabaseError:
+                connection.close()
+                raise
 
     @staticmethod
     def source_signature(source: Path) -> tuple[str, int, int]:

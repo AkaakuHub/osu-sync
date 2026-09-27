@@ -92,20 +92,10 @@ class SongIndex:
         osz_owned: set[int] = set()
 
         try:
-            # 1. osu!.dbから読み込み
             if Path(self.osu_db_path).exists():
-                try:
-                    osu_owned = await asyncio.to_thread(self._read_osu_db_sync)
-                except Exception as e:
-                    print(f"Error parsing osu!.db: {e}")
-            else:
-                print(f"osu!.db not found at {self.osu_db_path}, using .osz files only")
+                osu_owned = await asyncio.to_thread(self._read_osu_db_sync)
 
-            # 2. .oszファイルから読み込み
-            try:
-                osz_owned = await self._load_archives()
-            except Exception as e:
-                print(f"Error scanning .osz files: {e}")
+            osz_owned = await self._load_archives()
 
             previous_owned = self._owned
             self._db_owned = osu_owned
@@ -156,6 +146,8 @@ class SongIndex:
             return cached
         signature = self._cache.source_signature(source)
         owned, metadata = self._parse_osu_db_sync()
+        if self._cache.source_signature(source) != signature:
+            raise RuntimeError("osu!.db changed while being read")
         self._cache.save_songs(source, signature, metadata)
         return owned
 
@@ -225,9 +217,16 @@ class SongIndex:
 
         return await asyncio.to_thread(self._scan_osz_sync)
 
-    def _scan_osz_sync(
+    def _scan_osz_sync(self) -> set[int]:
+        for _ in range(3):
+            owned = self._scan_osz_once()
+            if owned is not None:
+                return owned
+        raise RuntimeError("Songs directory changed while being read")
+
+    def _scan_osz_once(
         self,
-    ) -> set[int]:
+    ) -> set[int] | None:
         songs_dir = self.songs_dir
         mtime_ns = songs_dir.stat().st_mtime_ns
         cached = self._cache.load_archives(songs_dir)
@@ -260,7 +259,9 @@ class SongIndex:
 
         print(f"Found {len(owned)} unique sets from .osz files")
         current = self._cache.load_archives(songs_dir)
-        return current if current is not None else owned
+        if current is not None:
+            return current
+        return owned if songs_dir.stat().st_mtime_ns == mtime_ns else None
 
     def _extract_metadata_from_filename(self, filename: str) -> tuple[str, str]:
         """ファイル名からアーティストとタイトルを抽出"""
