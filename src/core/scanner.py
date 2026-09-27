@@ -1,11 +1,12 @@
 import asyncio
+import os
 import re
 from pathlib import Path
 from types import SimpleNamespace
 
 from kaitaistruct import KaitaiStream
 
-from core.index_cache import OsuDbIndexCache
+from core.index_cache import OsuDbIndexCache, OszIndexCache
 from osu_db_construct.osu_db import OsuDb
 
 
@@ -24,6 +25,11 @@ class SongIndex:
         self.osu_db_path = osu_db_path
         self.songs_dir = Path(songs_dir) if songs_dir else None
         self._cache = OsuDbIndexCache(cache_path) if cache_path else None
+        self._osz_cache = (
+            OszIndexCache(cache_path.with_name("osz-index.json"))
+            if cache_path
+            else None
+        )
         self._owned: set[int] = set()
         self._metadata: dict[
             int, tuple[int, str, str, str]
@@ -204,41 +210,45 @@ class SongIndex:
     async def _scan_osz_fast(
         self,
     ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
-        """ファイル名からのみ.oszを高速スキャン - O(1) per file"""
-        owned: set[int] = set()
-        metadata: dict[int, tuple[int, str, str, str]] = {}
-
         if not self.songs_dir or not self.songs_dir.exists():
             print(f"Songs directory not found at {self.songs_dir}")
-            return owned, metadata
+            return set(), {}
 
-        # 別スレッドで実行
-        return await asyncio.to_thread(self._scan_osz_sync, owned, metadata)
+        return await asyncio.to_thread(self._scan_osz_sync)
 
     def _scan_osz_sync(
-        self, owned: set[int], metadata: dict[int, tuple[int, str, str, str]]
+        self,
     ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
         """同期版.oszスキャン"""
-        for osz_path in self.songs_dir.rglob("*.osz"):
-            filename = osz_path.name
-            # "123456 Artist - Title.osz" → 123456
-            match = re.match(r"^(\d+)", filename)
-            if match:
+        songs_dir = self.songs_dir
+        if self._osz_cache:
+            cached = self._osz_cache.load(songs_dir)
+            if cached is not None:
+                return cached
+
+        owned: set[int] = set()
+        metadata: dict[int, tuple[int, str, str, str]] = {}
+        directories: dict[str, int] = {}
+        for directory, _, filenames in os.walk(songs_dir):
+            path = Path(directory)
+            directories[str(path.relative_to(songs_dir))] = path.stat().st_mtime_ns
+            for filename in filenames:
+                if not filename.lower().endswith(".osz"):
+                    continue
+                match = re.match(r"^(\d+)", filename)
+                if not match:
+                    continue
                 set_id = int(match.group(1))
                 if set_id <= 0:
                     continue
 
                 owned.add(set_id)
-
-                # osu!.dbにない場合のみファイル名からメタデータ抽出
                 if set_id not in metadata:
                     artist, title = self._extract_metadata_from_filename(filename)
-                    metadata[set_id] = (
-                        set_id,
-                        artist,
-                        title,
-                        "",
-                    )  # creatorはファイル名から抽出不可
+                    metadata[set_id] = (set_id, artist, title, "")
+
+        if self._osz_cache:
+            self._osz_cache.save(songs_dir, directories, metadata)
 
         print(f"Found {len(owned)} unique sets from .osz files")
         return owned, metadata
