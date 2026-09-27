@@ -81,7 +81,6 @@ class QueueStatus(BaseModel):
 
 class IndexSummary(BaseModel):
     owned_sets: int
-    with_metadata: int
     songs_dir_exists: int
     songs_dir: str
 

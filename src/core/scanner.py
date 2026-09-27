@@ -3,11 +3,16 @@ import os
 import re
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Protocol
 
 from kaitaistruct import KaitaiStream
 
-from core.index_cache import OsuDbIndexCache, OszIndexCache
+from core.index_cache import SongIndexStore
 from osu_db_construct.osu_db import OsuDb
+
+
+class ScanEventPublisher(Protocol):
+    async def publish(self, event: dict[str, object]) -> None: ...
 
 
 class SongIndex:
@@ -17,24 +22,20 @@ class SongIndex:
 
     def __init__(
         self,
-        osu_db_path: str | None = None,
-        songs_dir: str | None = None,
-        cache_path: Path | None = None,
-        event_bus=None,
+        osu_db_path: str,
+        songs_dir: str,
+        cache_path: Path,
+        event_bus: ScanEventPublisher,
     ) -> None:
         self.osu_db_path = osu_db_path
-        self.songs_dir = Path(songs_dir) if songs_dir else None
-        self._cache = OsuDbIndexCache(cache_path) if cache_path else None
-        self._osz_cache = (
-            OszIndexCache(cache_path.with_name("osz-index.json"))
-            if cache_path
-            else None
-        )
+        self.songs_dir = Path(songs_dir)
+        self._cache = SongIndexStore(cache_path)
         self._owned: set[int] = set()
+        self._db_owned: set[int] = set()
+        self._archive_owned: set[int] = set()
         self._metadata: dict[
             int, tuple[int, str, str, str]
         ] = {}  # (set_id, artist, title, creator)
-        self._state_lock = asyncio.Lock()
         self._scan_lock = asyncio.Lock()
         self._scanning = False
         self._scan_status: dict[str, object] = {
@@ -50,13 +51,21 @@ class SongIndex:
         self._marked_during_scan: dict[int, tuple[int, str, str, str] | None] = {}
         self._event_bus = event_bus
 
-    @property
-    def owned_set_ids(self) -> set[int]:
-        return self._owned
-
-    @property
-    def metadata(self) -> dict[int, tuple[int, str, str, str]]:
-        return self._metadata
+    def metadata_for(self, set_id: int) -> tuple[int, str, str, str] | None:
+        cached = self._metadata.get(set_id)
+        if cached is not None:
+            return cached
+        if set_id in self._db_owned:
+            metadata = self._cache.song_metadata(set_id)
+            if metadata is not None:
+                self._metadata[set_id] = metadata
+                return metadata
+        if set_id in self._archive_owned:
+            metadata = self._cache.archive_metadata(self.songs_dir, set_id)
+            if metadata is not None:
+                self._metadata[set_id] = metadata
+                return metadata
+        return None
 
     async def refresh(self) -> None:
         async with self._scan_lock:
@@ -79,16 +88,14 @@ class SongIndex:
                 self._scanning = False
 
     async def _load_hybrid(self) -> None:
-        osu_owned, osu_metadata = set(), {}
-        osz_owned, osz_metadata = set(), {}
+        osu_owned: set[int] = set()
+        osz_owned: set[int] = set()
 
         try:
             # 1. osu!.dbから読み込み
-            if self.osu_db_path and Path(self.osu_db_path).exists():
+            if Path(self.osu_db_path).exists():
                 try:
-                    osu_owned, osu_metadata = await asyncio.to_thread(
-                        self._read_osu_db_sync
-                    )
+                    osu_owned = await asyncio.to_thread(self._read_osu_db_sync)
                 except Exception as e:
                     print(f"Error parsing osu!.db: {e}")
             else:
@@ -96,21 +103,24 @@ class SongIndex:
 
             # 2. .oszファイルから読み込み
             try:
-                osz_owned, osz_metadata = await self._scan_osz_fast()
+                osz_owned = await self._load_archives()
             except Exception as e:
                 print(f"Error scanning .osz files: {e}")
 
-            # 3. マージ (osu!.dbのメタデータを優先)
-            async with self._state_lock:
-                self._owned = osu_owned.union(osz_owned, self._marked_during_scan)
-                # osu!.dbのメタデータを優先し、.oszで補完
-                self._metadata = {**osz_metadata, **osu_metadata}
-                self._metadata.update(
-                    (set_id, details)
-                    for set_id, details in self._marked_during_scan.items()
-                    if details is not None
-                )
-                self._marked_during_scan.clear()
+            self._db_owned = osu_owned
+            self._archive_owned = osz_owned.union(self._marked_during_scan)
+            self._owned = osu_owned.union(osz_owned, self._marked_during_scan)
+            self._metadata = {}
+            self._metadata.update(
+                (set_id, details)
+                for set_id, details in self._marked_during_scan.items()
+                if details is not None
+            )
+            marked = self._marked_during_scan.copy()
+            self._marked_during_scan.clear()
+
+            for set_id, details in marked.items():
+                self._cache.add_archive(self.songs_dir, set_id, details)
 
             print(
                 f"Hybrid scan complete: {len(self._owned)} sets total "
@@ -137,16 +147,15 @@ class SongIndex:
 
     def _read_osu_db_sync(
         self,
-    ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
+    ) -> set[int]:
         source = Path(self.osu_db_path)
-        if self._cache:
-            cached = self._cache.load(source)
-            if cached is not None:
-                return cached
+        cached = self._cache.load_songs(source)
+        if cached is not None:
+            return cached
+        signature = self._cache.source_signature(source)
         owned, metadata = self._parse_osu_db_sync()
-        if self._cache:
-            self._cache.save(source, metadata)
-        return owned, metadata
+        self._cache.save_songs(source, signature, metadata)
+        return owned
 
     def _parse_osu_db_sync(
         self,
@@ -207,31 +216,25 @@ class SongIndex:
 
         return owned, metadata
 
-    async def _scan_osz_fast(
-        self,
-    ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
-        if not self.songs_dir or not self.songs_dir.exists():
+    async def _load_archives(self) -> set[int]:
+        if not self.songs_dir.exists():
             print(f"Songs directory not found at {self.songs_dir}")
-            return set(), {}
+            return set()
 
         return await asyncio.to_thread(self._scan_osz_sync)
 
     def _scan_osz_sync(
         self,
-    ) -> tuple[set[int], dict[int, tuple[int, str, str, str]]]:
+    ) -> set[int]:
         """同期版.oszスキャン"""
         songs_dir = self.songs_dir
-        if self._osz_cache:
-            cached = self._osz_cache.load(songs_dir)
-            if cached is not None:
-                return cached
+        cached = self._cache.load_archives(songs_dir)
+        if cached is not None:
+            return cached
 
         owned: set[int] = set()
         metadata: dict[int, tuple[int, str, str, str]] = {}
-        directories: dict[str, int] = {}
         for directory, _, filenames in os.walk(songs_dir):
-            path = Path(directory)
-            directories[str(path.relative_to(songs_dir))] = path.stat().st_mtime_ns
             for filename in filenames:
                 if not filename.lower().endswith(".osz"):
                     continue
@@ -247,11 +250,10 @@ class SongIndex:
                     artist, title = self._extract_metadata_from_filename(filename)
                     metadata[set_id] = (set_id, artist, title, "")
 
-        if self._osz_cache:
-            self._osz_cache.save(songs_dir, directories, metadata)
+        self._cache.save_archives(songs_dir, metadata)
 
         print(f"Found {len(owned)} unique sets from .osz files")
-        return owned, metadata
+        return owned
 
     def _extract_metadata_from_filename(self, filename: str) -> tuple[str, str]:
         """ファイル名からアーティストとタイトルを抽出"""
@@ -273,18 +275,13 @@ class SongIndex:
         # 分割できない場合は全体をタイトルとして扱う
         return "", filename.strip()
 
-    async def force_refresh_sync(self) -> None:
-        """同期で強制リフレッシュ"""
-        await self.refresh()
-
     def owned(self, set_id: int) -> bool:
         return set_id in self._owned
 
     def summary(self) -> dict[str, int]:
         return {
             "owned_sets": len(self._owned),
-            "with_metadata": len(self._metadata),
-            "songs_dir_exists": int(self.songs_dir and self.songs_dir.exists()),
+            "songs_dir_exists": int(self.songs_dir.exists()),
         }
 
     def get_scan_status(self) -> dict[str, object]:
@@ -297,16 +294,16 @@ class SongIndex:
         ダウンロード完了直後に所有セットを即時反映。
         """
         self._owned.add(set_id)
+        self._archive_owned.add(set_id)
         if metadata:
             self._metadata[set_id] = metadata
+        self._cache.add_archive(self.songs_dir, set_id, metadata)
         if self._scanning:
             self._marked_during_scan[set_id] = metadata
 
     async def _emit_scan_event(self, payload: dict[str, object]) -> None:
         """Push scan status to SSE subscribers."""
         self._scan_status.update(payload)
-        if not self._event_bus:
-            return
         try:
             await self._event_bus.publish({"topic": "scan", "data": payload})
         except Exception as exc:

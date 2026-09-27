@@ -280,10 +280,6 @@ const SearchResults: React.FC<Props> = ({
 							<span className="flex items-center gap-1">
 								Owned <span className="font-semibold text-text">{indexSummary.owned_sets}</span>
 							</span>
-							<span className="flex items-center gap-1">
-								Metadata{" "}
-								<span className="font-semibold text-text">{indexSummary.with_metadata}</span>
-							</span>
 						</div>
 					)}
 				</div>

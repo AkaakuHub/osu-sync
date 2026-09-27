@@ -114,7 +114,6 @@ export interface QueueStatus {
 
 export interface IndexSummary {
 	owned_sets: number;
-	with_metadata: number;
 	songs_dir_exists: number;
 	songs_dir: string;
 }

@@ -127,7 +127,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
     app.state.index = SongIndex(
         osu_db_path=settings.osu_db_path,
         songs_dir=settings.songs_dir,
-        cache_path=settings.store.path.with_name("osu-db-index.json"),
+        cache_path=settings.store.path.with_name("song-index.sqlite3"),
         event_bus=app.state.event_bus,
     )
     app.state.downloader = DownloadManager(
@@ -551,7 +551,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             app.state.index = SongIndex(
                 osu_db_path=settings.osu_db_path,
                 songs_dir=settings.songs_dir,
-                cache_path=settings.store.path.with_name("osu-db-index.json"),
+                cache_path=settings.store.path.with_name("song-index.sqlite3"),
                 event_bus=app.state.event_bus,
             )
             downloader_changed = True

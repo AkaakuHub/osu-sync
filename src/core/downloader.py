@@ -88,12 +88,10 @@ class DownloadManager:
                 task.title = metadata[set_id].get("title")
                 task.artist_unicode = metadata[set_id].get("artist_unicode")
                 task.title_unicode = metadata[set_id].get("title_unicode")
-            elif self.index and set_id in self.index.metadata:
-                index_metadata = self.index.metadata[set_id]
-                if len(index_metadata) >= 4:
-                    _, artist, title, _creator = index_metadata
-                    task.artist = artist
-                    task.title = title
+            elif self.index and (index_metadata := self.index.metadata_for(set_id)):
+                _, artist, title, _creator = index_metadata
+                task.artist = artist
+                task.title = title
             self._tasks[set_id] = task
             self._queue.put_nowait(task)
             new_tasks.append(task)
@@ -344,13 +342,9 @@ class DownloadManager:
         # Backfill metadata for existing tasks
         all_tasks = queued + running + finished
         for task in all_tasks:
-            if (
-                (not task.artist or not task.title)
-                and self.index
-                and task.set_id in self.index.metadata
-            ):
-                metadata = self.index.metadata[task.set_id]
-                if len(metadata) >= 4:
+            if (not task.artist or not task.title) and self.index:
+                metadata = self.index.metadata_for(task.set_id)
+                if metadata:
                     _, artist, title, _creator = metadata
                     if not task.artist:
                         task.artist = artist

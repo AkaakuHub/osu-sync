@@ -1,131 +1,178 @@
-import json
-import os
-import tempfile
+import logging
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 
-IndexData = tuple[set[int], dict[int, tuple[int, str, str, str]]]
+logger = logging.getLogger("osu_sync.index_cache")
 
 
-class OsuDbIndexCache:
+class SongIndexStore:
     def __init__(self, path: Path) -> None:
         self.path = path
 
-    def _signature(self, source: Path) -> dict[str, str | int]:
+    def _connect(self) -> sqlite3.Connection:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(self.path)
+        try:
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS source "
+                "(id INTEGER PRIMARY KEY CHECK (id = 1), path TEXT NOT NULL, "
+                "size INTEGER NOT NULL, mtime_ns INTEGER NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS songs "
+                "(set_id INTEGER PRIMARY KEY, artist TEXT NOT NULL, "
+                "title TEXT NOT NULL, creator TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS archives "
+                "(songs_dir TEXT NOT NULL, set_id INTEGER NOT NULL, "
+                "artist TEXT NOT NULL, title TEXT NOT NULL, creator TEXT NOT NULL, "
+                "PRIMARY KEY (songs_dir, set_id))"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS archive_source (path TEXT PRIMARY KEY)"
+            )
+            connection.commit()
+            return connection
+        except sqlite3.DatabaseError:
+            connection.close()
+            raise
+
+    @staticmethod
+    def source_signature(source: Path) -> tuple[str, int, int]:
         stat = source.stat()
-        return {
-            "path": str(source.resolve()),
-            "size": stat.st_size,
-            "mtime_ns": stat.st_mtime_ns,
-        }
+        return str(source.resolve()), stat.st_size, stat.st_mtime_ns
 
-    def load(self, source: Path) -> IndexData | None:
+    def load_songs(self, source: Path) -> set[int] | None:
+        if not self.path.exists():
+            return None
         try:
-            with self.path.open(encoding="utf-8") as file:
-                data = json.load(file)
-            if data.get("version") != 1 or data.get("source") != self._signature(
-                source
-            ):
-                return None
-            metadata = {
-                int(set_id): (int(set_id), *fields)
-                for set_id, fields in data["metadata"].items()
-            }
-            return set(metadata), metadata
-        except (OSError, ValueError, TypeError, KeyError, AttributeError):
+            signature = self.source_signature(source)
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT path, size, mtime_ns FROM source WHERE id = 1"
+                ).fetchone()
+                if row != signature:
+                    return None
+                owned = {
+                    set_id
+                    for (set_id,) in connection.execute("SELECT set_id FROM songs")
+                }
+                return owned if self.source_signature(source) == signature else None
+        except (OSError, sqlite3.DatabaseError):
             return None
 
-    def save(
-        self, source: Path, metadata: dict[int, tuple[int, str, str, str]]
-    ) -> None:
+    def song_metadata(self, set_id: int) -> tuple[int, str, str, str] | None:
+        if not self.path.exists():
+            return None
         try:
-            signature = self._signature(source)
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", dir=self.path.parent, delete=False
-            ) as file:
-                temporary_path = Path(file.name)
-                json.dump(
-                    {
-                        "version": 1,
-                        "source": signature,
-                        "metadata": {
-                            str(set_id): list(fields[1:])
-                            for set_id, fields in metadata.items()
-                        },
-                    },
-                    file,
-                    ensure_ascii=False,
-                )
-            if self._signature(source) == signature:
-                os.replace(temporary_path, self.path)
-            else:
-                temporary_path.unlink()
-        except OSError:
-            if "temporary_path" in locals():
-                temporary_path.unlink(missing_ok=True)
-
-
-class OszIndexCache:
-    def __init__(self, path: Path) -> None:
-        self.path = path
-
-    def load(self, songs_dir: Path) -> IndexData | None:
-        try:
-            with self.path.open(encoding="utf-8") as file:
-                data = json.load(file)
-            if data.get("version") != 1 or data.get("songs_dir") != str(
-                songs_dir.resolve()
-            ):
-                return None
-            directories = data["directories"]
-            if "." not in directories:
-                return None
-            for relative_path, mtime_ns in directories.items():
-                relative = Path(relative_path)
-                if relative.is_absolute() or ".." in relative.parts:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT set_id, artist, title, creator FROM songs WHERE set_id = ?",
+                    (set_id,),
+                ).fetchone()
+                if row is None:
                     return None
-                if (songs_dir / relative).stat().st_mtime_ns != mtime_ns:
-                    return None
-            metadata = {
-                int(set_id): (int(set_id), *fields)
-                for set_id, fields in data["metadata"].items()
-            }
-            return set(metadata), metadata
-        except (OSError, ValueError, TypeError, KeyError, AttributeError):
+                song_id, artist, title, creator = row
+                return song_id, artist, title, creator
+        except (OSError, sqlite3.DatabaseError):
             return None
 
-    def save(
+    def save_songs(
         self,
-        songs_dir: Path,
-        directories: dict[str, int],
+        source: Path,
+        signature: tuple[str, int, int],
         metadata: dict[int, tuple[int, str, str, str]],
     ) -> None:
         try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", dir=self.path.parent, delete=False
-            ) as file:
-                temporary_path = Path(file.name)
-                json.dump(
-                    {
-                        "version": 1,
-                        "songs_dir": str(songs_dir.resolve()),
-                        "directories": directories,
-                        "metadata": {
-                            str(set_id): list(fields[1:])
-                            for set_id, fields in metadata.items()
-                        },
-                    },
-                    file,
-                    ensure_ascii=False,
-                )
-            if all(
-                (songs_dir / relative_path).stat().st_mtime_ns == mtime_ns
-                for relative_path, mtime_ns in directories.items()
-            ):
-                os.replace(temporary_path, self.path)
-            else:
-                temporary_path.unlink()
-        except OSError:
-            if "temporary_path" in locals():
-                temporary_path.unlink(missing_ok=True)
+            if self.source_signature(source) != signature:
+                return
+            with closing(self._connect()) as connection:
+                with connection:
+                    connection.execute("DELETE FROM songs")
+                    connection.executemany(
+                        "INSERT INTO songs VALUES (?, ?, ?, ?)", metadata.values()
+                    )
+                    if self.source_signature(source) == signature:
+                        connection.execute(
+                            "INSERT OR REPLACE INTO source VALUES (1, ?, ?, ?)",
+                            signature,
+                        )
+                    else:
+                        connection.execute("DELETE FROM source")
+        except (OSError, sqlite3.DatabaseError):
+            logger.exception("Failed to save osu!.db index")
+
+    def load_archives(self, songs_dir: Path) -> set[int] | None:
+        if not self.path.exists():
+            return None
+        try:
+            source_path = str(songs_dir.resolve())
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT path FROM archive_source WHERE path = ?", (source_path,)
+                ).fetchone()
+                if row is None:
+                    return None
+                return {
+                    set_id
+                    for (set_id,) in connection.execute(
+                        "SELECT set_id FROM archives WHERE songs_dir = ?",
+                        (source_path,),
+                    )
+                }
+        except (OSError, sqlite3.DatabaseError):
+            return None
+
+    def archive_metadata(
+        self, songs_dir: Path, set_id: int
+    ) -> tuple[int, str, str, str] | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT set_id, artist, title, creator FROM archives "
+                    "WHERE songs_dir = ? AND set_id = ?",
+                    (str(songs_dir.resolve()), set_id),
+                ).fetchone()
+                if row is None:
+                    return None
+                archive_id, artist, title, creator = row
+                return archive_id, artist, title, creator
+        except (OSError, sqlite3.DatabaseError):
+            return None
+
+    def save_archives(
+        self, songs_dir: Path, metadata: dict[int, tuple[int, str, str, str]]
+    ) -> None:
+        try:
+            source_path = str(songs_dir.resolve())
+            with closing(self._connect()) as connection:
+                with connection:
+                    connection.execute(
+                        "DELETE FROM archives WHERE songs_dir = ?", (source_path,)
+                    )
+                    connection.executemany(
+                        "INSERT INTO archives VALUES (?, ?, ?, ?, ?)",
+                        ((source_path, *fields) for fields in metadata.values()),
+                    )
+                    connection.execute(
+                        "INSERT OR IGNORE INTO archive_source VALUES (?)",
+                        (source_path,),
+                    )
+        except (OSError, sqlite3.DatabaseError):
+            logger.exception("Failed to save archive index")
+
+    def add_archive(
+        self, songs_dir: Path, set_id: int, metadata: tuple[int, str, str, str] | None
+    ) -> None:
+        try:
+            source_path = str(songs_dir.resolve())
+            with closing(self._connect()) as connection:
+                with connection:
+                    connection.execute(
+                        "INSERT OR REPLACE INTO archives VALUES (?, ?, ?, ?, ?)",
+                        (source_path, *(metadata or (set_id, "", "", ""))),
+                    )
+        except (OSError, sqlite3.DatabaseError):
+            logger.exception("Failed to record downloaded archive")
