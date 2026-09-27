@@ -342,7 +342,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
         }
 
     @api.get("/local/scan-status")
-    async def scan_status() -> dict:
+    async def scan_status() -> dict[str, object]:
         """スキャン状態を取得"""
         return app.state.index.get_scan_status()
 

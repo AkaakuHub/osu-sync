@@ -140,7 +140,6 @@ export interface UpdateStatus {
 }
 
 export interface ScanStatus {
-	id: number;
 	status: "idle" | "scanning" | "completed" | "error";
 	total_files: number;
 	processed_files: number;

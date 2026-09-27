@@ -31,6 +31,16 @@ class SongIndex:
         self._state_lock = asyncio.Lock()
         self._scan_lock = asyncio.Lock()
         self._scanning = False
+        self._scan_status: dict[str, object] = {
+            "status": "idle",
+            "total_files": 0,
+            "processed_files": 0,
+            "current_file": None,
+            "started_at": None,
+            "completed_at": None,
+            "error_message": None,
+            "updated_at": None,
+        }
         self._marked_during_scan: dict[int, tuple[int, str, str, str] | None] = {}
         self._event_bus = event_bus
 
@@ -267,30 +277,8 @@ class SongIndex:
             "songs_dir_exists": int(self.songs_dir and self.songs_dir.exists()),
         }
 
-    def get_scan_status(self) -> dict[str, any]:
-        """現在のスキャン状態を取得"""
-        if self._scanning:
-            return {
-                "status": "scanning",
-                "total_files": 0,
-                "processed_files": 0,
-                "current_file": "osu!.db",
-                "started_at": None,
-                "completed_at": None,
-                "error_message": None,
-                "updated_at": None,
-            }
-        else:
-            return {
-                "status": "completed",
-                "total_files": 1,
-                "processed_files": 1,
-                "current_file": None,
-                "started_at": None,
-                "completed_at": None,
-                "error_message": None,
-                "updated_at": None,
-            }
+    def get_scan_status(self) -> dict[str, object]:
+        return self._scan_status.copy()
 
     def mark_owned(
         self, set_id: int, metadata: tuple[int, str, str, str] | None = None
@@ -304,8 +292,9 @@ class SongIndex:
         if self._scanning:
             self._marked_during_scan[set_id] = metadata
 
-    async def _emit_scan_event(self, payload: dict[str, any]) -> None:
+    async def _emit_scan_event(self, payload: dict[str, object]) -> None:
         """Push scan status to SSE subscribers."""
+        self._scan_status.update(payload)
         if not self._event_bus:
             return
         try:
