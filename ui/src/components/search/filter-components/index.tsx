@@ -1,21 +1,31 @@
-// FilterPanelで使用するUIコンポーネント群 - osu!公式風のシンプルなデザイン
+import type { GameMode, SortField, SortOrder, StatusFilter } from "../types";
+
+const GAME_MODE_VALUES: GameMode[] = ["null", "0", "1", "2", "3"];
 
 // ソートコントロール
 interface SortControlsProps {
-	value: string;
-	onChange: (field: string, order: "asc" | "desc") => void;
-	sortFields: string[];
-	sortLabels: Record<string, string>;
+	field: SortField;
+	order: SortOrder;
+	onChange: (field: SortField, order: SortOrder) => void;
+	sortFields: SortField[];
+	sortLabels: Record<SortField, string>;
 }
 
-export function SortControls({ value, onChange, sortFields, sortLabels }: SortControlsProps) {
-	const [currentField, currentOrder] = value.split("_");
-
+export function SortControls({
+	field,
+	order,
+	onChange,
+	sortFields,
+	sortLabels,
+}: SortControlsProps) {
 	return (
 		<div className="flex gap-2">
 			<select
-				value={currentField}
-				onChange={(e) => onChange(e.target.value, currentOrder as "asc" | "desc")}
+				value={field}
+				onChange={(e) => {
+					const selected = sortFields.find((item) => item === e.target.value);
+					if (selected) onChange(selected, order);
+				}}
 				className="px-2 py-1 text-xs bg-surface border border-border rounded text-text focus:outline-none focus:border-accent"
 			>
 				{sortFields.map((field) => (
@@ -26,8 +36,8 @@ export function SortControls({ value, onChange, sortFields, sortLabels }: SortCo
 			</select>
 
 			<select
-				value={currentOrder}
-				onChange={(e) => onChange(currentField, e.target.value as "asc" | "desc")}
+				value={order}
+				onChange={(e) => onChange(field, e.target.value === "asc" ? "asc" : "desc")}
 				className="px-2 py-1 text-xs bg-surface border border-border rounded text-text focus:outline-none focus:border-accent"
 			>
 				<option value="desc">↓</option>
@@ -39,10 +49,10 @@ export function SortControls({ value, onChange, sortFields, sortLabels }: SortCo
 
 // ステータスコントロール
 interface StatusControlsProps {
-	value: string;
-	onChange: (status: string) => void;
-	statuses: string[];
-	statusLabels: Record<string, string>;
+	value: StatusFilter;
+	onChange: (status: StatusFilter) => void;
+	statuses: StatusFilter[];
+	statusLabels: Record<StatusFilter, string>;
 }
 
 export function StatusControls({ value, onChange, statuses, statusLabels }: StatusControlsProps) {
@@ -67,15 +77,15 @@ export function StatusControls({ value, onChange, statuses, statusLabels }: Stat
 
 // モードコントロール
 interface ModeControlsProps {
-	value: string;
-	onChange: (mode: string) => void;
-	modes: Record<string, string>;
+	value: GameMode;
+	onChange: (mode: GameMode) => void;
+	modes: Record<GameMode, string>;
 }
 
 export function ModeControls({ value, onChange, modes }: ModeControlsProps) {
 	return (
 		<div className="flex flex-wrap gap-1">
-			{Object.entries(modes).map(([modeValue, label]) => (
+			{GAME_MODE_VALUES.map((modeValue) => (
 				<button
 					key={modeValue}
 					onClick={() => onChange(modeValue)}
@@ -85,7 +95,7 @@ export function ModeControls({ value, onChange, modes }: ModeControlsProps) {
 							: "bg-surface-variant text-text-secondary hover:bg-surface hover:text-text"
 					}`}
 				>
-					{label}
+					{modes[modeValue]}
 				</button>
 			))}
 		</div>
@@ -93,19 +103,22 @@ export function ModeControls({ value, onChange, modes }: ModeControlsProps) {
 }
 
 // 配列フィルターコントロール
-interface ArrayFilterControlItem {
-	value: string;
+interface ArrayFilterControlItem<T extends string> {
+	value: T;
 	label: string;
 }
 
-interface ArrayFilterControlsProps {
-	type: "checkbox" | "radio";
-	items: ArrayFilterControlItem[];
-	selectedValues: string[];
-	onToggle: (value: string) => void;
+interface ArrayFilterControlsProps<T extends string> {
+	items: ArrayFilterControlItem<T>[];
+	selectedValues: T[];
+	onToggle: (value: T) => void;
 }
 
-export function ArrayFilterControls({ items, selectedValues, onToggle }: ArrayFilterControlsProps) {
+export function ArrayFilterControls<T extends string>({
+	items,
+	selectedValues,
+	onToggle,
+}: ArrayFilterControlsProps<T>) {
 	return (
 		<div className="flex flex-wrap gap-1">
 			{items.map((item) => (
@@ -149,17 +162,20 @@ export function NsfwToggle({ value, onChange }: NsfwToggleProps) {
 }
 
 // セレクトフィルター
-interface SelectFilterProps {
-	value: string;
-	onChange: (value: string) => void;
-	options: { value: string; label: string }[];
+interface SelectFilterProps<T extends string> {
+	value: T;
+	onChange: (value: T) => void;
+	options: { value: T; label: string }[];
 }
 
-export function SelectFilter({ value, onChange, options }: SelectFilterProps) {
+export function SelectFilter<T extends string>({ value, onChange, options }: SelectFilterProps<T>) {
 	return (
 		<select
 			value={value}
-			onChange={(e) => onChange(e.target.value)}
+			onChange={(e) => {
+				const selected = options.find((option) => option.value === e.target.value);
+				if (selected) onChange(selected.value);
+			}}
 			className="px-2 py-1 text-xs bg-surface border border-border rounded text-text focus:outline-none focus:border-accent"
 		>
 			{options.map((option) => (

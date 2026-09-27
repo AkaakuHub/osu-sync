@@ -1,10 +1,10 @@
 // 検索フィルター関連のユーティリティ関数
 import {
+	AdvancedSearchQuery,
+	DEFAULT_FILTERS,
 	SearchFilters,
 	SearchParams,
-	AdvancedSearchQuery,
 	SortField,
-	DEFAULT_FILTERS,
 } from "../types";
 
 // フィルター状態をAPIパラメータに変換
@@ -145,17 +145,28 @@ export function getDefaultSortField(filters: Partial<SearchFilters>): SortField 
 }
 
 // フィルターが有効かチェック
-export function hasActiveFilters(filters: Partial<SearchFilters>): boolean {
-	const defaultFilters = DEFAULT_FILTERS;
-
-	// 現在のフィルターを文字列化して比較
-	const currentJson = JSON.stringify(filters);
-	const defaultJson = JSON.stringify(defaultFilters);
-
-	return currentJson !== defaultJson;
+export function activeFilterFlags(filters: Partial<SearchFilters>) {
+	return {
+		sort:
+			(filters.sortField ?? DEFAULT_FILTERS.sortField) !== DEFAULT_FILTERS.sortField ||
+			(filters.sortOrder ?? DEFAULT_FILTERS.sortOrder) !== DEFAULT_FILTERS.sortOrder,
+		status: Boolean(filters.status && filters.status !== "any"),
+		mode: Boolean(filters.mode && filters.mode !== "null"),
+		extra: Boolean(filters.extra?.length),
+		general: Boolean(filters.general?.length),
+		genre: Boolean(filters.genre?.length),
+		language: Boolean(filters.language?.length),
+		nsfw: filters.nsfw === true,
+		played: Boolean(filters.played && filters.played !== "any"),
+		rank: Boolean(filters.rank?.length),
+		advanced: Boolean(filters.advancedQuery && Object.keys(filters.advancedQuery).length),
+	};
 }
 
-// フィルターをリセット
+export function hasActiveFilters(filters: Partial<SearchFilters>): boolean {
+	return Object.values(activeFilterFlags(filters)).some(Boolean);
+}
+
 export function resetFilters(): SearchFilters {
 	return { ...DEFAULT_FILTERS };
 }

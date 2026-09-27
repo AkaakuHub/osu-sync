@@ -1,25 +1,29 @@
 // 検索フィルターパネル - osu!公式風のシンプルなレイアウト
-import { useState, useMemo } from "react";
-import { useSearchFilters } from "./hooks/useSearchFilters";
+
+import { ChevronDown } from "lucide-react";
+import { useMemo, useState } from "react";
+import { tv } from "tailwind-variants";
 import {
-	SortControls,
-	StatusControls,
-	ModeControls,
 	ArrayFilterControls,
+	ModeControls,
 	NsfwToggle,
 	SelectFilter,
+	SortControls,
+	StatusControls,
 } from "./filter-components";
+import { useSearchFilters } from "./hooks/useSearchFilters";
 import {
-	AVAILABLE_SORT_FIELDS,
-	AVAILABLE_STATUSES,
 	AVAILABLE_EXTRAS,
 	AVAILABLE_GENERAL,
 	AVAILABLE_RANKS,
+	AVAILABLE_SORT_FIELDS,
+	AVAILABLE_STATUSES,
 	GAME_MODES,
+	type PlayedFilter,
+	type SearchFilters,
 	SORT_FIELD_LABELS,
 	STATUS_LABELS,
 } from "./types";
-import { tv } from "tailwind-variants";
 
 // 手動定義のジャンルと言語
 const GENRES = [
@@ -58,12 +62,17 @@ const LANGUAGES = [
 ];
 
 interface FilterPanelProps {
-	onFiltersChange?: (filters: any) => void;
-	isSupporter?: boolean;
+	onFiltersChange?: (filters: SearchFilters) => void;
 	className?: string;
-	initialFilters?: any;
+	initialFilters?: SearchFilters | null;
 	searchQuery?: string;
 }
+
+const PLAYED_OPTIONS: { value: PlayedFilter; label: string }[] = [
+	{ value: "any", label: "Any" },
+	{ value: "played", label: "Played" },
+	{ value: "unplayed", label: "Unplayed" },
+];
 
 export function FilterPanel({
 	onFiltersChange,
@@ -85,26 +94,11 @@ export function FilterPanel({
 		toggleRank,
 		resetAllFilters,
 		getFilterStats,
-		setGenre,
-		setLanguage,
+		toggleGenre,
+		toggleLanguage,
 	} = useSearchFilters({ onFiltersChange, initialFilters, searchQuery });
 
 	const filterStats = useMemo(() => getFilterStats(), [getFilterStats]);
-
-	const handleSortChange = (field: string, order: "asc" | "desc") => {
-		setSort(field as any, order);
-	};
-
-	const handleStatusChange = (status: string) => {
-		setStatus(status as any);
-	};
-
-	const handleModeChange = (mode: string) => {
-		setMode(mode as any);
-	};
-
-	// 現在のフィルター設定
-	const sortValue = `${filters.sortField}_${filters.sortOrder}`;
 
 	const headerClass = tv({
 		base: "flex items-center justify-between px-4 py-1 cursor-pointer border-b hover:bg-surface-variant/50 transition-colors",
@@ -145,14 +139,9 @@ export function FilterPanel({
 							Reset
 						</button>
 					)}
-					<svg
+					<ChevronDown
 						className={`w-4 h-4 text-text-secondary transition-transform ${isExpanded ? "rotate-180" : ""}`}
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-					</svg>
+					/>
 				</div>
 			</div>
 
@@ -164,8 +153,9 @@ export function FilterPanel({
 						<span className="text-sm font-medium text-text w-20">Sort:</span>
 						<div className="flex flex-wrap gap-2">
 							<SortControls
-								value={sortValue}
-								onChange={handleSortChange}
+								field={filters.sortField}
+								order={filters.sortOrder}
+								onChange={setSort}
 								sortFields={AVAILABLE_SORT_FIELDS}
 								sortLabels={SORT_FIELD_LABELS}
 							/>
@@ -178,7 +168,7 @@ export function FilterPanel({
 						<div className="flex flex-wrap gap-2">
 							<StatusControls
 								value={filters.status}
-								onChange={handleStatusChange}
+								onChange={setStatus}
 								statuses={AVAILABLE_STATUSES}
 								statusLabels={STATUS_LABELS}
 							/>
@@ -189,7 +179,7 @@ export function FilterPanel({
 					<div className="flex items-center gap-3">
 						<span className="text-sm font-medium text-text w-20">Mode:</span>
 						<div className="flex flex-wrap gap-2">
-							<ModeControls value={filters.mode} onChange={handleModeChange} modes={GAME_MODES} />
+							<ModeControls value={filters.mode} onChange={setMode} modes={GAME_MODES} />
 						</div>
 					</div>
 
@@ -198,10 +188,9 @@ export function FilterPanel({
 						<span className="text-sm font-medium text-text w-20 pt-1">Genre:</span>
 						<div className="flex flex-wrap gap-2 flex-1">
 							<ArrayFilterControls
-								type="checkbox"
 								items={GENRES}
 								selectedValues={filters.genre || []}
-								onToggle={(value) => setGenre(value as any)}
+								onToggle={toggleGenre}
 							/>
 						</div>
 					</div>
@@ -211,10 +200,9 @@ export function FilterPanel({
 						<span className="text-sm font-medium text-text w-20 pt-1">Language:</span>
 						<div className="flex flex-wrap gap-2 flex-1">
 							<ArrayFilterControls
-								type="checkbox"
 								items={LANGUAGES}
 								selectedValues={filters.language || []}
-								onToggle={(value) => setLanguage(value as any)}
+								onToggle={toggleLanguage}
 							/>
 						</div>
 					</div>
@@ -224,13 +212,12 @@ export function FilterPanel({
 						<span className="text-sm font-medium text-text w-20">Extra:</span>
 						<div className="flex flex-wrap gap-2">
 							<ArrayFilterControls
-								type="checkbox"
 								items={AVAILABLE_EXTRAS.map((value) => ({
 									value,
 									label: value === "video" ? "Video" : "Storyboard",
 								}))}
 								selectedValues={filters.extra || []}
-								onToggle={(value) => toggleExtra(value as any)}
+								onToggle={toggleExtra}
 							/>
 						</div>
 					</div>
@@ -240,13 +227,12 @@ export function FilterPanel({
 						<span className="text-sm font-medium text-text w-20">General:</span>
 						<div className="flex flex-wrap gap-2">
 							<ArrayFilterControls
-								type="checkbox"
 								items={AVAILABLE_GENERAL.map((value) => ({
 									value,
 									label: value.charAt(0).toUpperCase() + value.slice(1),
 								}))}
 								selectedValues={filters.general || []}
-								onToggle={(value) => toggleGeneral(value as any)}
+								onToggle={toggleGeneral}
 							/>
 						</div>
 					</div>
@@ -264,13 +250,12 @@ export function FilterPanel({
 						<span className="text-sm font-medium text-text w-20">Rank:</span>
 						<div className="flex flex-wrap gap-2">
 							<ArrayFilterControls
-								type="checkbox"
 								items={AVAILABLE_RANKS.map((value) => ({
 									value,
 									label: value.toUpperCase(),
 								}))}
 								selectedValues={filters.rank || []}
-								onToggle={(value) => toggleRank(value as any)}
+								onToggle={toggleRank}
 							/>
 						</div>
 					</div>
@@ -281,12 +266,8 @@ export function FilterPanel({
 						<div className="flex flex-wrap gap-2">
 							<SelectFilter
 								value={filters.played || "any"}
-								onChange={(value) => setPlayed(value as any)}
-								options={[
-									{ value: "any", label: "Any" },
-									{ value: "played", label: "Played" },
-									{ value: "unplayed", label: "Unplayed" },
-								]}
+								onChange={setPlayed}
+								options={PLAYED_OPTIONS}
 							/>
 						</div>
 					</div>

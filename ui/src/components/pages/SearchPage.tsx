@@ -242,7 +242,6 @@ const SearchPage: React.FC<Props> = ({
 					<div className="flex-shrink-0">
 						<FilterPanel
 							onFiltersChange={handleFiltersChange}
-							isSupporter={false} // TODO: ユーザーのサポーター状態を取得
 							initialFilters={searchFilters}
 							searchQuery={searchQuery}
 						/>

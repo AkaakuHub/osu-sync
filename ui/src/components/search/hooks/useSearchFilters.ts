@@ -1,30 +1,31 @@
 // 検索フィルター用のカスタムフック
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	AdvancedSearchQuery,
+	DEFAULT_FILTERS,
+	ExtraFilter,
+	GameMode,
+	GeneralFilter,
+	Genre,
+	Language,
+	PlayedFilter,
+	RankFilter,
 	SearchFilters,
 	SortField,
 	SortOrder,
 	StatusFilter,
-	GameMode,
-	ExtraFilter,
-	GeneralFilter,
-	PlayedFilter,
-	RankFilter,
-	AdvancedSearchQuery,
-	Genre,
-	Language,
-	DEFAULT_FILTERS,
 } from "../types";
 import {
-	filtersToParams,
+	activeFilterFlags,
 	advancedQueryToString,
+	filtersToParams,
+	getDefaultSortField,
+	hasActiveFilters,
+	needsSupporter,
 	parseAdvancedQuery,
 	resetFilters,
 	resetFilterType,
 	toggleArrayFilter,
-	getDefaultSortField,
-	hasActiveFilters,
-	needsSupporter,
 } from "../utils";
 
 interface UseSearchFiltersOptions {
@@ -169,7 +170,7 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
 	const toggleGenre = useCallback((genreId: string) => {
 		setFiltersState((prev) => ({
 			...prev,
-			genre: toggleArrayFilter(prev.genre, genreId),
+			genre: genreId === "any" ? [] : toggleArrayFilter(prev.genre, genreId),
 		}));
 	}, []);
 
@@ -185,7 +186,7 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
 	const toggleLanguage = useCallback((languageId: string) => {
 		setFiltersState((prev) => ({
 			...prev,
-			language: toggleArrayFilter(prev.language, languageId),
+			language: languageId === "any" ? [] : toggleArrayFilter(prev.language, languageId),
 		}));
 	}, []);
 
@@ -240,8 +241,8 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
 
 	// すべてのフィルターをリセット
 	const resetAllFilters = useCallback(() => {
-		setFilters(resetFilters());
-	}, [setFilters]);
+		setFiltersState(resetFilters());
+	}, []);
 
 	// 特定のフィルタータイプをリセット
 	const resetFilter = useCallback(<T extends keyof SearchFilters>(filterType: T) => {
@@ -271,31 +272,10 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}) {
 
 	// フィルターの統計情報
 	const getFilterStats = useCallback(() => {
+		const activeFilters = activeFilterFlags(filters);
 		return {
-			totalActive: Object.entries(filters).filter(([key, value]) => {
-				if (key === "sortField" || key === "sortOrder") return false;
-				if (Array.isArray(value)) return value.length > 0;
-				return (
-					value !== undefined &&
-					value !== null &&
-					value !== "" &&
-					value !== "any" &&
-					value !== "null"
-				);
-			}).length,
-			activeFilters: {
-				sort: filters.sortField !== "relevance" || filters.sortOrder !== "desc",
-				status: filters.status !== "any",
-				mode: filters.mode !== "null",
-				extra: filters.extra.length > 0,
-				general: filters.general.length > 0,
-				genre: filters.genre.length > 0,
-				language: filters.language.length > 0,
-				nsfw: filters.nsfw,
-				played: filters.played && filters.played !== "any",
-				rank: filters.rank && filters.rank.length > 0,
-				advanced: filters.advancedQuery && Object.keys(filters.advancedQuery).length > 0,
-			},
+			totalActive: Object.values(activeFilters).filter(Boolean).length,
+			activeFilters,
 		};
 	}, [filters]);
 
