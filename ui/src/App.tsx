@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
-import { Search, Download, Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Download, Search, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
+import QueuePage from "./components/pages/QueuePage";
+import SearchPage from "./components/pages/SearchPage";
+import SettingsPage from "./components/pages/SettingsPage";
+import { QueueNotificationManager } from "./components/QueueNotificationManager";
+import { ScanProgress } from "./components/ScanProgress";
+import { type SearchFilters } from "./components/search/types";
+import Badge from "./components/ui/Badge";
 import Tabs from "./components/ui/Tabs";
 import { CustomToast } from "./components/ui/Toast";
-import SearchPage from "./components/pages/SearchPage";
-import QueuePage from "./components/pages/QueuePage";
-import SettingsPage from "./components/pages/SettingsPage";
-import { ScanProgress } from "./components/ScanProgress";
-import { QueueNotificationManager } from "./components/QueueNotificationManager";
-import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
-import { type SearchFilters } from "./components/search/types";
-import toast from "react-hot-toast";
-import { apiClient, type QueueStatus } from "./hooks/useApiClient";
-import Badge from "./components/ui/Badge";
+import { apiClient, type QueueStatus, type UpdateStatus } from "./hooks/useApiClient";
 
 function App() {
 	const [notOwnedOnly, setNotOwnedOnly] = useState(false);
@@ -26,34 +26,28 @@ function App() {
 	});
 	const remainingCount = (queue?.queued?.length ?? 0) + (queue?.running?.length ?? 0);
 
-	// App起動時に一度だけアップデート確認し、あればトースト通知
+	const { data: updateInfo } = useQuery<UpdateStatus>({
+		queryKey: ["update-status"],
+		queryFn: () => apiClient.get<UpdateStatus>("/update/status"),
+		staleTime: 3_600_000,
+		refetchOnWindowFocus: false,
+		retry: 0,
+	});
+
 	useEffect(() => {
-		let cancelled = false;
-		apiClient
-			.get<{
-				update_available: boolean;
-				latest_version: string;
-				current_version: string;
-				rate_limited?: boolean;
-			}>("/update/status")
-			.then((info) => {
-				if (cancelled) return;
-				if (info.update_available) {
-					toast(`Update available: v${info.latest_version}\nYou are on v${info.current_version}`, {
-						id: "update-available",
-						duration: 8000,
-					});
-				} else if (info.rate_limited) {
-					toast.error("Update check rate limited. Try again later or set GITHUB_TOKEN.");
-				}
-			})
-			.catch(() => {
-				/* ignore failures */
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, []);
+		if (!updateInfo) return;
+		if (updateInfo.update_available) {
+			toast(
+				`Update available: v${updateInfo.latest_version}\nYou are on v${updateInfo.current_version}`,
+				{
+					id: "update-available",
+					duration: 8000,
+				},
+			);
+		} else if (updateInfo.rate_limited) {
+			toast.error("Update check rate limited. Try again later or set GITHUB_TOKEN.");
+		}
+	}, [updateInfo]);
 
 	const tabs = [
 		{

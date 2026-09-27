@@ -1,11 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { type QueueStatus } from "../hooks/useApiClient";
 import { getEventSource } from "../utils/eventSource";
 
 export function QueueNotificationManager() {
-	const previousDoneRef = useRef<Map<number, any>>(new Map());
+	const previousDoneRef = useRef<Map<number, string>>(new Map());
 	const queryClient = useQueryClient();
 
 	useEffect(() => {
@@ -25,10 +25,10 @@ export function QueueNotificationManager() {
 				// 新しくcompletedになったエントリをチェック
 				queue.done.forEach((entry) => {
 					if (entry.status === "completed") {
-						const previousEntry = previousDoneRef.current.get(entry.set_id);
+						const previousStatus = previousDoneRef.current.get(entry.set_id);
 
 						// まだ通知していない、または状態が変わった場合のみ通知
-						if (!previousEntry || previousEntry.status !== "completed") {
+						if (previousStatus !== "completed") {
 							const displayName =
 								entry.artist && entry.title
 									? `${entry.artist} - ${entry.title}`
@@ -42,10 +42,7 @@ export function QueueNotificationManager() {
 				// 現在のdone状態を保存
 				previousDoneRef.current.clear();
 				queue.done.forEach((entry) => {
-					previousDoneRef.current.set(entry.set_id, {
-						status: entry.status,
-						updated_at: entry.updated_at,
-					});
+					previousDoneRef.current.set(entry.set_id, entry.status);
 				});
 			} catch (error) {
 				console.error("Failed to process queue event:", error);

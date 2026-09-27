@@ -1,38 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { apiClient, type Settings } from "../hooks/useApiClient";
+import toast from "react-hot-toast";
+import { apiClient, type Settings, type UpdateStatus } from "../hooks/useApiClient";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
-import toast from "react-hot-toast";
 import Modal from "./ui/Modal";
 
 const fetchSettings = () => apiClient.get<Settings>("/settings");
-const saveSettings = (payload: Partial<Settings & { osu_client_secret: string }>) =>
-	apiClient.post<Settings>("/settings", payload);
-type UpdateStatus = {
-	update_available: boolean;
-	latest_version: string;
-	current_version: string;
-	installer_url?: string;
-	release_name?: string;
-	rate_limited?: boolean;
-};
+type SettingsForm = Partial<Settings & { osu_client_secret: string }>;
+const saveSettings = (payload: SettingsForm) =>
+	apiClient.post<{ status: string }>("/settings", payload);
 
 const fetchUpdateStatus = () => apiClient.get<UpdateStatus>("/update/status");
 
 export default function SettingsPanel() {
 	const client = useQueryClient();
 	const { data } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
-	const { data: updateInfo, refetch: refetchUpdate } = useQuery<UpdateStatus>(
-		{
-			queryKey: ["update-status"],
-			queryFn: fetchUpdateStatus,
-			refetchOnWindowFocus: false,
-			retry: 0,
-		},
-		client,
-	);
-	const [form, setForm] = useState<Partial<Settings & { osu_client_secret: string }>>({});
+	const { data: updateInfo, refetch: refetchUpdate } = useQuery<UpdateStatus>({
+		queryKey: ["update-status"],
+		queryFn: fetchUpdateStatus,
+		staleTime: 3_600_000,
+		refetchOnWindowFocus: false,
+		retry: 0,
+	});
+	const [form, setForm] = useState<SettingsForm>({});
 	const [updating, setUpdating] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
 
@@ -62,8 +53,8 @@ export default function SettingsPanel() {
 			} else {
 				toast("Already up to date.");
 			}
-		} catch (e: any) {
-			toast.error(e?.response?.data?.detail || e.message || "Update failed");
+		} catch (error: unknown) {
+			toast.error(error instanceof Error ? error.message : "Update failed");
 		} finally {
 			refetchUpdate();
 			setUpdating(false);
@@ -97,7 +88,7 @@ export default function SettingsPanel() {
 					<Button
 						onClick={() =>
 							refetchUpdate().then((res) => {
-								const info = res.data as UpdateStatus | undefined;
+								const info = res.data;
 								if (info?.update_available) {
 									toast.success("Update available.");
 								} else if (info?.rate_limited) {
@@ -149,7 +140,7 @@ export default function SettingsPanel() {
 				<Button
 					onClick={() =>
 						refetchUpdate().then((res) => {
-							const info = res.data as UpdateStatus | undefined;
+							const info = res.data;
 							if (info && !info.update_available) {
 								toast("Already up to date.");
 							}
@@ -166,7 +157,8 @@ export default function SettingsPanel() {
 		);
 	};
 
-	const update = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
+	const update = <K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) =>
+		setForm((current) => ({ ...current, [key]: value }));
 
 	const hasUnsavedChanges = useMemo(() => {
 		if (!data) return false;

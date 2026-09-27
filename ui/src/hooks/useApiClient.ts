@@ -130,6 +130,15 @@ export interface Settings {
 	player_volume: number;
 }
 
+export interface UpdateStatus {
+	update_available: boolean;
+	latest_version: string;
+	current_version: string;
+	installer_url?: string;
+	release_name?: string;
+	rate_limited?: boolean;
+}
+
 export interface ScanStatus {
 	id: number;
 	status: "idle" | "scanning" | "completed" | "error";
