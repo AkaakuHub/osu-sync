@@ -244,7 +244,7 @@ class SongIndex:
                     continue
                 if not entry.is_file(follow_symlinks=False):
                     continue
-                match = re.match(r"^(\d+)", filename)
+                match = re.match(r"^\(?(\d+)\)?", filename)
                 if not match:
                     continue
                 set_id = int(match.group(1))
@@ -269,7 +269,7 @@ class SongIndex:
             filename = filename[:-4]  # .oszを削除
 
         # 最初の数字部分を削除
-        filename = re.sub(r"^\d+\s*", "", filename, count=1)
+        filename = re.sub(r"^\(?(\d+)\)?\s*", "", filename, count=1)
 
         # " - " で分割
         if " - " in filename:

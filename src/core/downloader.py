@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+import re
 import time
 import zipfile
 from dataclasses import dataclass, field
@@ -59,6 +61,8 @@ class DownloadManager:
         self._tasks: dict[int, DownloadTask] = {}
         self._worker_handles: dict[int, asyncio.Task[None]] = {}
         self._workers_started = False
+        self._archive_paths: dict[int, Path] = {}
+        self._archive_mtime_ns: int | None = None
         self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
         self._client = httpx.AsyncClient(follow_redirects=True, timeout=60)
         self._event_bus = event_bus
@@ -127,6 +131,8 @@ class DownloadManager:
         index: SongIndex,
     ) -> None:
         self.songs_dir = Path(songs_dir)
+        self._archive_paths.clear()
+        self._archive_mtime_ns = None
         self.url_template = url_template
         self.query_options = query_options
         self.index = index
@@ -281,6 +287,9 @@ class DownloadManager:
                 if archive_path.exists():
                     archive_path.unlink()
                 tmp_path.rename(archive_path)
+                self._archive_paths[task.set_id] = archive_path
+                if self._archive_mtime_ns is not None:
+                    self._archive_mtime_ns = songs_dir.stat().st_mtime_ns
                 task.archive_path = archive_path
                 task.path = archive_path
                 duration = time.time() - (task.started_at or time.time())
@@ -389,18 +398,21 @@ class DownloadManager:
         }
 
     def _find_existing_archive(self, set_id: int, songs_dir: Path) -> Path | None:
-        patterns = [
-            f"{set_id} *.osz",
-            f"{set_id}-*.osz",
-            f"{set_id}*.osz",
-            f"({set_id}) *.osz",
-            f"({set_id})*.osz",
-        ]
-        for pattern in patterns:
-            matches = list(songs_dir.glob(pattern))
-            if matches:
-                return matches[0]
-        return None
+        mtime_ns = songs_dir.stat().st_mtime_ns
+        if self._archive_mtime_ns != mtime_ns:
+            paths: dict[int, Path] = {}
+            with os.scandir(songs_dir) as entries:
+                for entry in entries:
+                    if not entry.name.lower().endswith(".osz") or not entry.is_file():
+                        continue
+                    match = re.match(r"^\(?(\d+)\)?", entry.name)
+                    if match:
+                        paths.setdefault(int(match.group(1)), Path(entry.path))
+            self._archive_paths = paths
+            self._archive_mtime_ns = (
+                mtime_ns if songs_dir.stat().st_mtime_ns == mtime_ns else None
+            )
+        return self._archive_paths.get(set_id)
 
     def _derive_metadata_from_archive(
         self, archive_path: Path
