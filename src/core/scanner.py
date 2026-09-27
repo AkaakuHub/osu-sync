@@ -33,6 +33,9 @@ class SongIndex:
         self._owned: set[int] = set()
         self._db_owned: set[int] = set()
         self._archive_owned: set[int] = set()
+        self._db_signature: tuple[str, int, int] | None = None
+        self._archive_mtime_ns: int | None = None
+        self._loaded = False
         self._metadata: dict[
             int, tuple[int, str, str, str]
         ] = {}  # (set_id, artist, title, creator)
@@ -91,20 +94,55 @@ class SongIndex:
             finally:
                 self._scanning = False
 
+    async def refresh_if_changed(self) -> None:
+        if not self._loaded or self._scanning:
+            return
+        db_path = Path(self.osu_db_path)
+        db_signature = (
+            self._cache.source_signature(db_path) if db_path.exists() else None
+        )
+        archive_mtime_ns = (
+            self.songs_dir.stat().st_mtime_ns if self.songs_dir.is_dir() else None
+        )
+        if (
+            db_signature != self._db_signature
+            or archive_mtime_ns != self._archive_mtime_ns
+        ):
+            await self.refresh()
+
     async def _load_hybrid(self) -> None:
         osu_owned: set[int] = set()
         osz_owned: set[int] = set()
 
         try:
-            if Path(self.osu_db_path).exists():
-                osu_owned = await asyncio.to_thread(self._read_osu_db_sync)
+            db_path = Path(self.osu_db_path)
+            db_signature = (
+                self._cache.source_signature(db_path) if db_path.exists() else None
+            )
+            archive_mtime_ns = (
+                self.songs_dir.stat().st_mtime_ns if self.songs_dir.is_dir() else None
+            )
+            if db_signature is not None:
+                if self._loaded and db_signature == self._db_signature:
+                    osu_owned = self._db_owned
+                else:
+                    osu_owned = await asyncio.to_thread(self._read_osu_db_sync)
+                    if self._cache.source_signature(db_path) != db_signature:
+                        raise RuntimeError("osu!.db changed while being read")
 
-            osz_owned = await self._load_archives()
+            if self._loaded and archive_mtime_ns == self._archive_mtime_ns:
+                osz_owned = self._archive_owned
+            else:
+                osz_owned = await self._load_archives()
 
             previous_owned = self._owned
+            was_loaded = self._loaded
             self._db_owned = osu_owned
+            self._db_signature = db_signature
             self._archive_owned = osz_owned.union(self._marked_during_scan)
+            self._archive_mtime_ns = archive_mtime_ns
             self._owned = osu_owned.union(osz_owned, self._marked_during_scan)
+            self._loaded = True
             self._metadata = {}
             self._missing_metadata.clear()
             self._metadata.update(
@@ -136,7 +174,7 @@ class SongIndex:
                     "error_message": None,
                     "updated_at": None,
                 },
-                publish=self._owned != previous_owned,
+                publish=not was_loaded or self._owned != previous_owned,
             )
         except Exception as exc:
             await self._emit_scan_event({"status": "error", "error_message": str(exc)})

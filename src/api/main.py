@@ -338,6 +338,7 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
 
     @api.post("/local/owned")
     async def local_owned(body: OwnedRequest) -> dict[str, list[int]]:
+        await app.state.index.refresh_if_changed()
         return {
             "set_ids": [
                 set_id for set_id in body.set_ids if app.state.index.owned(set_id)
