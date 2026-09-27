@@ -33,7 +33,6 @@ class SongIndex:
         self._owned: set[int] = set()
         self._db_owned: set[int] = set()
         self._archive_owned: set[int] = set()
-        self._archive_root_mtime_ns: int | None = None
         self._metadata: dict[
             int, tuple[int, str, str, str]
         ] = {}  # (set_id, artist, title, creator)
@@ -88,16 +87,9 @@ class SongIndex:
             finally:
                 self._scanning = False
 
-    async def refresh_archives_if_changed(self) -> None:
-        if self._scanning or not self.songs_dir.is_dir():
-            return
-        if self.songs_dir.stat().st_mtime_ns != self._archive_root_mtime_ns:
-            await self.refresh()
-
     async def _load_hybrid(self) -> None:
         osu_owned: set[int] = set()
         osz_owned: set[int] = set()
-        archive_mtime_ns: int | None = None
 
         try:
             # 1. osu!.dbから読み込み
@@ -111,14 +103,13 @@ class SongIndex:
 
             # 2. .oszファイルから読み込み
             try:
-                osz_owned, archive_mtime_ns = await self._load_archives()
+                osz_owned = await self._load_archives()
             except Exception as e:
                 print(f"Error scanning .osz files: {e}")
 
             previous_owned = self._owned
             self._db_owned = osu_owned
             self._archive_owned = osz_owned.union(self._marked_during_scan)
-            self._archive_root_mtime_ns = archive_mtime_ns
             self._owned = osu_owned.union(osz_owned, self._marked_during_scan)
             self._metadata = {}
             self._metadata.update(
@@ -227,21 +218,21 @@ class SongIndex:
 
         return owned, metadata
 
-    async def _load_archives(self) -> tuple[set[int], int | None]:
+    async def _load_archives(self) -> set[int]:
         if not self.songs_dir.is_dir():
             print(f"Songs directory not found at {self.songs_dir}")
-            return set(), None
+            return set()
 
         return await asyncio.to_thread(self._scan_osz_sync)
 
     def _scan_osz_sync(
         self,
-    ) -> tuple[set[int], int | None]:
+    ) -> set[int]:
         songs_dir = self.songs_dir
         mtime_ns = songs_dir.stat().st_mtime_ns
         cached = self._cache.load_archives(songs_dir)
         if cached is not None:
-            return cached, mtime_ns
+            return cached
 
         owned: set[int] = set()
         metadata: dict[int, tuple[int, str, str, str]] = {}
@@ -269,7 +260,7 @@ class SongIndex:
 
         print(f"Found {len(owned)} unique sets from .osz files")
         current = self._cache.load_archives(songs_dir)
-        return (current, mtime_ns) if current is not None else (owned, None)
+        return current if current is not None else owned
 
     def _extract_metadata_from_filename(self, filename: str) -> tuple[str, str]:
         """ファイル名からアーティストとタイトルを抽出"""
