@@ -36,6 +36,7 @@ class SongIndex:
         self._metadata: dict[
             int, tuple[int, str, str, str]
         ] = {}  # (set_id, artist, title, creator)
+        self._missing_metadata: set[int] = set()
         self._scan_lock = asyncio.Lock()
         self._scanning = False
         self._scan_status: dict[str, object] = {
@@ -55,6 +56,8 @@ class SongIndex:
         cached = self._metadata.get(set_id)
         if cached is not None:
             return cached
+        if set_id in self._missing_metadata:
+            return None
         if set_id in self._db_owned:
             metadata = self._cache.song_metadata(set_id)
             if metadata is not None:
@@ -65,6 +68,7 @@ class SongIndex:
             if metadata is not None:
                 self._metadata[set_id] = metadata
                 return metadata
+        self._missing_metadata.add(set_id)
         return None
 
     async def refresh(self) -> None:
@@ -102,6 +106,7 @@ class SongIndex:
             self._archive_owned = osz_owned.union(self._marked_during_scan)
             self._owned = osu_owned.union(osz_owned, self._marked_during_scan)
             self._metadata = {}
+            self._missing_metadata.clear()
             self._metadata.update(
                 (set_id, details)
                 for set_id, details in self._marked_during_scan.items()
@@ -301,6 +306,7 @@ class SongIndex:
         self._archive_owned.add(set_id)
         if metadata:
             self._metadata[set_id] = metadata
+        self._missing_metadata.discard(set_id)
         self._cache.add_archive(self.songs_dir, set_id, metadata)
         if self._scanning:
             self._marked_during_scan[set_id] = metadata
