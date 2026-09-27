@@ -16,6 +16,11 @@ type Props = {
 
 const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
 	const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id || "");
+	const [visitedTabs, setVisitedTabs] = useState(() => new Set([defaultTab || tabs[0]?.id || ""]));
+	const activateTab = (id: string) => {
+		setActiveTab(id);
+		setVisitedTabs((current) => new Set(current).add(id));
+	};
 
 	return (
 		<div className={`w-full h-full flex flex-col ${className}`}>
@@ -25,7 +30,7 @@ const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
 					{tabs.map((tab) => (
 						<button
 							key={tab.id}
-							onClick={() => setActiveTab(tab.id)}
+							onClick={() => activateTab(tab.id)}
 							className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors rounded-t-lg ${
 								activeTab === tab.id
 									? "border-primary text-primary"
@@ -41,14 +46,16 @@ const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
 
 			{/* Tab Content (kept mounted to preserve scroll/state) */}
 			<div className="flex-1 min-h-0 mt-2 relative">
-				{tabs.map((tab) => (
-					<div
-						key={tab.id}
-						className={`${activeTab === tab.id ? "block" : "hidden"} h-full w-full`}
-					>
-						{tab.content}
-					</div>
-				))}
+				{tabs
+					.filter((tab) => visitedTabs.has(tab.id))
+					.map((tab) => (
+						<div
+							key={tab.id}
+							className={`${activeTab === tab.id ? "block" : "hidden"} h-full w-full`}
+						>
+							{tab.content}
+						</div>
+					))}
 			</div>
 		</div>
 	);
