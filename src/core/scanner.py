@@ -95,7 +95,10 @@ class SongIndex:
                 self._scanning = False
 
     async def refresh_if_changed(self) -> None:
-        if not self._loaded or self._scanning:
+        if self._scanning:
+            async with self._scan_lock:
+                pass
+        if not self._loaded:
             return
         db_path = Path(self.osu_db_path)
         db_signature = (
