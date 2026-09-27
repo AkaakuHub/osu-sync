@@ -57,7 +57,7 @@ class DownloadManager:
         self.index = index
         self._queue: asyncio.Queue[DownloadTask] = asyncio.Queue()
         self._tasks: dict[int, DownloadTask] = {}
-        self._worker_handles: list[asyncio.Task] = []
+        self._worker_handles: dict[int, asyncio.Task[None]] = {}
         self._workers_started = False
         self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
         self._client = httpx.AsyncClient(follow_redirects=True, timeout=60)
@@ -117,13 +117,53 @@ class DownloadManager:
         if self._workers_started:
             return
         self._workers_started = True
-        for _ in range(self.max_concurrency):
-            handle = asyncio.create_task(self._worker())
-            self._worker_handles.append(handle)
+        self._ensure_workers()
 
-    async def _worker(self) -> None:
-        while True:
-            task: DownloadTask = await self._queue.get()
+    def reconfigure(
+        self,
+        songs_dir: str,
+        url_template: str,
+        query_options: str,
+        max_concurrency: int,
+        requests_per_minute: int,
+        index: SongIndex,
+    ) -> None:
+        self.songs_dir = Path(songs_dir)
+        self.url_template = url_template
+        self.query_options = query_options
+        self.index = index
+        self._limiter = AsyncLimiter(requests_per_minute, time_period=60)
+        self.max_concurrency = max_concurrency
+        for task in self._tasks.values():
+            if task.status == "queued":
+                task.url = self._build_url(task.set_id)
+        if self._workers_started:
+            self._ensure_workers()
+
+    def _ensure_workers(self) -> None:
+        for worker_id in range(self.max_concurrency):
+            handle = self._worker_handles.get(worker_id)
+            if handle is None or handle.done():
+                self._worker_handles[worker_id] = asyncio.create_task(
+                    self._worker(worker_id)
+                )
+
+    async def close(self) -> None:
+        for handle in self._worker_handles.values():
+            handle.cancel()
+        await asyncio.gather(*self._worker_handles.values(), return_exceptions=True)
+        await self._client.aclose()
+
+    async def _worker(self, worker_id: int) -> None:
+        while worker_id < self.max_concurrency:
+            try:
+                task = await asyncio.wait_for(self._queue.get(), timeout=5)
+            except TimeoutError:
+                continue
+            if worker_id >= self.max_concurrency:
+                self._queue.put_nowait(task)
+                self._queue.task_done()
+                return
             if task.status != "queued":
                 self._queue.task_done()
                 continue
@@ -152,8 +192,10 @@ class DownloadManager:
                 self._publish_status()
 
     async def _download(self, task: DownloadTask) -> None:
-        self.songs_dir.mkdir(parents=True, exist_ok=True)
-        existing_archive = self._find_existing_archive(task.set_id)
+        songs_dir = self.songs_dir
+        index = self.index
+        songs_dir.mkdir(parents=True, exist_ok=True)
+        existing_archive = self._find_existing_archive(task.set_id, songs_dir)
         if existing_archive:
             task.status = "skipped"
             task.message = "already exists"
@@ -164,8 +206,8 @@ class DownloadManager:
             task.total_bytes = existing_archive.stat().st_size
             task.bytes_downloaded = task.total_bytes
             task.updated_at = time.time()
-            if self.index:
-                self.index.mark_owned(task.set_id)
+            if index:
+                index.mark_owned(task.set_id)
             self._publish_status()
             logger.info(
                 "Skip download (exists) set_id=%s path=%s",
@@ -201,9 +243,7 @@ class DownloadManager:
                     )
                     return
 
-                tmp_path = (
-                    self.songs_dir / f"{task.set_id}-{int(time.time() * 1000)}.part"
-                )
+                tmp_path = songs_dir / f"{task.set_id}-{int(time.time() * 1000)}.part"
                 task.started_at = time.time()
                 task.updated_at = task.started_at
                 content_length = resp.headers.get("content-length")
@@ -238,7 +278,7 @@ class DownloadManager:
                 if metadata:
                     task.artist, task.title = metadata
                 base_name = self._build_display_name(task)
-                archive_path = self.songs_dir / f"{base_name}.osz"
+                archive_path = songs_dir / f"{base_name}.osz"
                 archive_path.parent.mkdir(parents=True, exist_ok=True)
                 if archive_path.exists():
                     archive_path.unlink()
@@ -286,11 +326,11 @@ class DownloadManager:
                         task.url,
                     )
 
-        if self.index:
+        if index:
             meta = None
             if task.artist or task.title:
                 meta = (task.set_id, task.artist or "", task.title or "", "")
-            self.index.mark_owned(task.set_id, meta)
+            index.mark_owned(task.set_id, meta)
 
     def status(self) -> dict[str, object]:
         queued = [t for t in self._tasks.values() if t.status == "queued"]
@@ -354,7 +394,7 @@ class DownloadManager:
             "title_unicode": task.title_unicode,
         }
 
-    def _find_existing_archive(self, set_id: int) -> Path | None:
+    def _find_existing_archive(self, set_id: int, songs_dir: Path) -> Path | None:
         patterns = [
             f"{set_id} *.osz",
             f"{set_id}-*.osz",
@@ -363,7 +403,7 @@ class DownloadManager:
             f"({set_id})*.osz",
         ]
         for pattern in patterns:
-            matches = list(self.songs_dir.glob(pattern))
+            matches = list(songs_dir.glob(pattern))
             if matches:
                 return matches[0]
         return None

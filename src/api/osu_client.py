@@ -29,6 +29,20 @@ class OsuApiClient:
         self._cache_ttl = 60
         self._cache_lock = asyncio.Lock()
 
+    def configure_credentials(
+        self, client_id: int | None, client_secret: str | None
+    ) -> None:
+        if not client_id or not client_secret:
+            raise ValueError("OSU_CLIENT_ID/OSU_CLIENT_SECRET が未設定です。")
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self._token = None
+        self._token_exp = 0.0
+        self._cache.clear()
+
+    async def close(self) -> None:
+        await self._client.aclose()
+
     async def _ensure_token(self) -> str:
         now = time.time()
         # 5分以上残っている場合は現在のトークンを使用

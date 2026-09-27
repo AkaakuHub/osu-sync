@@ -239,6 +239,14 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
         app.state.index_load_task = asyncio.create_task(load_index())
         await app.state.downloader.start_workers()
 
+    @app.on_event("shutdown")
+    async def shutdown() -> None:
+        app.state.index_load_task.cancel()
+        await asyncio.gather(app.state.index_load_task, return_exceptions=True)
+        await app.state.downloader.close()
+        if app.state.osu_enabled:
+            await app.state.osu.close()
+
     # 依存関数
     def require_osu_client() -> OsuApiClient:
         if not app.state.osu_enabled:
@@ -546,23 +554,35 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
                 cache_path=settings.store.path.with_name("osu-db-index.json"),
                 event_bus=app.state.event_bus,
             )
-            await app.state.index.refresh()
             downloader_changed = True
 
         if songs_dir_changed or downloader_changed:
-            app.state.downloader = DownloadManager(
+            app.state.downloader.reconfigure(
                 songs_dir=settings.songs_dir,
                 url_template=settings.download_url_template,
                 query_options=settings.download_query_options,
                 max_concurrency=settings.max_concurrency,
                 requests_per_minute=settings.requests_per_minute,
                 index=app.state.index,
-                event_bus=app.state.event_bus,
             )
-            await app.state.downloader.start_workers()
+
+        if songs_dir_changed:
+            await app.state.index.refresh()
 
         if needs_client_rebuild:
-            build_osu_client()
+            if (
+                app.state.osu_enabled
+                and settings.osu_client_id
+                and settings.osu_client_secret
+            ):
+                app.state.osu.configure_credentials(
+                    settings.osu_client_id, settings.osu_client_secret
+                )
+            else:
+                previous_client = app.state.osu if app.state.osu_enabled else None
+                build_osu_client()
+                if previous_client:
+                    await previous_client.close()
 
         return {"status": "ok"}
 
