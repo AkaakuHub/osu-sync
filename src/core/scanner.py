@@ -149,6 +149,8 @@ class SongIndex:
         if self._cache.source_signature(source) != signature:
             raise RuntimeError("osu!.db changed while being read")
         self._cache.save_songs(source, signature, metadata)
+        if self._cache.source_signature(source) != signature:
+            raise RuntimeError("osu!.db changed while being cached")
         return owned
 
     def _parse_osu_db_sync(
@@ -258,9 +260,6 @@ class SongIndex:
         self._cache.save_archives(songs_dir, mtime_ns, metadata)
 
         print(f"Found {len(owned)} unique sets from .osz files")
-        current = self._cache.load_archives(songs_dir)
-        if current is not None:
-            return current
         return owned if songs_dir.stat().st_mtime_ns == mtime_ns else None
 
     def _extract_metadata_from_filename(self, filename: str) -> tuple[str, str]:
