@@ -238,7 +238,7 @@ export function useBeatmapMetadata(item: Item, layout: "classic" | "artwork" = "
 					onMouseEnter={handleHoverPanelMouseEnter}
 					onMouseLeave={handleHoverPanelMouseLeave}
 				>
-					<div className="bg-surface/95 backdrop-blur-md rounded-lg border border-border shadow-2xl p-2">
+					<div className="bg-surface/80 backdrop-blur-md rounded-lg border border-border shadow-2xl p-2">
 						<div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-surface/50">
 							{grouped.map(({ mode, list }) => (
 								<div key={mode} className="space-y-2">
