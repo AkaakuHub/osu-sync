@@ -10,13 +10,12 @@ Go to the [Releases](https://github.com/AkaakuHub/osu-sync/releases) page to dow
 - Very fast download by selecting any mirror server
 
 ## Download mirrors
-In the settings tab, set `download_url_template` like `https://api.nerinyan.moe/d/{set_id}`
+Choose a mirror in Settings, or enter a custom `download_url_template`.
 
-- `{set_id}` will be replaced with the beatmap ID.
-- Main mirror sites:
-  - https://nerinyan.moe/main
-  - https://beatconnect.io
-  - https://catboy.best
+- `{set_id}` will be replaced with the beatmapset ID.
+- Presets, ordered by a download of beatmapset 2559785 on October 18, 2026 (speed depends on your connection):
+  1. [osu.direct](https://osu.direct/api/d/2559785) — 1.98 s
+  2. [hinai](https://mirror.hinamizawa.ai/docs/beatmap-download) — 2.89 s
 
 ## development
 

@@ -13,6 +13,11 @@ const saveSettings = (payload: SettingsForm) =>
 
 const fetchUpdateStatus = () => apiClient.get<UpdateStatus>("/update/status");
 
+const downloadMirrors = [
+	{ name: "osu.direct", url: "https://osu.direct/api/d/{set_id}" },
+	{ name: "hinai", url: "https://mirror.hinamizawa.ai/api/v1/hinai/d/{set_id}" },
+] as const;
+
 export default function SettingsPanel() {
 	const client = useQueryClient();
 	const { data } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
@@ -24,6 +29,7 @@ export default function SettingsPanel() {
 		retry: 0,
 	});
 	const [form, setForm] = useState<SettingsForm>({});
+	const [manualMirror, setManualMirror] = useState(false);
 	const [updating, setUpdating] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
 
@@ -159,6 +165,10 @@ export default function SettingsPanel() {
 
 	const update = <K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) =>
 		setForm((current) => ({ ...current, [key]: value }));
+	const downloadUrl = form.download_url_template ?? data?.download_url_template ?? "";
+	const selectedMirror = manualMirror
+		? "custom"
+		: (downloadMirrors.find((mirror) => mirror.url === downloadUrl)?.url ?? "custom");
 
 	const hasUnsavedChanges = useMemo(() => {
 		if (!data) return false;
@@ -217,10 +227,34 @@ export default function SettingsPanel() {
 
 				{/* Row 2 */}
 				<div className="space-y-1">
-					<label className="text-text-secondary text-xs font-medium">Download URL</label>
+					<label htmlFor="download-mirror" className="text-text-secondary text-xs font-medium">
+						Download mirror
+					</label>
+					<select
+						id="download-mirror"
+						value={selectedMirror}
+						onChange={(event) => {
+							setManualMirror(event.target.value === "custom");
+							if (event.target.value === "custom") return;
+							update("download_url_template", event.target.value);
+							update("download_query_options", "");
+						}}
+						className="h-8 w-full rounded-xl border border-border bg-surface px-2 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+					>
+						{downloadMirrors.map((mirror) => (
+							<option key={mirror.url} value={mirror.url}>
+								{mirror.name}
+							</option>
+						))}
+						<option value="custom">Custom URL</option>
+					</select>
+					<label htmlFor="download-url" className="text-text-secondary text-xs font-medium">
+						Download URL
+					</label>
 					<Input
+						id="download-url"
 						className="font-mono text-xs"
-						defaultValue={data.download_url_template}
+						value={downloadUrl}
 						onChange={(e) => update("download_url_template", e.target.value)}
 					/>
 				</div>

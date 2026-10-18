@@ -49,7 +49,7 @@ class Settings:
             "songs_dir": os.path.expanduser("~/AppData/Local/osu!/Songs"),
             "osu_db_path": os.path.expanduser("~/AppData/Local/osu!/osu!.db"),
             # 公式DLはクッキーが必要なため、デフォルトミラーを nerinyan に
-            "download_url_template": "https://api.nerinyan.moe/d/{set_id}",
+            "download_url_template": "https://osu.direct/api/d/{set_id}",
             "download_query_options": "",
             "max_concurrency": 3,
             "requests_per_minute": 60,
