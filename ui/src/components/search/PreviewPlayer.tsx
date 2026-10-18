@@ -1,5 +1,5 @@
+import { Maximize2, Menu, Minimize2, Music2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import React from "react";
-import { Pause, Play, Volume2, VolumeX, Menu, Music2, Minimize2, Maximize2 } from "lucide-react";
 
 export type CurrentTrack = {
 	id: number;
@@ -85,7 +85,7 @@ const PreviewPlayer: React.FC<Props> = ({
 			const playerWidth = 224; // w-56 = 14rem = 224px
 			const playerHeight = 280; // 実際の高さ（画像+コントロール）
 			const initialRight = 16; // right-4 = 16px
-			const initialTop = 16; // top-4 = 16px
+			const initialTop = window.innerHeight - playerHeight - 16;
 
 			// 現在の絶対位置を計算
 			const currentX = window.innerWidth - initialRight - playerWidth + currentPos.x;
@@ -124,7 +124,7 @@ const PreviewPlayer: React.FC<Props> = ({
 
 	return (
 		<div
-			className="fixed top-4 right-4 z-30"
+			className="fixed bottom-4 right-4 z-30"
 			style={{
 				transform: `translate(${position.x}px, ${position.y}px)`,
 			}}

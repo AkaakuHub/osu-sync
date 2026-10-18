@@ -408,22 +408,20 @@ const GlobalPreviewPlayer: React.FC = () => {
 	}
 
 	return (
-		<div className="fixed top-4 right-4 z-50">
-			<PreviewPlayer
-				currentTrack={currentTrack}
-				previewingId={previewingId}
-				playbackProgress={playbackProgress}
-				isActuallyPlaying={isActuallyPlaying}
-				volume={volume}
-				isMuted={isMuted}
-				onToggle={handlePlayerToggle}
-				onSeek={seekTo}
-				onVolumeChange={handleVolumeChange}
-				onToggleMute={handleToggleMute}
-				isMinimized={isMinimized}
-				onToggleMinimize={() => setIsMinimized((v) => !v)}
-			/>
-		</div>
+		<PreviewPlayer
+			currentTrack={currentTrack}
+			previewingId={previewingId}
+			playbackProgress={playbackProgress}
+			isActuallyPlaying={isActuallyPlaying}
+			volume={volume}
+			isMuted={isMuted}
+			onToggle={handlePlayerToggle}
+			onSeek={seekTo}
+			onVolumeChange={handleVolumeChange}
+			onToggleMute={handleToggleMute}
+			isMinimized={isMinimized}
+			onToggleMinimize={() => setIsMinimized((v) => !v)}
+		/>
 	);
 };
 
