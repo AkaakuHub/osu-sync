@@ -336,7 +336,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 											onClick={(e) => {
 												e.stopPropagation();
 												openSearchTab(
-													`title=""${item.title}""`,
+													`title="${item.title}"`,
 													showUnicode && item.title_unicode ? item.title_unicode : item.title,
 												);
 											}}
@@ -350,7 +350,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 												onClick={(e) => {
 													e.stopPropagation();
 													openSearchTab(
-														`artist=""${item.artist}""`,
+														`artist="${item.artist}"`,
 														showUnicode && item.artist_unicode ? item.artist_unicode : item.artist,
 													);
 												}}
@@ -363,7 +363,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 												type="button"
 												onClick={(e) => {
 													e.stopPropagation();
-													openSearchTab(`creator=""${item.creator}""`, item.creator);
+													openSearchTab(`creator="${item.creator}"`, item.creator);
 												}}
 												className={`${card.creator()} text-left hover:text-primary transition-colors rounded px-0 py-0 inline-block w-fit`}
 												aria-label={`Search by mapper ${item.creator}`}
