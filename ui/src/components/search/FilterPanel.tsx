@@ -11,6 +11,7 @@ import {
 	SortControls,
 	StatusControls,
 } from "./filter-components";
+import DateRangeFilter from "./filter-components/DateRangeFilter";
 import { useSearchFilters } from "./hooks/useSearchFilters";
 import {
 	AVAILABLE_EXTRAS,
@@ -18,6 +19,7 @@ import {
 	AVAILABLE_RANKS,
 	AVAILABLE_SORT_FIELDS,
 	AVAILABLE_STATUSES,
+	DATE_SEARCH_FIELDS,
 	GAME_MODES,
 	type PlayedFilter,
 	type SearchFilters,
@@ -82,6 +84,7 @@ export function FilterPanel({
 	searchQuery,
 }: FilterPanelProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [dateResetKey, setDateResetKey] = useState(0);
 
 	const {
 		filters,
@@ -91,8 +94,7 @@ export function FilterPanel({
 		toggleExtra,
 		toggleGeneral,
 		setNsfw,
-		setDateAfter,
-		setDateBefore,
+		setDateRange,
 		setPlayed,
 		toggleRank,
 		resetAllFilters,
@@ -135,6 +137,7 @@ export function FilterPanel({
 							onClick={(e) => {
 								e.stopPropagation(); // ヘッダーのクリックイベントを伝播させない
 								resetAllFilters();
+								setDateResetKey((value) => value + 1);
 							}}
 							className="px-2 py-1 text-xs text-text-secondary hover:text-text transition-colors"
 						>
@@ -177,31 +180,13 @@ export function FilterPanel({
 						</div>
 					</div>
 
-					<div className="flex flex-wrap items-center gap-3">
-						<span className="w-20 text-sm font-medium text-text">Submitted:</span>
-						<label className="flex items-center gap-2 text-sm text-text-secondary">
-							After
-							<input
-								aria-label="Submitted after"
-								type="date"
-								value={filters.dateAfter}
-								max={filters.dateBefore || undefined}
-								onChange={(event) => setDateAfter(event.target.value)}
-								className="rounded-md border border-border bg-surface-variant px-2 py-1 text-text [color-scheme:dark]"
-							/>
-						</label>
-						<label className="flex items-center gap-2 text-sm text-text-secondary">
-							Before
-							<input
-								aria-label="Submitted before"
-								type="date"
-								value={filters.dateBefore}
-								min={filters.dateAfter || undefined}
-								onChange={(event) => setDateBefore(event.target.value)}
-								className="rounded-md border border-border bg-surface-variant px-2 py-1 text-text [color-scheme:dark]"
-							/>
-						</label>
-					</div>
+					<DateRangeFilter
+						key={dateResetKey}
+						after={filters.dateAfter}
+						before={filters.dateBefore}
+						field={DATE_SEARCH_FIELDS[filters.status]}
+						onApply={setDateRange}
+					/>
 
 					{/* モード */}
 					<div className="flex items-center gap-3">

@@ -1,17 +1,16 @@
-import { DEFAULT_FILTERS, type SearchFilters } from "./types";
+import { DATE_SEARCH_FIELDS, DEFAULT_FILTERS, type SearchFilters } from "./types";
 
 export function buildSearchParams(query: string, filters: SearchFilters | null, page = 1) {
 	const active = filters ?? DEFAULT_FILTERS;
-	const beforeExclusive = active.dateBefore ? new Date(`${active.dateBefore}T00:00:00Z`) : null;
-	beforeExclusive?.setUTCDate(beforeExclusive.getUTCDate() + 1);
+	const dateField = DATE_SEARCH_FIELDS[active.status];
 	const terms = [
 		query.trim(),
-		active.dateAfter && `submitted>=${active.dateAfter}`,
-		beforeExclusive && `submitted<${beforeExclusive.toISOString().slice(0, 10)}`,
+		active.dateAfter && `${dateField}>=${active.dateAfter}`,
+		active.dateBefore && `${dateField}<=${active.dateBefore}`,
 	].filter(Boolean);
 	const params = new URLSearchParams({ q: terms.join(" "), page: String(page), limit: "20" });
 
-	if (active.status !== "any") params.set("s", active.status);
+	params.set("s", active.status);
 	if (active.mode !== "null") params.set("m", active.mode);
 	if (active.genre.length > 0) params.set("g", active.genre.join(","));
 	if (active.language.length > 0) params.set("l", active.language.join(","));

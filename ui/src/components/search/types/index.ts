@@ -40,6 +40,19 @@ export type StatusFilter =
 	| "graveyard"
 	| "mine";
 
+export const DATE_SEARCH_FIELDS: Record<StatusFilter, "ranked" | "updated"> = {
+	any: "updated",
+	leaderboard: "ranked",
+	ranked: "ranked",
+	qualified: "updated",
+	loved: "ranked",
+	favourites: "updated",
+	pending: "updated",
+	wip: "updated",
+	graveyard: "updated",
+	mine: "updated",
+};
+
 // ゲームモード
 export type GameMode = "null" | "0" | "1" | "2" | "3";
 
