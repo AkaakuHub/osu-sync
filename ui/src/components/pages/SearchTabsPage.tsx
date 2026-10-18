@@ -13,6 +13,7 @@ type SearchTab = {
 };
 
 type Props = {
+	isActive: boolean;
 	notOwnedOnly: boolean;
 	setNotOwnedOnly: (value: boolean) => void;
 	showUnicode: boolean;
@@ -35,15 +36,22 @@ export default function SearchTabsPage(props: Props) {
 	};
 	const updateTab = (id: number, change: Partial<Pick<SearchTab, "query" | "filters">>) => {
 		setTabs((current) =>
-			current.map((tab) =>
-				tab.id === id
-					? {
-							...tab,
-							...change,
-							label: change.query === undefined ? tab.label : change.query.trim() || "Search",
-						}
-					: tab,
-			),
+			current.some(
+				(tab) =>
+					tab.id === id &&
+					((change.query !== undefined && tab.query !== change.query) ||
+						(change.filters !== undefined && tab.filters !== change.filters)),
+			)
+				? current.map((tab) =>
+						tab.id === id
+							? {
+									...tab,
+									...change,
+									label: change.query === undefined ? tab.label : change.query.trim() || "Search",
+								}
+							: tab,
+					)
+				: current,
 		);
 	};
 	const closeTab = (id: number) => {
@@ -103,6 +111,7 @@ export default function SearchTabsPage(props: Props) {
 					<div key={tab.id} role="tabpanel" hidden={activeId !== tab.id} className="h-full">
 						<SearchPage
 							{...props}
+							isActive={props.isActive && activeId === tab.id}
 							searchQuery={tab.query}
 							setSearchQuery={(query) => updateTab(tab.id, { query })}
 							searchFilters={tab.filters}

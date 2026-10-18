@@ -17,6 +17,7 @@ import { type SearchFilters } from "../search/types";
 import Input from "../ui/Input";
 
 type Props = {
+	isActive: boolean;
 	notOwnedOnly: boolean;
 	setNotOwnedOnly: (value: boolean) => void;
 	searchQuery: string;
@@ -31,6 +32,7 @@ type Props = {
 };
 
 const SearchPage: React.FC<Props> = ({
+	isActive,
 	notOwnedOnly,
 	setNotOwnedOnly,
 	searchQuery,
@@ -244,6 +246,7 @@ const SearchPage: React.FC<Props> = ({
 					{/* Search Results */}
 					<div className="flex-1 min-h-0">
 						<SearchResults
+							isActive={isActive}
 							notOwnedOnly={notOwnedOnly}
 							setNotOwnedOnly={setNotOwnedOnly}
 							onQueueUpdate={refetchQueue}

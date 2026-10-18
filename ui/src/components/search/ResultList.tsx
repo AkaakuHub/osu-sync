@@ -1,5 +1,5 @@
-import type React from "react";
-import { Virtuoso } from "react-virtuoso";
+import React from "react";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import type { SearchResponse } from "../../hooks/useApiClient";
 import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import ArtworkResultCard from "./ArtworkResultCard";
@@ -8,6 +8,7 @@ import ResultCard, { type PreviewableItem } from "./ResultCard";
 
 type Props = {
 	items: SearchResponse["results"];
+	focusedSetId: number | null;
 	cardLayout: CardLayout;
 	showUnicode: boolean;
 	previewingId: number | null;
@@ -24,6 +25,7 @@ type Props = {
 
 const ResultList: React.FC<Props> = ({
 	items,
+	focusedSetId,
 	cardLayout,
 	showUnicode,
 	previewingId,
@@ -37,6 +39,17 @@ const ResultList: React.FC<Props> = ({
 	endReached,
 	openSearchTab,
 }) => {
+	const virtuosoRef = React.useRef<VirtuosoHandle>(null);
+	React.useEffect(() => {
+		if (focusedSetId === null) return;
+		const index = items.findIndex((item) => item.set_id === focusedSetId);
+		if (index >= 0)
+			virtuosoRef.current?.scrollToIndex({
+				index: Math.floor(index / 2),
+				align: "center",
+				behavior: "smooth",
+			});
+	}, [focusedSetId, items]);
 	const Card = cardLayout === "artwork" ? ArtworkResultCard : ResultCard;
 	// Pair items for 2-column layout
 	const pairedItems = items.reduce<
@@ -53,6 +66,7 @@ const ResultList: React.FC<Props> = ({
 	return (
 		<div className="h-full rounded-xl border border-border bg-surface/80 shadow-2xl backdrop-blur-md">
 			<Virtuoso
+				ref={virtuosoRef}
 				style={{ height: "100%" }}
 				data={pairedItems}
 				endReached={endReached}

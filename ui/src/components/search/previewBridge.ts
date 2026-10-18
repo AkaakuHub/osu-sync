@@ -1,6 +1,7 @@
 import type { PreviewableItem } from "./ResultCard";
 
 export const PREVIEW_STATE_EVENT = "osu-sync:preview-state";
+export const PREVIEW_ENDED_EVENT = "osu-sync:preview-ended";
 
 export type PreviewState = {
 	previewingId: number | null;

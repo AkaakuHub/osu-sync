@@ -67,6 +67,7 @@ function App() {
 			icon: <Search className="w-4 h-4" />,
 			content: (
 				<SearchTabsPage
+					isActive={activeTab === "search"}
 					notOwnedOnly={notOwnedOnly}
 					setNotOwnedOnly={setNotOwnedOnly}
 					showUnicode={showUnicode}

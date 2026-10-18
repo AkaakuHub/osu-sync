@@ -12,7 +12,11 @@ import type { CardLayout } from "../hooks/useDisplayPreferences";
 import { triggerDownload } from "../utils/downloadUtils";
 import { buildSearchParams } from "./search/buildSearchParams";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
-import { PREVIEW_STATE_EVENT, type PreviewState } from "./search/previewBridge";
+import {
+	PREVIEW_ENDED_EVENT,
+	PREVIEW_STATE_EVENT,
+	type PreviewState,
+} from "./search/previewBridge";
 import type { PreviewableItem } from "./search/ResultCard";
 import ResultList from "./search/ResultList";
 import type { SearchFilters } from "./search/types";
@@ -22,6 +26,7 @@ import Toggle from "./ui/Toggle";
 import UnicodeToggle from "./ui/UnicodeToggle";
 
 type Props = {
+	isActive: boolean;
 	notOwnedOnly: boolean;
 	setNotOwnedOnly: (v: boolean) => void;
 	onQueueUpdate: () => void;
@@ -40,6 +45,7 @@ type Props = {
 };
 
 const SearchResults: React.FC<Props> = ({
+	isActive,
 	notOwnedOnly,
 	setNotOwnedOnly,
 	onQueueUpdate,
@@ -197,6 +203,8 @@ const SearchResults: React.FC<Props> = ({
 		playbackProgress: 0,
 		isActuallyPlaying: false,
 	});
+	const navigationIdRef = React.useRef<number | null>(null);
+	const [focusedSetId, setFocusedSetId] = React.useState<number | null>(null);
 
 	React.useEffect(() => {
 		const updatePreviewState = () => {
@@ -206,6 +214,57 @@ const SearchResults: React.FC<Props> = ({
 		window.addEventListener(PREVIEW_STATE_EVENT, updatePreviewState);
 		return () => window.removeEventListener(PREVIEW_STATE_EVENT, updatePreviewState);
 	}, []);
+
+	React.useEffect(() => {
+		if (previewState.previewingId !== null) navigationIdRef.current = previewState.previewingId;
+	}, [previewState.previewingId]);
+
+	React.useEffect(() => {
+		if (!isActive) return;
+		const handleArrow = (event: KeyboardEvent) => {
+			if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+			if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+			if (
+				event.target instanceof HTMLElement &&
+				event.target.closest("input, textarea, select, [contenteditable='true']")
+			)
+				return;
+			const currentId = navigationIdRef.current;
+			if (currentId === null || (!previewState.isActuallyPlaying && !previewState.isLoadingPreview))
+				return;
+			const currentIndex = filtered.findIndex((item) => item.set_id === currentId);
+			if (currentIndex < 0) return;
+			const direction = event.key === "ArrowDown" ? 1 : -1;
+			let nextIndex = currentIndex + direction;
+			while (nextIndex >= 0 && nextIndex < filtered.length && !filtered[nextIndex].preview_url) {
+				nextIndex += direction;
+			}
+			const next = filtered[nextIndex];
+			if (!next) return;
+			event.preventDefault();
+			navigationIdRef.current = next.set_id;
+			setFocusedSetId(next.set_id);
+			window.togglePreview?.(next);
+		};
+		window.addEventListener("keydown", handleArrow);
+		return () => window.removeEventListener("keydown", handleArrow);
+	}, [isActive, filtered, previewState.isActuallyPlaying, previewState.isLoadingPreview]);
+
+	React.useEffect(() => {
+		if (!isActive) return;
+		const handlePreviewEnded = (event: Event) => {
+			const currentId = (event as CustomEvent<number>).detail;
+			const currentIndex = filtered.findIndex((item) => item.set_id === currentId);
+			if (currentIndex < 0) return;
+			const next = filtered.slice(currentIndex + 1).find((item) => item.preview_url);
+			if (!next) return;
+			navigationIdRef.current = next.set_id;
+			setFocusedSetId(next.set_id);
+			window.togglePreview?.(next);
+		};
+		window.addEventListener(PREVIEW_ENDED_EVENT, handlePreviewEnded);
+		return () => window.removeEventListener(PREVIEW_ENDED_EVENT, handlePreviewEnded);
+	}, [isActive, filtered]);
 
 	const getActionState = React.useCallback(
 		(setId: number, baseOwned: boolean): ActionState => {
@@ -298,18 +357,20 @@ const SearchResults: React.FC<Props> = ({
 							onClick={() => setCardLayout("classic")}
 							aria-pressed={cardLayout === "classic"}
 							title="Classic cards"
-							className={`rounded px-2 py-1 ${cardLayout === "classic" ? "bg-surface text-primary" : "text-text-secondary hover:text-text"}`}
+							className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${cardLayout === "classic" ? "bg-surface text-primary" : "text-text-secondary hover:text-text"}`}
 						>
 							<List className="h-4 w-4" />
+							Classic
 						</button>
 						<button
 							type="button"
 							onClick={() => setCardLayout("artwork")}
 							aria-pressed={cardLayout === "artwork"}
 							title="Artwork cards"
-							className={`rounded px-2 py-1 ${cardLayout === "artwork" ? "bg-surface text-primary" : "text-text-secondary hover:text-text"}`}
+							className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${cardLayout === "artwork" ? "bg-surface text-primary" : "text-text-secondary hover:text-text"}`}
 						>
 							<Images className="h-4 w-4" />
+							Artwork
 						</button>
 					</div>
 					{filtersActive && (
@@ -346,6 +407,7 @@ const SearchResults: React.FC<Props> = ({
 				<div className="flex-1 min-h-0">
 					<ResultList
 						items={filtered}
+						focusedSetId={focusedSetId}
 						cardLayout={cardLayout}
 						showUnicode={showUnicode}
 						previewingId={previewState.previewingId || null}

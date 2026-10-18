@@ -3,7 +3,7 @@ import { Howl } from "howler";
 import React from "react";
 import { apiClient, type Settings } from "../hooks/useApiClient";
 import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
-import { PREVIEW_STATE_EVENT } from "./search/previewBridge";
+import { PREVIEW_ENDED_EVENT, PREVIEW_STATE_EVENT } from "./search/previewBridge";
 import type { PreviewableItem } from "./search/ResultCard";
 
 // SearchResults.tsxから移動した状態
@@ -97,6 +97,9 @@ const GlobalPreviewPlayer: React.FC = () => {
 											window.clearInterval(progressTimer.current);
 											progressTimer.current = null;
 										}
+										window.dispatchEvent(
+											new CustomEvent(PREVIEW_ENDED_EVENT, { detail: item.set_id }),
+										);
 									},
 									onplay: () => {
 										setIsLoadingPreview(false);
@@ -241,6 +244,7 @@ const GlobalPreviewPlayer: React.FC = () => {
 							window.clearInterval(progressTimer.current);
 							progressTimer.current = null;
 						}
+						window.dispatchEvent(new CustomEvent(PREVIEW_ENDED_EVENT, { detail: item.set_id }));
 					},
 					onplay: () => {
 						setIsLoadingPreview(false);
