@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 export function useResultColumns() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [columnCount, setColumnCount] = useState(2);
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
 		const updateColumns = () => {
-			const width = container.clientWidth;
-			if (width === 0) return;
-			setColumnCount(width >= 1500 ? 3 : width >= 900 ? 2 : 1);
+			const columns = Number(getComputedStyle(container).getPropertyValue("--result-columns"));
+			if (columns === 1 || columns === 2 || columns === 3) setColumnCount(columns);
 		};
 		updateColumns();
 		const observer = new ResizeObserver(updateColumns);

@@ -30,7 +30,7 @@ type ResultCardProps = {
 const cardStyles = tv({
 	slots: {
 		wrapper: "relative m-1.5 p-1 group",
-		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-xs transition-all duration-300",
+		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-xs",
 		banner: "relative flex gap-3",
 		thumbnail: "rounded-lg object-cover ring-2 ring-border/70 shadow-xl shrink-0",
 		content: "flex-1 min-w-0 px-2 py-2 grid grid-cols-[1fr_auto] gap-3",
@@ -46,12 +46,12 @@ const cardStyles = tv({
 			classic: {},
 			artwork: {
 				wrapper: "m-0 p-0",
-				base: "bg-surface/90",
-				banner: "flex-col gap-0",
-				coverButton: "h-40 w-full rounded-t-xl rounded-b-none",
+				base: "h-[188px] bg-surface/90",
+				banner: "h-full grid grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-0",
+				coverButton: "h-full w-full rounded-l-xl rounded-r-none bg-surface",
 				thumbnail: "relative rounded-none object-contain ring-0 shadow-none",
 				previewPosition: "inset-auto bottom-3 right-3",
-				content: "px-4 py-3 bg-surface/70 backdrop-blur-xl",
+				content: "relative block px-4 py-3 bg-surface/90 backdrop-blur-xl",
 				title: "text-[19px] leading-6 tracking-tight",
 				artist: "font-medium",
 			},
@@ -92,16 +92,18 @@ const ResultCard: React.FC<ResultCardProps> = ({
 	return (
 		<div className={card.wrapper()}>
 			<div className={card.base()} style={cardStyle}>
-				<div className="absolute inset-0 rounded-xl border-2 border-border/80 transition-all duration-300 group-hover:border-accent/60 group-hover:shadow-[0_0_10px_rgba(153,102,255,0.6),0_0_10px_rgba(255,102,170,0.5)]"></div>
-				<div className="relative rounded-xl backdrop-blur-[2px] overflow-hidden transition-all duration-300 group-hover:backdrop-blur-none">
-					<div className="absolute inset-0 bg-gradient-to-r from-surface-variant/70 via-surface-variant/80 to-surface-variant/20 z-0 group-hover:opacity-80 transition-all duration-300" />
+				<div className="absolute inset-0 rounded-xl border-2 border-border/80 group-hover:border-accent/60" />
+				<div
+					className={`relative rounded-xl backdrop-blur-[2px] overflow-hidden ${layout === "artwork" ? "h-full" : ""}`}
+				>
+					<div className="absolute inset-0 bg-gradient-to-r from-surface-variant/70 via-surface-variant/80 to-surface-variant/20 z-0" />
 
 					<div className={`${card.banner()} relative z-10`}>
 						<a
 							href={`https://osu.ppy.sh/beatmapsets/${item.set_id}`}
 							target="_blank"
 							rel="noopener noreferrer"
-							className={`absolute top-5 right-5 z-20 rounded-full group/link ${layout === "artwork" ? "bg-surface/80 p-2 backdrop-blur-md" : ""}`}
+							className={`absolute z-20 rounded-full group/link ${layout === "artwork" ? "left-3 top-3 bg-surface/90 p-1.5" : "top-5 right-5"}`}
 							title="Open in osu! website"
 						>
 							<ExternalLink className="w-4 h-4 text-text-muted group-hover/link:text-accent transition-colors" />
@@ -124,14 +126,6 @@ const ResultCard: React.FC<ResultCardProps> = ({
 							title={item.preview_url ? "play preview" : "no preview available"}
 							disabled={!item.preview_url || isLoadingPreview}
 						>
-							{layout === "artwork" && coverUrl && (
-								<img
-									src={coverUrl}
-									alt=""
-									aria-hidden="true"
-									className="pointer-events-none absolute -inset-4 h-[calc(100%+2rem)] w-[calc(100%+2rem)] max-w-none object-cover opacity-60 blur-xl"
-								/>
-							)}
 							{coverUrl ? (
 								<img
 									src={coverUrl}
@@ -154,7 +148,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 							)}
 
 							<div className={card.previewPosition()}>
-								<div className="relative bg-surface/80 rounded-full p-2 shadow-lg border border-border/20 group-hover:scale-[1.04] transition">
+								<div className="relative bg-surface/90 rounded-full p-2 shadow-lg border border-border/20">
 									{(() => {
 										const ringProgress = playbackProgress;
 										return (
@@ -234,18 +228,19 @@ const ResultCard: React.FC<ResultCardProps> = ({
 								)}
 							</div>
 
-							<div className="flex items-end">
+							<div
+								className={layout === "artwork" ? "absolute bottom-3 right-3" : "flex items-end"}
+							>
 								<Button
 									variant={buttonVariant}
 									size="card"
-									className="gap-2 rounded-lg"
+									className="gap-2 rounded-lg transition-none"
 									disabled={action.disabled}
 									aria-label={action.label}
 									title={action.label}
 									onClick={() => triggerDownload(item.set_id)}
 								>
 									<Download className="w-4 h-4" />
-									{layout === "artwork" && <span className="text-xs">{action.label}</span>}
 								</Button>
 							</div>
 						</div>

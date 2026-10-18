@@ -165,7 +165,9 @@ export function useBeatmapMetadata(item: Item, layout: "classic" | "artwork" = "
 			</div>
 			<div
 				className={
-					layout === "artwork" ? "flex min-w-0 items-center gap-3" : "flex items-center gap-1.5"
+					layout === "artwork"
+						? "flex min-w-0 items-center gap-3 pr-12"
+						: "flex items-center gap-1.5"
 				}
 			>
 				<span

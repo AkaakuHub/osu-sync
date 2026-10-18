@@ -73,11 +73,11 @@ const ResultList: React.FC<Props> = ({
 	return (
 		<div
 			ref={containerRef}
-			className={
+			className={`[--result-columns:1] min-[950px]:[--result-columns:2] min-[1550px]:[--result-columns:3] ${
 				cardLayout === "artwork"
 					? "h-full"
 					: "h-full rounded-xl border border-border bg-surface/80 shadow-2xl backdrop-blur-md"
-			}
+			}`}
 			onWheelCapture={() => {
 				followPreviewRef.current = false;
 			}}
@@ -102,7 +102,7 @@ const ResultList: React.FC<Props> = ({
 				itemContent={(_, row) => (
 					<div
 						className={cardLayout === "artwork" ? "grid gap-5 px-1 pt-1 pb-5" : "grid"}
-						style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+						style={{ gridTemplateColumns: "repeat(var(--result-columns), minmax(0, 1fr))" }}
 					>
 						{row.map((prepared) => (
 							<div className="min-w-0" key={prepared.item.set_id}>
