@@ -12,6 +12,7 @@ export function activeFilterFlags(filters: Partial<SearchFilters>) {
 		genre: Boolean(filters.genre?.length),
 		language: Boolean(filters.language?.length),
 		nsfw: filters.nsfw === true,
+		rankedDate: Boolean(filters.rankedAfter || filters.rankedBefore),
 		played: Boolean(filters.played && filters.played !== "any"),
 		rank: Boolean(filters.rank?.length),
 	};

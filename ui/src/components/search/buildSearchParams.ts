@@ -2,7 +2,14 @@ import { DEFAULT_FILTERS, type SearchFilters } from "./types";
 
 export function buildSearchParams(query: string, filters: SearchFilters | null, page = 1) {
 	const active = filters ?? DEFAULT_FILTERS;
-	const params = new URLSearchParams({ q: query, page: String(page), limit: "20" });
+	const beforeExclusive = active.rankedBefore ? new Date(`${active.rankedBefore}T00:00:00Z`) : null;
+	beforeExclusive?.setUTCDate(beforeExclusive.getUTCDate() + 1);
+	const terms = [
+		query.trim(),
+		active.rankedAfter && `ranked>=${active.rankedAfter}`,
+		beforeExclusive && `ranked<${beforeExclusive.toISOString().slice(0, 10)}`,
+	].filter(Boolean);
+	const params = new URLSearchParams({ q: terms.join(" "), page: String(page), limit: "20" });
 
 	if (active.status !== "any") params.set("s", active.status);
 	if (active.mode !== "null") params.set("m", active.mode);
