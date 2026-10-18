@@ -6,8 +6,12 @@ import ArtworkResultCard from "./ArtworkResultCard";
 import type { ActionState, QueueDerivedState } from "./helpers";
 import ResultCard, { type PreviewableItem } from "./ResultCard";
 
+type Item = SearchResponse["results"][number];
+type PreparedItem = { item: Item; action: ActionState; failureMessage?: string | null };
+type ItemPair = [PreparedItem, PreparedItem | null];
+
 type Props = {
-	items: SearchResponse["results"];
+	items: Item[];
 	focusedSetId: number | null;
 	cardLayout: CardLayout;
 	showUnicode: boolean;
@@ -42,26 +46,30 @@ const ResultList: React.FC<Props> = ({
 	const virtuosoRef = React.useRef<VirtuosoHandle>(null);
 	const followPreviewRef = React.useRef(true);
 	const focusedIndex = items.findIndex((item) => item.set_id === focusedSetId);
+	const focusedRow = focusedIndex < 0 ? -1 : Math.floor(focusedIndex / 2);
 	React.useEffect(() => {
-		if (focusedIndex >= 0 && followPreviewRef.current)
-			virtuosoRef.current?.scrollToIndex({
-				index: Math.floor(focusedIndex / 2),
-				align: "center",
+		if (focusedRow >= 0 && followPreviewRef.current)
+			virtuosoRef.current?.scrollIntoView({
+				index: focusedRow,
 				behavior: "smooth",
 			});
-	}, [focusedIndex]);
+	}, [focusedRow]);
 	const Card = cardLayout === "artwork" ? ArtworkResultCard : ResultCard;
-	// Pair items for 2-column layout
-	const pairedItems = items.reduce<
-		Array<[SearchResponse["results"][number] | null, SearchResponse["results"][number] | null]>
-	>((acc, item, index) => {
-		if (index % 2 === 0) {
-			acc.push([item, null]);
-		} else {
-			acc[acc.length - 1][1] = item;
+	const pairedItems = React.useMemo(() => {
+		const pairs: ItemPair[] = [];
+		for (const item of items) {
+			const doneEntry = queueState.doneEntries.get(item.set_id);
+			const prepared: PreparedItem = {
+				item,
+				action: getActionState(item.set_id, item.owned),
+				failureMessage: doneEntry?.status === "failed" ? doneEntry.message : undefined,
+			};
+			const previous: ItemPair | undefined = pairs[pairs.length - 1];
+			if (previous && previous[1] === null) previous[1] = prepared;
+			else pairs.push([prepared, null]);
 		}
-		return acc;
-	}, []);
+		return pairs;
+	}, [items, getActionState, queueState.doneEntries]);
 
 	return (
 		<div
@@ -87,73 +95,28 @@ const ResultList: React.FC<Props> = ({
 				data={pairedItems}
 				endReached={endReached}
 				overscan={200}
-				itemContent={(_, pair) => {
-					const [leftItem, rightItem] = pair;
-
-					return (
-						<div className="flex">
-							{/* Left column */}
-							<div className="flex-1">
-								{leftItem &&
-									(() => {
-										const action = getActionState(leftItem.set_id, leftItem.owned);
-										const failureMessage =
-											queueState.doneEntries.get(leftItem.set_id)?.status === "failed"
-												? queueState.doneEntries.get(leftItem.set_id)?.message
-												: undefined;
-
-										return (
-											<Card
-												key={leftItem.set_id}
-												item={leftItem}
-												showUnicode={showUnicode}
-												action={action}
-												isPreviewing={previewingId === leftItem.set_id && isActuallyPlaying}
-												isLoadingPreview={isLoadingPreview}
-												playbackProgress={previewingId === leftItem.set_id ? playbackProgress : 0}
-												previewingId={previewingId}
-												isActuallyPlaying={isActuallyPlaying}
-												togglePreview={togglePreview}
-												triggerDownload={triggerDownload}
-												failureMessage={failureMessage}
-												openSearchTab={openSearchTab}
-											/>
-										);
-									})()}
+				itemContent={(_, pair) => (
+					<div className="flex">
+						{pair.map((prepared, index) => (
+							<div className="flex-1" key={prepared?.item.set_id ?? `empty-${index}`}>
+								{prepared && (
+									<Card
+										item={prepared.item}
+										showUnicode={showUnicode}
+										action={prepared.action}
+										isPreviewing={previewingId === prepared.item.set_id && isActuallyPlaying}
+										isLoadingPreview={previewingId === prepared.item.set_id && isLoadingPreview}
+										playbackProgress={previewingId === prepared.item.set_id ? playbackProgress : 0}
+										togglePreview={togglePreview}
+										triggerDownload={triggerDownload}
+										failureMessage={prepared.failureMessage}
+										openSearchTab={openSearchTab}
+									/>
+								)}
 							</div>
-
-							{/* Right column */}
-							<div className="flex-1">
-								{rightItem &&
-									(() => {
-										const action = getActionState(rightItem.set_id, rightItem.owned);
-										const failureMessage =
-											queueState.doneEntries.get(rightItem.set_id)?.status === "failed"
-												? queueState.doneEntries.get(rightItem.set_id)?.message
-												: undefined;
-
-										return (
-											<Card
-												key={rightItem.set_id}
-												item={rightItem}
-												showUnicode={showUnicode}
-												action={action}
-												isPreviewing={previewingId === rightItem.set_id && isActuallyPlaying}
-												isLoadingPreview={isLoadingPreview}
-												playbackProgress={previewingId === rightItem.set_id ? playbackProgress : 0}
-												previewingId={previewingId}
-												isActuallyPlaying={isActuallyPlaying}
-												togglePreview={togglePreview}
-												triggerDownload={triggerDownload}
-												failureMessage={failureMessage}
-												openSearchTab={openSearchTab}
-											/>
-										);
-									})()}
-							</div>
-						</div>
-					);
-				}}
+						))}
+					</div>
+				)}
 			/>
 		</div>
 	);

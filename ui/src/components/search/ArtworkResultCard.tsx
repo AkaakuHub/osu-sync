@@ -1,9 +1,10 @@
 import { Download, ExternalLink, Music4, Pause, Play } from "lucide-react";
+import { memo } from "react";
 import { useBeatmapMetadata } from "./BeatmapMetadata";
 import { defaultCover } from "./helpers";
 import type { ResultCardProps } from "./ResultCard";
 
-export default function ArtworkResultCard({
+function ArtworkResultCard({
 	item,
 	showUnicode,
 	action,
@@ -104,3 +105,5 @@ export default function ArtworkResultCard({
 		</article>
 	);
 }
+
+export default memo(ArtworkResultCard);

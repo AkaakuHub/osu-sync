@@ -178,19 +178,22 @@ const SearchResults: React.FC<Props> = ({
 	}, [notOwnedOnly, searchFilters, searchQuery]);
 
 	// utilsから移動したtriggerDownloadを使用
-	const handleDownload = (setId: number) => {
-		// allResultsから該当アイテムを探す
-		const item = allResults.find((r) => r.set_id === setId);
-		if (item) {
-			const mockSearchData: SearchResponse = {
-				results: allResults,
-				total: data?.total || 0,
-				page: internalCurrentPage,
-				limit: 20,
-			};
-			triggerDownload(setId, mockSearchData, client, onQueueUpdate);
-		}
-	};
+	const handleDownload = React.useCallback(
+		(setId: number) => {
+			// allResultsから該当アイテムを探す
+			const item = allResults.find((r) => r.set_id === setId);
+			if (item) {
+				const mockSearchData: SearchResponse = {
+					results: allResults,
+					total: data?.total || 0,
+					page: internalCurrentPage,
+					limit: 20,
+				};
+				triggerDownload(setId, mockSearchData, client, onQueueUpdate);
+			}
+		},
+		[allResults, data?.total, internalCurrentPage, client, onQueueUpdate],
+	);
 
 	// GlobalPreviewPlayerからグローバル関数を取得
 	const togglePreview = React.useCallback((item: PreviewableItem) => {
@@ -269,11 +272,13 @@ const SearchResults: React.FC<Props> = ({
 	React.useEffect(() => {
 		if (!isActive) return;
 		const handlePreviewEnded = (event: Event) => {
-			const currentId = (event as CustomEvent<number>).detail;
+			if (!(event instanceof CustomEvent) || typeof event.detail !== "number") return;
+			const currentId = event.detail;
 			const currentIndex = filtered.findIndex((item) => item.set_id === currentId);
 			if (currentIndex < 0) return;
 			const next = filtered.slice(currentIndex + 1).find((item) => item.preview_url);
 			if (!next) return;
+			event.preventDefault();
 			navigationIdRef.current = next.set_id;
 			setFocusedSetId(next.set_id);
 			window.togglePreview?.(next);

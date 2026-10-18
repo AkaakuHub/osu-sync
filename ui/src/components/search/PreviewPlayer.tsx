@@ -6,7 +6,7 @@ export type CurrentTrack = {
 	title: string;
 	artist: string;
 	preview: string;
-	cover_url: string;
+	cover_url?: string | null;
 };
 
 type Props = {

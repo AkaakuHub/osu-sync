@@ -95,7 +95,7 @@ export function useBeatmapMetadata(item: Item) {
 	const [isHovered, setIsHovered] = useState(false);
 	const [isHoveringOverPanel, setIsHoveringOverPanel] = useState(false);
 
-	const statusKey = item.status?.toLowerCase() as keyof typeof statusColors;
+	const statusKey = item.status;
 	const difficulties = useMemo(
 		() => (item.difficulties ?? []).slice().sort((a, b) => a.rating - b.rating),
 		[item.difficulties],

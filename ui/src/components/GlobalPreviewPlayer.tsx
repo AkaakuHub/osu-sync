@@ -6,165 +6,38 @@ import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
 import { PREVIEW_ENDED_EVENT, PREVIEW_STATE_EVENT } from "./search/previewBridge";
 import type { PreviewableItem } from "./search/ResultCard";
 
-// SearchResults.tsxから移動した状態
 const GlobalPreviewPlayer: React.FC = () => {
-	// 設定を取得
 	const { data: settings } = useQuery<Settings>({
 		queryKey: ["settings"],
 		queryFn: () => apiClient.get<Settings>("/settings"),
 	});
 	const queryClient = useQueryClient();
-
-	// すべての状態を初期化（フックは条件付きで呼ばれないようにする）
 	const [previewingId, setPreviewingId] = React.useState<number | null>(null);
 	const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
 	const [isActuallyPlaying, setIsActuallyPlaying] = React.useState(false);
 	const [isMinimized, setIsMinimized] = React.useState(false);
-	const howlRef = React.useRef<Howl | null>(null);
-	const progressTimer = React.useRef<number | null>(null);
 	const [playbackProgress, setPlaybackProgress] = React.useState(0);
 	const [duration, setDuration] = React.useState(0);
 	const [currentTrack, setCurrentTrack] = React.useState<CurrentTrack | null>(null);
-
-	// 設定読み込み状態を管理
-	const [isSettingsLoaded, setIsSettingsLoaded] = React.useState<boolean>(false);
-
-	// プレビューキュー（設定読み込み中のリクエストを保持）
+	const [isMuted, setIsMuted] = React.useState(false);
+	const [volume, setVolume] = React.useState(0.5);
+	const [previousVolume, setPreviousVolume] = React.useState(0.5);
+	const howlRef = React.useRef<Howl | null>(null);
+	const progressTimer = React.useRef<number | null>(null);
 	const queuedPreviewRef = React.useRef<PreviewableItem | null>(null);
 
-	// 音量状態を管理（設定読み込み後のみ有効）
-	const [isMuted, setIsMuted] = React.useState<boolean>(false);
-	const [volume, setVolume] = React.useState<number>(0.5);
-	const [previousVolume, setPreviousVolume] = React.useState<number>(0.5);
-
-	// 設定が読み込まれたら音量状態を初期化
 	React.useEffect(() => {
-		if (settings) {
-			const backendVolume = settings.player_volume;
-			setVolume(backendVolume);
-			setPreviousVolume(backendVolume);
-			setIsSettingsLoaded(true);
-
-			// キューされたプレビューがあれば処理
-			if (queuedPreviewRef.current) {
-				// 少し遅延して実行（状態更新が完了するのを待つ）
-				setTimeout(() => {
-					if (queuedPreviewRef.current && isSettingsLoaded) {
-						// 直接実行（togglePreviewを呼ぶと循環参照になるため）
-						const item = queuedPreviewRef.current;
-						queuedPreviewRef.current = null;
-
-						// ここからtogglePreviewのロジックを再実装
-						if (item.preview_url && !isMuted) {
-							// プレビュー開始処理
-							if (howlRef.current) {
-								howlRef.current.stop();
-								howlRef.current.unload();
-								howlRef.current = null;
-							}
-							if (progressTimer.current) {
-								window.clearInterval(progressTimer.current);
-								progressTimer.current = null;
-							}
-
-							setPreviewingId(null);
-							setPlaybackProgress(0);
-							setDuration(0);
-							setIsLoadingPreview(true);
-
-							setTimeout(() => {
-								setPreviewingId(item.set_id);
-								setCurrentTrack({
-									id: item.set_id,
-									title: item.title,
-									artist: item.artist,
-									preview: item.preview_url as string,
-									cover_url: item.cover_url as string,
-								});
-
-								const howl = new Howl({
-									src: [item.preview_url || ""],
-									volume: volume,
-									html5: true,
-									preload: true,
-									onend: () => {
-										setPreviewingId(null);
-										setIsLoadingPreview(false);
-										setIsActuallyPlaying(false);
-										setPlaybackProgress(0);
-										setCurrentTrack(null);
-										if (progressTimer.current) {
-											window.clearInterval(progressTimer.current);
-											progressTimer.current = null;
-										}
-										window.dispatchEvent(
-											new CustomEvent(PREVIEW_ENDED_EVENT, { detail: item.set_id }),
-										);
-									},
-									onplay: () => {
-										setIsLoadingPreview(false);
-										setPreviewingId(item.set_id);
-										setIsActuallyPlaying(true);
-										setDuration(howl.duration());
-										if (progressTimer.current) {
-											window.clearInterval(progressTimer.current);
-										}
-										progressTimer.current = window.setInterval(() => {
-											const position = howl.seek() as number;
-											const dur = howl.duration() || 0;
-											setDuration(dur);
-											setPlaybackProgress(dur ? Math.min(position / dur, 1) : 0);
-										}, 100);
-									},
-									onpause: () => {
-										setIsActuallyPlaying(false);
-									},
-									onloaderror: () => {
-										setIsLoadingPreview(false);
-										setPreviewingId(null);
-										setIsActuallyPlaying(false);
-										setCurrentTrack(null);
-									},
-									onplayerror: () => {
-										setIsLoadingPreview(false);
-										setPreviewingId(null);
-										setIsActuallyPlaying(false);
-										setCurrentTrack(null);
-									},
-								});
-
-								howlRef.current = howl;
-								howl.play();
-							}, 50);
-						}
-					}
-				}, 0);
-			}
-		}
-	}, [settings, volume, isMuted, isSettingsLoaded]);
-
-	// 設定が更新されたら音量を同期
-	React.useEffect(() => {
-		if (settings) {
-			const newVolume = settings.player_volume;
-			setVolume(newVolume);
-			if (!isMuted) {
-				setPreviousVolume(newVolume);
-			}
-			// 既存のHowlerに即時適用
-			if (howlRef.current) {
-				howlRef.current.volume(isMuted ? 0 : newVolume);
-			}
-		}
-	}, [settings?.player_volume, isMuted]);
+		if (!settings) return;
+		setVolume(settings.player_volume);
+		if (!isMuted) setPreviousVolume(settings.player_volume);
+		howlRef.current?.volume(isMuted ? 0 : settings.player_volume);
+	}, [settings, isMuted]);
 
 	const stopPreview = React.useCallback(() => {
-		if (howlRef.current) {
-			howlRef.current.stop();
-			howlRef.current.unload();
-			howlRef.current = null;
-		}
-		if (progressTimer.current) {
+		const howl = howlRef.current;
+		howlRef.current = null;
+		howl?.unload();
+		if (progressTimer.current !== null) {
 			window.clearInterval(progressTimer.current);
 			progressTimer.current = null;
 		}
@@ -179,143 +52,102 @@ const GlobalPreviewPlayer: React.FC = () => {
 	const togglePreview = React.useCallback(
 		(item: PreviewableItem) => {
 			if (!item.preview_url) return;
-
-			// 設定読み込み中はキューに入れる
-			if (!isSettingsLoaded) {
+			if (!settings) {
 				queuedPreviewRef.current = item;
 				return;
 			}
-
 			if (previewingId === item.set_id && howlRef.current) {
-				// Toggle pause/play for current track (ミニプレイヤーと同じ動作)
-				if (howlRef.current.playing()) {
-					howlRef.current.pause();
-					setIsActuallyPlaying(false);
-				} else {
-					howlRef.current.play();
-					setIsActuallyPlaying(true);
-				}
+				if (howlRef.current.playing()) howlRef.current.pause();
+				else howlRef.current.play();
 				return;
 			}
 
-			// 即時状態更新で遅延を削減
-			if (howlRef.current) {
-				howlRef.current.stop();
-				howlRef.current.unload();
-				howlRef.current = null;
-			}
-			if (progressTimer.current) {
+			const previous = howlRef.current;
+			howlRef.current = null;
+			previous?.unload();
+			if (progressTimer.current !== null) {
 				window.clearInterval(progressTimer.current);
 				progressTimer.current = null;
 			}
-
-			// 状態を即時クリアしてから新しいトラックを設定
-			setPreviewingId(null);
+			setPreviewingId(item.set_id);
 			setPlaybackProgress(0);
 			setDuration(0);
 			setIsLoadingPreview(true);
+			setIsActuallyPlaying(false);
+			setCurrentTrack({
+				id: item.set_id,
+				title: item.title,
+				artist: item.artist,
+				preview: item.preview_url,
+				cover_url: item.cover_url,
+			});
 
-			// 少し遅延して新しいトラックを設定（前の状態が完全にクリアされるのを待つ）
-			setTimeout(() => {
-				setPreviewingId(item.set_id);
-				setCurrentTrack({
-					id: item.set_id,
-					title: item.title,
-					artist: item.artist,
-					preview: item.preview_url as string,
-					cover_url: item.cover_url as string,
-				});
-
-				// 設定から正しい音量を取得
-				const initialVolume = isMuted ? 0 : volume;
-
-				const howl = new Howl({
-					src: [item.preview_url || ""],
-					volume: initialVolume,
-					html5: true,
-					preload: true, // プリロードを有効化
-					onend: () => {
-						setPreviewingId(null);
-						setIsLoadingPreview(false);
-						setIsActuallyPlaying(false);
-						setPlaybackProgress(0);
-						setCurrentTrack(null);
-						if (progressTimer.current) {
-							window.clearInterval(progressTimer.current);
-							progressTimer.current = null;
-						}
-						window.dispatchEvent(new CustomEvent(PREVIEW_ENDED_EVENT, { detail: item.set_id }));
-					},
-					onplay: () => {
-						setIsLoadingPreview(false);
-						setPreviewingId(item.set_id);
-						setIsActuallyPlaying(true);
-						setDuration(howl.duration());
-						if (progressTimer.current) {
-							window.clearInterval(progressTimer.current);
-						}
-						progressTimer.current = window.setInterval(() => {
-							const position = howl.seek() as number;
-							const dur = howl.duration() || 0;
-							setDuration(dur);
-							setPlaybackProgress(dur ? Math.min(position / dur, 1) : 0);
-						}, 100); // 頻度を上げてレスポンスを改善
-					},
-					onpause: () => {
-						setIsActuallyPlaying(false);
-					},
-					onloaderror: () => {
-						setIsLoadingPreview(false);
-						setPreviewingId(null);
-						setIsActuallyPlaying(false);
-						setCurrentTrack(null);
-					},
-					onplayerror: () => {
-						setIsLoadingPreview(false);
-						setPreviewingId(null);
-						setIsActuallyPlaying(false);
-						setCurrentTrack(null);
-					},
-				});
-
-				howlRef.current = howl;
-				howl.play();
-			}, 50); // 50msの遅延で確実なクリアを確保
+			const howl = new Howl({
+				src: [item.preview_url],
+				volume: isMuted ? 0 : volume,
+				html5: true,
+				preload: true,
+				onend: () => {
+					if (howlRef.current !== howl) return;
+					const event = new CustomEvent<number>(PREVIEW_ENDED_EVENT, {
+						detail: item.set_id,
+						cancelable: true,
+					});
+					if (window.dispatchEvent(event)) stopPreview();
+				},
+				onplay: () => {
+					if (howlRef.current !== howl) return;
+					setIsLoadingPreview(false);
+					setIsActuallyPlaying(true);
+					setDuration(howl.duration());
+					if (progressTimer.current !== null) window.clearInterval(progressTimer.current);
+					progressTimer.current = window.setInterval(() => {
+						const position = howl.seek();
+						const trackDuration = howl.duration();
+						if (typeof position === "number")
+							setPlaybackProgress(trackDuration ? Math.min(position / trackDuration, 1) : 0);
+					}, 100);
+				},
+				onpause: () => {
+					if (howlRef.current !== howl) return;
+					setIsActuallyPlaying(false);
+					if (progressTimer.current !== null) {
+						window.clearInterval(progressTimer.current);
+						progressTimer.current = null;
+					}
+				},
+				onloaderror: () => {
+					if (howlRef.current === howl) stopPreview();
+				},
+				onplayerror: () => {
+					if (howlRef.current === howl) stopPreview();
+				},
+			});
+			howlRef.current = howl;
+			howl.play();
 		},
-		[previewingId, stopPreview, isSettingsLoaded],
+		[settings, previewingId, isMuted, volume, stopPreview],
 	);
 
-	// ページのvisibility changeを監視してタブが非表示になっても再生を継続
 	React.useEffect(() => {
-		const handleVisibilityChange = () => {
-			// 何もしない - ミニプレイヤーは継続させる
-		};
+		if (!settings || !queuedPreviewRef.current) return;
+		const item = queuedPreviewRef.current;
+		queuedPreviewRef.current = null;
+		togglePreview(item);
+	}, [settings, togglePreview]);
 
-		document.addEventListener("visibilitychange", handleVisibilityChange);
-		return () => {
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
-		};
-	}, []);
-
-	// アプリ終了時のみクリーンアップ
-	React.useEffect(() => {
-		return () => {
-			// コンポーネント完全破棄時のみクリーンアップ
-			if (howlRef.current) {
-				howlRef.current.stop();
-				howlRef.current.unload();
-			}
-			if (progressTimer.current) {
-				window.clearInterval(progressTimer.current);
-			}
-		};
-	}, []);
+	React.useEffect(
+		() => () => {
+			howlRef.current?.unload();
+			if (progressTimer.current !== null) window.clearInterval(progressTimer.current);
+		},
+		[],
+	);
 
 	const seekTo = React.useCallback(
 		(fraction: number) => {
 			if (!howlRef.current || !duration || fraction < 0 || fraction > 1) return;
-			const target = duration * fraction;
-			howlRef.current.seek(target);
+			howlRef.current.seek(duration * fraction);
 			setPlaybackProgress(fraction);
 		},
 		[duration],
@@ -323,71 +155,47 @@ const GlobalPreviewPlayer: React.FC = () => {
 
 	const handleVolumeChange = React.useCallback(
 		(newVolume: number) => {
-			if (!isMuted) {
-				setPreviousVolume(newVolume);
-			}
-			if (howlRef.current) {
-				howlRef.current.volume(isMuted ? 0 : newVolume);
-			}
-
-			// 音量設定をバックエンドに保存
+			setVolume(newVolume);
+			if (!isMuted) setPreviousVolume(newVolume);
+			howlRef.current?.volume(isMuted ? 0 : newVolume);
 			apiClient
 				.post("/settings", { player_volume: newVolume })
-				.then(() => {
-					// 設定キャッシュを更新
-					queryClient.invalidateQueries({ queryKey: ["settings"] });
-				})
-				.catch((error) => {
-					console.error("Failed to save volume setting:", error);
-				});
+				.then(() => queryClient.invalidateQueries({ queryKey: ["settings"] }))
+				.catch((error) => console.error("Failed to save volume setting:", error));
 		},
 		[isMuted, queryClient],
 	);
 
 	const handleToggleMute = React.useCallback(() => {
 		if (isMuted) {
-			// ミュート解除：previousVolumeに保存された音量に戻す
 			setIsMuted(false);
-			if (howlRef.current) {
-				howlRef.current.volume(previousVolume);
-			}
+			howlRef.current?.volume(previousVolume);
 		} else {
-			// ミュート：現在の音量をpreviousVolumeに保存して0に設定
 			setIsMuted(true);
 			setPreviousVolume(volume);
-			if (howlRef.current) {
-				howlRef.current.volume(0);
-			}
+			howlRef.current?.volume(0);
 		}
 	}, [isMuted, volume, previousVolume]);
 
 	const handlePlayerToggle = React.useCallback(() => {
 		if (!currentTrack) return;
+		togglePreview({
+			set_id: currentTrack.id,
+			title: currentTrack.title,
+			artist: currentTrack.artist,
+			preview_url: currentTrack.preview,
+			cover_url: currentTrack.cover_url,
+		});
+	}, [currentTrack, togglePreview]);
 
-		if (previewingId === currentTrack.id && howlRef.current) {
-			// Toggle pause/play for current track
-			if (howlRef.current.playing()) {
-				howlRef.current.pause();
-				setIsActuallyPlaying(false);
-			} else {
-				howlRef.current.play();
-				setIsActuallyPlaying(true);
-			}
-		} else if (currentTrack.preview) {
-			// Start new preview
-			togglePreview({
-				set_id: currentTrack.id,
-				title: currentTrack.title,
-				artist: currentTrack.artist,
-				preview_url: currentTrack.preview,
-			});
-		}
-	}, [currentTrack, previewingId, togglePreview]);
-
-	// グローバルに機能を提供
 	React.useEffect(() => {
-		// グローバルにtogglePreview関数を公開
 		window.togglePreview = togglePreview;
+		return () => {
+			delete window.togglePreview;
+		};
+	}, [togglePreview]);
+
+	React.useEffect(() => {
 		window.previewPlayerState = {
 			previewingId,
 			isLoadingPreview,
@@ -395,18 +203,16 @@ const GlobalPreviewPlayer: React.FC = () => {
 			playbackProgress,
 		};
 		window.dispatchEvent(new Event(PREVIEW_STATE_EVENT));
+	}, [previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress]);
 
-		return () => {
-			delete window.togglePreview;
+	React.useEffect(
+		() => () => {
 			delete window.previewPlayerState;
-		};
-	}, [togglePreview, previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress]);
+		},
+		[],
+	);
 
-	// 設定読み込み前のみ非表示
-	if (!isSettingsLoaded) {
-		return null;
-	}
-
+	if (!settings) return null;
 	return (
 		<PreviewPlayer
 			currentTrack={currentTrack}
@@ -420,7 +226,7 @@ const GlobalPreviewPlayer: React.FC = () => {
 			onVolumeChange={handleVolumeChange}
 			onToggleMute={handleToggleMute}
 			isMinimized={isMinimized}
-			onToggleMinimize={() => setIsMinimized((v) => !v)}
+			onToggleMinimize={() => setIsMinimized((value) => !value)}
 		/>
 	);
 };
