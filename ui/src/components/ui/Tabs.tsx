@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type TabItem = {
 	id: string;
@@ -10,16 +10,18 @@ type TabItem = {
 
 type Props = {
 	tabs: TabItem[];
-	defaultTab?: string;
+	activeTab: string;
+	onTabChange: (id: string) => void;
 	className?: string;
 };
 
-const Tabs: React.FC<Props> = ({ tabs, defaultTab, className = "" }) => {
-	const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id || "");
-	const [visitedTabs, setVisitedTabs] = useState(() => new Set([defaultTab || tabs[0]?.id || ""]));
+const Tabs: React.FC<Props> = ({ tabs, activeTab, onTabChange, className = "" }) => {
+	const [visitedTabs, setVisitedTabs] = useState(() => new Set([activeTab]));
+	useEffect(() => {
+		setVisitedTabs((current) => new Set(current).add(activeTab));
+	}, [activeTab]);
 	const activateTab = (id: string) => {
-		setActiveTab(id);
-		setVisitedTabs((current) => new Set(current).add(id));
+		onTabChange(id);
 	};
 
 	return (

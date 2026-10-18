@@ -1,11 +1,14 @@
 import type React from "react";
 import { Virtuoso } from "react-virtuoso";
 import type { SearchResponse } from "../../hooks/useApiClient";
-import ResultCard, { type PreviewableItem } from "./ResultCard";
+import type { CardLayout } from "../../hooks/useDisplayPreferences";
+import ArtworkResultCard from "./ArtworkResultCard";
 import type { ActionState, QueueDerivedState } from "./helpers";
+import ResultCard, { type PreviewableItem } from "./ResultCard";
 
 type Props = {
 	items: SearchResponse["results"];
+	cardLayout: CardLayout;
 	showUnicode: boolean;
 	previewingId: number | null;
 	isLoadingPreview: boolean;
@@ -21,6 +24,7 @@ type Props = {
 
 const ResultList: React.FC<Props> = ({
 	items,
+	cardLayout,
 	showUnicode,
 	previewingId,
 	isLoadingPreview,
@@ -33,6 +37,7 @@ const ResultList: React.FC<Props> = ({
 	endReached,
 	setSearchQuery,
 }) => {
+	const Card = cardLayout === "artwork" ? ArtworkResultCard : ResultCard;
 	// Pair items for 2-column layout
 	const pairedItems = items.reduce<
 		Array<[SearchResponse["results"][number] | null, SearchResponse["results"][number] | null]>
@@ -68,7 +73,7 @@ const ResultList: React.FC<Props> = ({
 												: undefined;
 
 										return (
-											<ResultCard
+											<Card
 												key={leftItem.set_id}
 												item={leftItem}
 												showUnicode={showUnicode}
@@ -98,7 +103,7 @@ const ResultList: React.FC<Props> = ({
 												: undefined;
 
 										return (
-											<ResultCard
+											<Card
 												key={rightItem.set_id}
 												item={rightItem}
 												showUnicode={showUnicode}

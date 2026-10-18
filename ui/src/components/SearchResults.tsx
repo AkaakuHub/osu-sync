@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Languages } from "lucide-react";
+import { Download, Images, List } from "lucide-react";
 import React from "react";
 import toast from "react-hot-toast";
 import {
@@ -8,6 +8,7 @@ import {
 	type QueueStatus,
 	type SearchResponse,
 } from "../hooks/useApiClient";
+import type { CardLayout } from "../hooks/useDisplayPreferences";
 import { triggerDownload } from "../utils/downloadUtils";
 import { buildSearchParams } from "./search/buildSearchParams";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
@@ -18,6 +19,7 @@ import type { SearchFilters } from "./search/types";
 import { hasActiveFilters } from "./search/utils";
 import Button from "./ui/Button";
 import Toggle from "./ui/Toggle";
+import UnicodeToggle from "./ui/UnicodeToggle";
 
 type Props = {
 	notOwnedOnly: boolean;
@@ -31,6 +33,8 @@ type Props = {
 	searchFilters: SearchFilters | null;
 	showUnicode: boolean;
 	setShowUnicode: (v: boolean) => void;
+	cardLayout: CardLayout;
+	setCardLayout: (layout: CardLayout) => void;
 	indexSummary?: IndexSummary;
 	setSearchQuery: (value: string) => void;
 };
@@ -47,6 +51,8 @@ const SearchResults: React.FC<Props> = ({
 	searchFilters,
 	showUnicode,
 	setShowUnicode,
+	cardLayout,
+	setCardLayout,
 	indexSummary,
 	setSearchQuery,
 }) => {
@@ -282,6 +288,30 @@ const SearchResults: React.FC<Props> = ({
 					)}
 				</div>
 				<div className="flex items-center gap-2">
+					<div
+						className="inline-flex rounded-md border border-border bg-surface-variant/80 p-0.5"
+						role="group"
+						aria-label="Card layout"
+					>
+						<button
+							type="button"
+							onClick={() => setCardLayout("classic")}
+							aria-pressed={cardLayout === "classic"}
+							title="Classic cards"
+							className={`rounded px-2 py-1 ${cardLayout === "classic" ? "bg-surface text-primary" : "text-text-secondary hover:text-text"}`}
+						>
+							<List className="h-4 w-4" />
+						</button>
+						<button
+							type="button"
+							onClick={() => setCardLayout("artwork")}
+							aria-pressed={cardLayout === "artwork"}
+							title="Artwork cards"
+							className={`rounded px-2 py-1 ${cardLayout === "artwork" ? "bg-surface text-primary" : "text-text-secondary hover:text-text"}`}
+						>
+							<Images className="h-4 w-4" />
+						</button>
+					</div>
 					{filtersActive && (
 						<Button
 							variant="osu"
@@ -299,14 +329,7 @@ const SearchResults: React.FC<Props> = ({
 							Download filtered{eligibleCount > 0 ? ` (${eligibleCount})` : ""}
 						</Button>
 					)}
-					<button
-						onClick={() => setShowUnicode(!showUnicode)}
-						className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"
-						title={showUnicode ? "Display in Normal" : "Display in Unicode"}
-					>
-						<Languages className="w-3.5 h-3.5" />
-						{showUnicode ? "Unicode" : "Normal"}
-					</button>
+					<UnicodeToggle showUnicode={showUnicode} onChange={setShowUnicode} />
 					<Toggle checked={notOwnedOnly} onChange={setNotOwnedOnly} label="Not Owned Only" />
 				</div>
 			</div>
@@ -323,6 +346,7 @@ const SearchResults: React.FC<Props> = ({
 				<div className="flex-1 min-h-0">
 					<ResultList
 						items={filtered}
+						cardLayout={cardLayout}
 						showUnicode={showUnicode}
 						previewingId={previewState.previewingId || null}
 						isLoadingPreview={previewState.isLoadingPreview || false}

@@ -8,6 +8,7 @@ import {
 	type QueueStatus,
 	type SearchResponse,
 } from "../../hooks/useApiClient";
+import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import { getEventSource } from "../../utils/eventSource";
 import SearchResults from "../SearchResults";
 import { buildSearchParams } from "../search/buildSearchParams";
@@ -25,6 +26,8 @@ type Props = {
 	setSearchFilters?: (filters: SearchFilters | null) => void;
 	showUnicode: boolean;
 	setShowUnicode: (v: boolean) => void;
+	cardLayout: CardLayout;
+	setCardLayout: (layout: CardLayout) => void;
 };
 
 const SearchPage: React.FC<Props> = ({
@@ -36,6 +39,8 @@ const SearchPage: React.FC<Props> = ({
 	setSearchFilters: propSetSearchFilters,
 	showUnicode,
 	setShowUnicode,
+	cardLayout,
+	setCardLayout,
 }) => {
 	const initialQuery = propSearchQuery ?? "";
 	const [internalSearchQuery, setInternalSearchQuery] = useState("");
@@ -260,6 +265,8 @@ const SearchPage: React.FC<Props> = ({
 							searchFilters={searchFilters}
 							showUnicode={showUnicode}
 							setShowUnicode={setShowUnicode}
+							cardLayout={cardLayout}
+							setCardLayout={setCardLayout}
 							indexSummary={index}
 							setSearchQuery={setSearchQuery}
 						/>

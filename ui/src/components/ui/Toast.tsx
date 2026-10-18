@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
-import { Toaster, ToastBar, toast } from "react-hot-toast";
 import { useState } from "react";
+import { ToastBar, Toaster, toast } from "react-hot-toast";
 
 /**
  * カスタムトーストコンポーネント
@@ -69,7 +69,7 @@ export function CustomToast() {
 										<X size={16} />
 									</button>
 								}
-								{
+								{t.type !== "loading" && (
 									<div
 										style={{
 											position: "absolute",
@@ -93,7 +93,7 @@ export function CustomToast() {
 											zIndex: 1,
 										}}
 									/>
-								}
+								)}
 							</>
 						)}
 					</ToastBar>

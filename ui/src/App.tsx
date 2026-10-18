@@ -13,12 +13,14 @@ import Badge from "./components/ui/Badge";
 import Tabs from "./components/ui/Tabs";
 import { CustomToast } from "./components/ui/Toast";
 import { apiClient, type QueueStatus, type UpdateStatus } from "./hooks/useApiClient";
+import { useDisplayPreferences } from "./hooks/useDisplayPreferences";
 
 function App() {
 	const [notOwnedOnly, setNotOwnedOnly] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
-	const [showUnicode, setShowUnicode] = useState(false);
+	const [activeTab, setActiveTab] = useState("search");
+	const { showUnicode, setShowUnicode, cardLayout, setCardLayout } = useDisplayPreferences();
 	const { data: queue } = useQuery<QueueStatus>({
 		queryKey: ["queue"],
 		queryFn: () => apiClient.get<QueueStatus>("/queue"),
@@ -38,7 +40,19 @@ function App() {
 		if (!updateInfo) return;
 		if (updateInfo.update_available) {
 			toast(
-				`Update available: v${updateInfo.latest_version}\nYou are on v${updateInfo.current_version}`,
+				<div className="flex flex-col gap-1">
+					<span className="font-semibold">Update available: v{updateInfo.latest_version}</span>
+					<button
+						type="button"
+						className="w-fit text-xs text-primary underline"
+						onClick={() => {
+							setActiveTab("settings");
+							toast.dismiss("update-available");
+						}}
+					>
+						Open update settings
+					</button>
+				</div>,
 				{
 					id: "update-available",
 					duration: 8000,
@@ -64,6 +78,8 @@ function App() {
 					setSearchFilters={setSearchFilters}
 					showUnicode={showUnicode}
 					setShowUnicode={setShowUnicode}
+					cardLayout={cardLayout}
+					setCardLayout={setCardLayout}
 				/>
 			),
 		},
@@ -99,12 +115,12 @@ function App() {
 		<div className="min-h-screen w-full overflow-hidden bg-surface">
 			{/* Background Managers */}
 			<ScanProgress />
-			<QueueNotificationManager />
+			<QueueNotificationManager showUnicode={showUnicode} />
 
 			<div className="h-screen flex flex-col p-2">
 				{/* Tab Navigation */}
 				<div className="flex-1 min-h-0">
-					<Tabs tabs={tabs} defaultTab="search" />
+					<Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 				</div>
 			</div>
 

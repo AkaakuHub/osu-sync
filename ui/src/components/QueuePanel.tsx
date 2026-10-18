@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { Languages } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiClient, type QueueEntry, type QueueStatus } from "../hooks/useApiClient";
+import { beatmapName } from "../utils/beatmapName";
 import Badge from "./ui/Badge";
 import Button from "./ui/Button";
+import UnicodeToggle from "./ui/UnicodeToggle";
 
 type Props = {
 	data?: QueueStatus;
@@ -59,20 +60,7 @@ function QueuePanel({ data, showUnicode, setShowUnicode }: Props) {
 	};
 
 	const formatDisplayName = (entry: QueueEntry) => {
-		const { set_id, artist, title, artist_unicode, title_unicode } = entry;
-		if (showUnicode) {
-			const displayArtist = artist_unicode || artist;
-			const displayTitle = title_unicode || title;
-			return `${set_id} ${displayArtist} - ${displayTitle}`;
-		} else {
-			return `${set_id} ${toNFKC(artist)} - ${toNFKC(title)}`;
-		}
-	};
-
-	// Unicode conversion helper
-	const toNFKC = (text: string | null | undefined) => {
-		if (!text) return text;
-		return text.normalize("NFKC");
+		return `${entry.set_id} ${beatmapName(entry, showUnicode)}`;
 	};
 
 	const runningEntries = useMemo<RunningWithProjection[]>(() => {
@@ -88,14 +76,7 @@ function QueuePanel({ data, showUnicode, setShowUnicode }: Props) {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
 				<h2 className="text-lg font-semibold">Download Queue</h2>
-				<button
-					onClick={() => setShowUnicode(!showUnicode)}
-					className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-variant/80 border border-border text-text-secondary hover:bg-surface-variant/60 transition-colors"
-					title={showUnicode ? "Display in Normal" : "Display in Unicode"}
-				>
-					<Languages className="w-3.5 h-3.5" />
-					{showUnicode ? "Unicode" : "Normal"}
-				</button>
+				<UnicodeToggle showUnicode={showUnicode} onChange={setShowUnicode} />
 			</div>
 
 			{!data ? (

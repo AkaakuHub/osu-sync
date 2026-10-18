@@ -1,9 +1,9 @@
+import { CalendarDays, Download, ExternalLink, Heart, Music4, Pause, Play, X } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { Download, Heart, Music4, Play, Pause, CalendarDays, ExternalLink, X } from "lucide-react";
-import Button from "../ui/Button";
 import { tv } from "tailwind-variants";
 import type { SearchResponse } from "../../hooks/useApiClient";
+import Button from "../ui/Button";
 import {
 	type ActionState,
 	buildBackground,
@@ -18,7 +18,7 @@ export type PreviewableItem = Pick<
 	"set_id" | "title" | "artist" | "preview_url" | "cover_url"
 >;
 
-type Props = {
+export type ResultCardProps = {
 	item: SearchResponse["results"][number];
 	showUnicode: boolean;
 	action: ActionState;
@@ -96,7 +96,7 @@ const statusColors = {
 	loved: "#FF00AA",
 };
 
-const ResultCard: React.FC<Props> = ({
+const ResultCard: React.FC<ResultCardProps> = ({
 	item,
 	showUnicode,
 	action,
