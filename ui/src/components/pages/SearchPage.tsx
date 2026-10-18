@@ -205,7 +205,7 @@ const SearchPage: React.FC<Props> = ({
 			{/* Status Header */}
 			{/* Main Content Area */}
 			<div className="flex-1 min-h-0">
-				<div className="max-w-7xl mx-auto h-full flex flex-col p-2 pt-1 gap-2">
+				<div className="max-w-[1800px] mx-auto h-full flex flex-col p-3 pt-2 gap-3">
 					{/* Search Bar - osu!公式風デザイン */}
 					<div className="flex-shrink-0">
 						<div className="beatmapsets-search__input-container relative">

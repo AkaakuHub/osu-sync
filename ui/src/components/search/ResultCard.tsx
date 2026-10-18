@@ -1,18 +1,20 @@
 import { Download, ExternalLink, Music4, Pause, Play } from "lucide-react";
 import type React from "react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { tv } from "tailwind-variants";
 import type { SearchResponse } from "../../hooks/useApiClient";
+import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import Button from "../ui/Button";
 import { useBeatmapMetadata } from "./BeatmapMetadata";
-import { type ActionState, buildBackground, defaultCover } from "./helpers";
+import { type ActionState, artworkCoverUrl, buildBackground, defaultCover } from "./helpers";
 
 export type PreviewableItem = Pick<
 	SearchResponse["results"][number],
 	"set_id" | "title" | "artist" | "preview_url" | "cover_url"
 >;
 
-export type ResultCardProps = {
+type ResultCardProps = {
+	layout: CardLayout;
 	item: SearchResponse["results"][number];
 	showUnicode: boolean;
 	action: ActionState;
@@ -25,50 +27,41 @@ export type ResultCardProps = {
 	openSearchTab: (query: string, label: string) => void;
 };
 
-// 背景色に基づいてテキスト色（黒or白）を計算する関数
 const cardStyles = tv({
 	slots: {
+		wrapper: "relative m-1.5 p-1 group",
 		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-xs transition-all duration-300",
 		banner: "relative flex gap-3",
 		thumbnail: "rounded-lg object-cover ring-2 ring-border/70 shadow-xl shrink-0",
 		content: "flex-1 min-w-0 px-2 py-2 grid grid-cols-[1fr_auto] gap-3",
-		header: "flex items-start gap-3",
+		coverButton: "relative h-30 w-30 shrink-0 overflow-hidden rounded-lg cursor-pointer group",
+		previewPosition: "absolute inset-0 flex items-center justify-center",
 		titleSection: "flex-1 min-w-0",
 		title: "text-lg font-bold text-surface-foreground leading-tight truncate",
 		artist: "text-sm font-semibold text-text-secondary leading-tight truncate",
 		creator: "text-xs text-text-muted leading-tight truncate",
-		stats: "flex flex-wrap items-center gap-3 text-[11px] text-text",
-		statItem: "flex items-center gap-1.5",
-		badge: "px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase shadow-sm",
-		difficultyPreview: "inline-flex items-center gap-1",
-		difficultyDot: "h-3 w-3 rounded-full border border-surface-foreground/20 shadow",
-		difficultyContainer:
-			"mt-2 overflow-hidden rounded-lg border border-border bg-surface/95 backdrop-blur-xs shadow-2xl transition-all duration-300 ease-out",
-		difficultyList: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-3 text-sm text-surface-foreground",
-		difficultyItem:
-			"flex items-center gap-3 rounded-lg px-3 py-2 bg-surface-variant/80 border border-border hover:bg-surface-variant/60 transition-colors",
-		difficultyIcon:
-			"w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-surface-foreground shrink-0",
-		difficultyRating: "text-sm font-semibold text-surface-foreground",
-		difficultyName: "text-sm text-text-secondary truncate",
 	},
 	variants: {
-		status: {
-			graveyard: { badge: "text-surface-foreground" },
-			wip: { badge: "text-surface-foreground" },
-			pending: { badge: "text-surface-foreground" },
-			ranked: { badge: "text-surface-foreground" },
-			approved: { badge: "text-surface-foreground" },
-			qualified: { badge: "text-surface-foreground" },
-			loved: { badge: "text-surface-foreground" },
+		layout: {
+			classic: {},
+			artwork: {
+				wrapper: "m-0 p-0",
+				base: "bg-surface/90",
+				banner: "flex-col gap-0",
+				coverButton: "h-40 w-full rounded-t-xl rounded-b-none",
+				thumbnail: "relative rounded-none object-contain ring-0 shadow-none",
+				previewPosition: "inset-auto bottom-3 right-3",
+				content: "px-4 py-3 bg-surface/70 backdrop-blur-xl",
+				title: "text-[19px] leading-6 tracking-tight",
+				artist: "font-medium",
+			},
 		},
 	},
-	defaultVariants: { status: "ranked" },
+	defaultVariants: { layout: "classic" },
 });
 
-// osu! official status colors
-
 const ResultCard: React.FC<ResultCardProps> = ({
+	layout,
 	item,
 	showUnicode,
 	action,
@@ -80,9 +73,14 @@ const ResultCard: React.FC<ResultCardProps> = ({
 	failureMessage,
 	openSearchTab,
 }) => {
-	const card = cardStyles();
-	const cardStyle = buildBackground(item.cover_url);
-	const { summary, panel } = useBeatmapMetadata(item);
+	const card = cardStyles({ layout });
+	const coverUrl = useMemo(
+		() =>
+			layout === "artwork" && item.cover_url ? artworkCoverUrl(item.cover_url) : item.cover_url,
+		[layout, item.cover_url],
+	);
+	const cardStyle = buildBackground(coverUrl);
+	const { summary, panel } = useBeatmapMetadata(item, layout);
 
 	const buttonVariant =
 		action.variant === "danger"
@@ -92,19 +90,18 @@ const ResultCard: React.FC<ResultCardProps> = ({
 				: "cardPrimary";
 
 	return (
-		<div className="relative m-1.5 p-1 group">
+		<div className={card.wrapper()}>
 			<div className={card.base()} style={cardStyle}>
 				<div className="absolute inset-0 rounded-xl border-2 border-border/80 transition-all duration-300 group-hover:border-accent/60 group-hover:shadow-[0_0_10px_rgba(153,102,255,0.6),0_0_10px_rgba(255,102,170,0.5)]"></div>
 				<div className="relative rounded-xl backdrop-blur-[2px] overflow-hidden transition-all duration-300 group-hover:backdrop-blur-none">
 					<div className="absolute inset-0 bg-gradient-to-r from-surface-variant/70 via-surface-variant/80 to-surface-variant/20 z-0 group-hover:opacity-80 transition-all duration-300" />
 
 					<div className={`${card.banner()} relative z-10`}>
-						{/* osu!公式サイトへのリンク */}
 						<a
 							href={`https://osu.ppy.sh/beatmapsets/${item.set_id}`}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="absolute top-5 right-5 rounded-full group/link"
+							className={`absolute top-5 right-5 z-20 rounded-full group/link ${layout === "artwork" ? "bg-surface/80 p-2 backdrop-blur-md" : ""}`}
 							title="Open in osu! website"
 						>
 							<ExternalLink className="w-4 h-4 text-text-muted group-hover/link:text-accent transition-colors" />
@@ -116,14 +113,30 @@ const ResultCard: React.FC<ResultCardProps> = ({
 								e.stopPropagation();
 								togglePreview(item);
 							}}
-							className="relative h-30 w-30 shrink-0 overflow-hidden rounded-lg cursor-pointer group"
+							className={card.coverButton()}
+							aria-label={
+								isLoadingPreview
+									? "Loading preview"
+									: isPreviewing
+										? "Pause preview"
+										: "Play preview"
+							}
 							title={item.preview_url ? "play preview" : "no preview available"}
 							disabled={!item.preview_url || isLoadingPreview}
 						>
-							{item.cover_url ? (
+							{layout === "artwork" && coverUrl && (
 								<img
-									src={item.cover_url}
+									src={coverUrl}
+									alt=""
+									aria-hidden="true"
+									className="pointer-events-none absolute -inset-4 h-[calc(100%+2rem)] w-[calc(100%+2rem)] max-w-none object-cover opacity-60 blur-xl"
+								/>
+							)}
+							{coverUrl ? (
+								<img
+									src={coverUrl}
 									alt={item.title}
+									decoding="async"
 									className={`${card.thumbnail()} cursor-pointer h-full w-full`}
 									onError={(e) => {
 										if (e.currentTarget.src !== defaultCover) {
@@ -140,7 +153,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 								</div>
 							)}
 
-							<div className="absolute inset-0 flex items-center justify-center">
+							<div className={card.previewPosition()}>
 								<div className="relative bg-surface/80 rounded-full p-2 shadow-lg border border-border/20 group-hover:scale-[1.04] transition">
 									{(() => {
 										const ringProgress = playbackProgress;
@@ -227,9 +240,12 @@ const ResultCard: React.FC<ResultCardProps> = ({
 									size="card"
 									className="gap-2 rounded-lg"
 									disabled={action.disabled}
+									aria-label={action.label}
+									title={action.label}
 									onClick={() => triggerDownload(item.set_id)}
 								>
 									<Download className="w-4 h-4" />
+									{layout === "artwork" && <span className="text-xs">{action.label}</span>}
 								</Button>
 							</div>
 						</div>

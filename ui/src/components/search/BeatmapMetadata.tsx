@@ -91,7 +91,7 @@ const modeIcon: Record<string, JSX.Element> = {
 	),
 };
 
-export function useBeatmapMetadata(item: Item) {
+export function useBeatmapMetadata(item: Item, layout: "classic" | "artwork" = "classic") {
 	const [isHovered, setIsHovered] = useState(false);
 	const [isHoveringOverPanel, setIsHoveringOverPanel] = useState(false);
 
@@ -143,7 +143,13 @@ export function useBeatmapMetadata(item: Item) {
 
 	const summary = (
 		<>
-			<div className={"flex flex-wrap items-center gap-3 text-[11px] text-text"}>
+			<div
+				className={
+					layout === "artwork"
+						? "flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-text-secondary tabular-nums"
+						: "flex flex-wrap items-center gap-3 text-[11px] text-text"
+				}
+			>
 				<div className={"flex items-center gap-1.5"}>
 					<Heart className="w-4 h-4 text-osu-pink" />
 					<span>{formatNumber(item.favourite_count)}</span>
@@ -157,7 +163,11 @@ export function useBeatmapMetadata(item: Item) {
 					<span>{formatDate(item[dateFields[item.status]])}</span>
 				</div>
 			</div>
-			<div className={"flex items-center gap-1.5"}>
+			<div
+				className={
+					layout === "artwork" ? "flex min-w-0 items-center gap-3" : "flex items-center gap-1.5"
+				}
+			>
 				<span
 					className={
 						"px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase shadow-sm text-surface-foreground"
@@ -185,7 +195,7 @@ export function useBeatmapMetadata(item: Item) {
 									{list.map((d, idx) => (
 										<div
 											key={`${mode}-${idx}`}
-											className="h-[15px] w-[11px] rounded-full flex-shrink-0 relative"
+											className={`rounded-full flex-shrink-0 relative ${layout === "artwork" ? "h-[18px] w-[12px]" : "h-[15px] w-[11px]"}`}
 											title={`${modeLabel[mode] ?? mode}: ${d.label} - ★${d.rating.toFixed(2)}`}
 										>
 											<div

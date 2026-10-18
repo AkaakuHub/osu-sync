@@ -36,6 +36,12 @@ export const formatDate = (value?: string | null) => {
 
 export const defaultCover = "https://osu.ppy.sh/assets/images/default-bg@2x.4043b8f4.png";
 
+export const artworkCoverUrl = (cover: string): string => {
+	const url = new URL(cover);
+	url.pathname = url.pathname.replace(/[^/]+$/, "fullsize.jpg");
+	return url.href;
+};
+
 export const buildBackground = (cover?: string | null) => {
 	if (!cover) {
 		return {
