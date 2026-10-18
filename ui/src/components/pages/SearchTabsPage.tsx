@@ -56,13 +56,7 @@ export default function SearchTabsPage(props: Props) {
 	};
 	const closeTab = (id: number) => {
 		const index = tabs.findIndex((tab) => tab.id === id);
-		if (index < 0) return;
-		if (tabs.length === 1) {
-			const newId = nextId.current++;
-			setTabs([{ id: newId, label: "Search", query: "", filters: resetFilters() }]);
-			setActiveId(newId);
-			return;
-		}
+		if (index < 0 || tabs.length === 1) return;
 		const remaining = tabs.filter((tab) => tab.id !== id);
 		setTabs(remaining);
 		if (activeId === id) setActiveId(remaining[Math.max(0, index - 1)].id);
@@ -93,6 +87,7 @@ export default function SearchTabsPage(props: Props) {
 						<button
 							type="button"
 							onClick={() => closeTab(tab.id)}
+							disabled={tabs.length === 1}
 							aria-label={`Close ${tab.label}`}
 							className="rounded p-1 text-text-muted hover:bg-surface hover:text-text"
 						>

@@ -221,16 +221,32 @@ const SearchResults: React.FC<Props> = ({
 
 	React.useEffect(() => {
 		if (!isActive) return;
-		const handleArrow = (event: KeyboardEvent) => {
-			if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+		const handlePreviewKey = (event: KeyboardEvent) => {
+			if (event.key !== "ArrowUp" && event.key !== "ArrowDown" && event.code !== "Space") return;
 			if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 			if (
 				event.target instanceof HTMLElement &&
 				event.target.closest("input, textarea, select, [contenteditable='true']")
 			)
 				return;
+			if (event.code === "Space") {
+				if (event.repeat || previewState.isLoadingPreview) return;
+				if (
+					event.target instanceof HTMLElement &&
+					event.target.closest("button, a, [role='button']")
+				)
+					return;
+				const current = filtered.find((item) => item.set_id === previewState.previewingId);
+				if (!current) return;
+				event.preventDefault();
+				window.togglePreview?.(current);
+				return;
+			}
 			const currentId = navigationIdRef.current;
-			if (currentId === null || (!previewState.isActuallyPlaying && !previewState.isLoadingPreview))
+			if (
+				currentId === null ||
+				(previewState.previewingId === null && !previewState.isLoadingPreview)
+			)
 				return;
 			const currentIndex = filtered.findIndex((item) => item.set_id === currentId);
 			if (currentIndex < 0) return;
@@ -246,9 +262,9 @@ const SearchResults: React.FC<Props> = ({
 			setFocusedSetId(next.set_id);
 			window.togglePreview?.(next);
 		};
-		window.addEventListener("keydown", handleArrow);
-		return () => window.removeEventListener("keydown", handleArrow);
-	}, [isActive, filtered, previewState.isActuallyPlaying, previewState.isLoadingPreview]);
+		window.addEventListener("keydown", handlePreviewKey);
+		return () => window.removeEventListener("keydown", handlePreviewKey);
+	}, [isActive, filtered, previewState.previewingId, previewState.isLoadingPreview]);
 
 	React.useEffect(() => {
 		if (!isActive) return;
