@@ -54,6 +54,19 @@ export default function DateRangeFilter({ after, before, field, onApply }: Props
 			>
 				Apply
 			</button>
+			<button
+				type="button"
+				aria-label="Reset date filter"
+				disabled={!after && !before && !draftAfter && !draftBefore}
+				onClick={() => {
+					setDraftAfter("");
+					setDraftBefore("");
+					onApply("", "");
+				}}
+				className="rounded-md border border-border px-3 py-1 text-sm text-text-secondary hover:bg-surface-variant disabled:opacity-40"
+			>
+				Reset
+			</button>
 		</form>
 	);
 }
