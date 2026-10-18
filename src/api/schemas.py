@@ -34,7 +34,8 @@ class SearchResult(BaseModel):
     owned: bool
     cover_url: str | None = None
     preview_url: str | None = None
-    submitted_date: str | None = None
+    ranked_date: str | None = None
+    last_updated: str | None = None
     bpm: float | None = None
     total_length: int | None = None
     difficulty_count: int | None = None

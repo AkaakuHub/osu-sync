@@ -74,7 +74,8 @@ interface SearchResult {
 	owned: boolean;
 	cover_url?: string | null;
 	preview_url?: string | null;
-	submitted_date?: string | null;
+	ranked_date?: string | null;
+	last_updated?: string | null;
 	bpm?: number | null;
 	total_length?: number | null;
 	difficulty_count?: number | null;

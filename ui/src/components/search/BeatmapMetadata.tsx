@@ -5,6 +5,16 @@ import { difficultyColor, formatDate, formatNumber } from "./helpers";
 
 type Item = SearchResponse["results"][number];
 
+const dateFields: Record<Item["status"], "ranked_date" | "last_updated"> = {
+	approved: "ranked_date",
+	graveyard: "last_updated",
+	loved: "ranked_date",
+	pending: "last_updated",
+	qualified: "ranked_date",
+	ranked: "ranked_date",
+	wip: "last_updated",
+};
+
 function getContrastColor(hexColor: string): string {
 	// hexColorからRGB値を抽出
 	const r = parseInt(hexColor.slice(1, 3), 16);
@@ -144,7 +154,7 @@ export function useBeatmapMetadata(item: Item) {
 				</div>
 				<div className={"flex items-center gap-1.5"}>
 					<CalendarDays className="w-4 h-4 text-primary" />
-					<span>{formatDate(item.submitted_date)}</span>
+					<span>{formatDate(item[dateFields[item.status]])}</span>
 				</div>
 			</div>
 			<div className={"flex items-center gap-1.5"}>

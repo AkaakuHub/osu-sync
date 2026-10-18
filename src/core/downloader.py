@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 from aiolimiter import AsyncLimiter
 
+from core.download_errors import download_error_message
 from core.scanner import SongIndex
 
 logger = logging.getLogger("osu_sync.downloader")
@@ -179,7 +180,7 @@ class DownloadManager:
                     task.updated_at = time.time()
             except Exception as exc:
                 task.status = "failed"
-                task.message = str(exc)
+                task.message = download_error_message(exc)
                 logger.exception(
                     "Download failed set_id=%s url=%s error=%s",
                     task.set_id,
@@ -220,7 +221,7 @@ class DownloadManager:
                 if not any(x in content_type for x in ("zip", "octet-stream", "osu")):
                     snippet = await resp.aread()
                     task.status = "failed"
-                    task.message = f"unexpected content-type: {content_type}"
+                    task.message = "Download server returned an unsupported file."
                     logger.error(
                         "Abort download set_id=%s due to content-type=%s size=%s first256=%r",
                         task.set_id,
@@ -294,7 +295,7 @@ class DownloadManager:
                     )
                 if not zipfile.is_zipfile(archive_path):
                     task.status = "failed"
-                    task.message = "downloaded file is not a valid zip/osz"
+                    task.message = "Downloaded beatmap archive is invalid."
                     logger.error(
                         "Invalid archive set_id=%s size=%sB content_type=%s url=%s",
                         task.set_id,

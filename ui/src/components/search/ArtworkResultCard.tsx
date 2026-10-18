@@ -98,7 +98,7 @@ export default function ArtworkResultCard({
 						{action.label}
 					</button>
 				</div>
-				{failureMessage && <p className="text-xs text-error">Failed: {failureMessage}</p>}
+				{failureMessage && <p className="break-words text-xs text-error">{failureMessage}</p>}
 			</div>
 			{panel}
 		</article>

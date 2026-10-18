@@ -220,7 +220,9 @@ const ResultCard: React.FC<ResultCardProps> = ({
 								</div>
 
 								{summary}
-								{failureMessage && <p className="text-xs text-error">Failed: {failureMessage}</p>}
+								{failureMessage && (
+									<p className="break-words text-xs text-error">{failureMessage}</p>
+								)}
 							</div>
 
 							<div className="flex items-end">
