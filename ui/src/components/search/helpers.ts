@@ -27,6 +27,7 @@ export const formatDate = (value?: string | null) => {
 			year: "numeric",
 			month: "short",
 			day: "numeric",
+			timeZone: "UTC",
 		});
 	} catch (e) {
 		return value;
