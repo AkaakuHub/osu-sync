@@ -53,7 +53,7 @@ export default function ArtworkResultCard({
 				<div className="absolute inset-x-0 bottom-0 bg-surface/55 px-4 py-3 pr-16 text-text backdrop-blur-md">
 					<button
 						type="button"
-						onClick={() => openSearchTab(`title="${item.title}"`, title)}
+						onClick={() => openSearchTab(`title=""${item.title}""`, title)}
 						className="block max-w-full truncate text-left text-lg font-bold hover:text-primary"
 						title={title}
 					>
@@ -61,7 +61,7 @@ export default function ArtworkResultCard({
 					</button>
 					<button
 						type="button"
-						onClick={() => openSearchTab(`artist="${item.artist}"`, artist)}
+						onClick={() => openSearchTab(`artist=""${item.artist}""`, artist)}
 						className="block max-w-full truncate text-left text-sm text-text-secondary hover:text-primary"
 						title={artist}
 					>
@@ -69,7 +69,7 @@ export default function ArtworkResultCard({
 					</button>
 					<button
 						type="button"
-						onClick={() => openSearchTab(`creator="${item.creator}"`, item.creator)}
+						onClick={() => openSearchTab(`creator=""${item.creator}""`, item.creator)}
 						className="block max-w-full truncate text-left text-xs text-text-muted hover:text-primary"
 					>
 						mapped by {item.creator}
