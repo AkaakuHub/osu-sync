@@ -37,23 +37,23 @@ const cardStyles = tv({
 		coverButton: "relative h-30 w-30 shrink-0 overflow-hidden rounded-lg cursor-pointer group",
 		previewPosition: "absolute inset-0 flex items-center justify-center",
 		titleSection: "flex-1 min-w-0",
-		title: "text-lg font-bold text-surface-foreground leading-tight truncate",
-		artist: "text-sm font-semibold text-text-secondary leading-tight truncate",
-		creator: "text-xs text-text-muted leading-tight truncate",
+		title: "max-w-full text-lg font-bold text-surface-foreground leading-tight truncate",
+		artist: "max-w-full text-sm font-semibold text-text-secondary leading-tight truncate",
+		creator: "max-w-full text-xs text-text-muted leading-tight truncate",
 	},
 	variants: {
 		layout: {
 			classic: {},
 			artwork: {
-				wrapper: "m-0 p-0",
-				base: "h-[188px] bg-surface/90 ring-1 ring-border",
+				wrapper: "m-0",
+				base: "h-[188px]",
 				banner: "h-full grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-0",
 				coverButton: "h-full w-full rounded-l-xl rounded-r-none bg-surface",
 				thumbnail: "relative rounded-none object-contain ring-0 shadow-none",
 				previewPosition: "inset-auto bottom-3 right-3",
-				content: "relative block px-3 py-3 bg-surface/80 backdrop-blur-xl",
-				title: "text-[19px] leading-6 tracking-tight",
-				artist: "font-medium",
+				content: "relative block px-3 py-3",
+				title: "line-clamp-2 whitespace-normal break-words text-lg leading-5 tracking-tight",
+				artist: "line-clamp-2 whitespace-normal break-words font-medium",
 			},
 		},
 	},
@@ -189,6 +189,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 												);
 											}}
 											className={`${card.title()} text-left hover:text-primary transition-colors`}
+											title={showUnicode && item.title_unicode ? item.title_unicode : item.title}
 										>
 											{showUnicode && item.title_unicode ? item.title_unicode : item.title}
 										</button>
@@ -204,6 +205,9 @@ const ResultCard: React.FC<ResultCardProps> = ({
 												}}
 												className={`${card.artist()} text-left hover:text-primary transition-colors rounded px-0 py-0 inline-block w-fit`}
 												aria-label={`Search by artist ${item.artist}`}
+												title={
+													showUnicode && item.artist_unicode ? item.artist_unicode : item.artist
+												}
 											>
 												{showUnicode && item.artist_unicode ? item.artist_unicode : item.artist}
 											</button>
