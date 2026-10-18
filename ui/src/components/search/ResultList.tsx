@@ -19,7 +19,7 @@ type Props = {
 	triggerDownload: (setId: number) => void;
 	getActionState: (setId: number, baseOwned: boolean) => ActionState;
 	endReached?: () => void;
-	setSearchQuery: (value: string) => void;
+	openSearchTab: (query: string, label: string) => void;
 };
 
 const ResultList: React.FC<Props> = ({
@@ -35,7 +35,7 @@ const ResultList: React.FC<Props> = ({
 	triggerDownload,
 	getActionState,
 	endReached,
-	setSearchQuery,
+	openSearchTab,
 }) => {
 	const Card = cardLayout === "artwork" ? ArtworkResultCard : ResultCard;
 	// Pair items for 2-column layout
@@ -86,7 +86,7 @@ const ResultList: React.FC<Props> = ({
 												togglePreview={togglePreview}
 												triggerDownload={triggerDownload}
 												failureMessage={failureMessage}
-												setSearchQuery={setSearchQuery}
+												openSearchTab={openSearchTab}
 											/>
 										);
 									})()}
@@ -116,7 +116,7 @@ const ResultList: React.FC<Props> = ({
 												togglePreview={togglePreview}
 												triggerDownload={triggerDownload}
 												failureMessage={failureMessage}
-												setSearchQuery={setSearchQuery}
+												openSearchTab={openSearchTab}
 											/>
 										);
 									})()}

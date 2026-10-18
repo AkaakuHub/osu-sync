@@ -36,7 +36,7 @@ type Props = {
 	cardLayout: CardLayout;
 	setCardLayout: (layout: CardLayout) => void;
 	indexSummary?: IndexSummary;
-	setSearchQuery: (value: string) => void;
+	openSearchTab: (query: string, label: string) => void;
 };
 
 const SearchResults: React.FC<Props> = ({
@@ -54,7 +54,7 @@ const SearchResults: React.FC<Props> = ({
 	cardLayout,
 	setCardLayout,
 	indexSummary,
-	setSearchQuery,
+	openSearchTab,
 }) => {
 	const client = useQueryClient();
 
@@ -357,7 +357,7 @@ const SearchResults: React.FC<Props> = ({
 						triggerDownload={handleDownload}
 						getActionState={getActionState}
 						endReached={handleLoadMore}
-						setSearchQuery={setSearchQuery}
+						openSearchTab={openSearchTab}
 					/>
 
 					{/* ローディングインジケーター */}

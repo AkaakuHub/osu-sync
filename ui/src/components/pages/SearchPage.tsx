@@ -14,16 +14,16 @@ import SearchResults from "../SearchResults";
 import { buildSearchParams } from "../search/buildSearchParams";
 import { FilterPanel } from "../search/FilterPanel";
 import { type SearchFilters } from "../search/types";
-import { resetFilters } from "../search/utils";
 import Input from "../ui/Input";
 
 type Props = {
 	notOwnedOnly: boolean;
 	setNotOwnedOnly: (value: boolean) => void;
-	searchQuery?: string;
-	setSearchQuery?: (query: string) => void;
-	searchFilters?: SearchFilters | null;
-	setSearchFilters?: (filters: SearchFilters | null) => void;
+	searchQuery: string;
+	setSearchQuery: (query: string) => void;
+	searchFilters: SearchFilters;
+	setSearchFilters: (filters: SearchFilters) => void;
+	openSearchTab: (query: string, label: string) => void;
 	showUnicode: boolean;
 	setShowUnicode: (v: boolean) => void;
 	cardLayout: CardLayout;
@@ -33,30 +33,20 @@ type Props = {
 const SearchPage: React.FC<Props> = ({
 	notOwnedOnly,
 	setNotOwnedOnly,
-	searchQuery: propSearchQuery,
-	setSearchQuery: propSetSearchQuery,
-	searchFilters: propSearchFilters,
-	setSearchFilters: propSetSearchFilters,
+	searchQuery,
+	setSearchQuery,
+	searchFilters,
+	setSearchFilters,
+	openSearchTab,
 	showUnicode,
 	setShowUnicode,
 	cardLayout,
 	setCardLayout,
 }) => {
-	const initialQuery = propSearchQuery ?? "";
-	const [internalSearchQuery, setInternalSearchQuery] = useState("");
-	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialQuery);
-	const searchQuery = propSearchQuery ?? internalSearchQuery;
-	const setSearchQuery = propSetSearchQuery ?? setInternalSearchQuery;
+	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 	const searchHistoryRef = useRef<string[]>([]);
 	const historyIndexRef = useRef<number | null>(null);
 	const historyDraftRef = useRef<string>("");
-	// デフォルトフィルターを最初から持たせて、有効化待ちの遅延をなくす
-	const [internalSearchFilters, setInternalSearchFilters] = useState<SearchFilters | null>(() =>
-		resetFilters(),
-	);
-	const searchFilters = propSearchFilters ?? internalSearchFilters;
-	const setSearchFilters = propSetSearchFilters ?? setInternalSearchFilters;
-	const filtersReady = !!searchFilters;
 	const [scanRevision, setScanRevision] = useState(0);
 
 	// 500msデバウンスの実装
@@ -141,7 +131,7 @@ const SearchPage: React.FC<Props> = ({
 			apiClient.get<SearchResponse>(
 				`/search?${buildSearchParams(debouncedSearchQuery, searchFilters)}`,
 			),
-		enabled: filtersReady && searchQuery === debouncedSearchQuery,
+		enabled: searchQuery === debouncedSearchQuery,
 		staleTime: 60_000,
 		refetchOnMount: false,
 		refetchOnWindowFocus: false,
@@ -268,7 +258,7 @@ const SearchPage: React.FC<Props> = ({
 							cardLayout={cardLayout}
 							setCardLayout={setCardLayout}
 							indexSummary={index}
-							setSearchQuery={setSearchQuery}
+							openSearchTab={openSearchTab}
 						/>
 					</div>
 				</div>

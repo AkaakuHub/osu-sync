@@ -12,7 +12,7 @@ export default function ArtworkResultCard({
 	togglePreview,
 	triggerDownload,
 	failureMessage,
-	setSearchQuery,
+	openSearchTab,
 }: ResultCardProps) {
 	const title = showUnicode && item.title_unicode ? item.title_unicode : item.title;
 	const artist = showUnicode && item.artist_unicode ? item.artist_unicode : item.artist;
@@ -69,7 +69,7 @@ export default function ArtworkResultCard({
 				<div className="pr-14">
 					<button
 						type="button"
-						onClick={() => setSearchQuery(`title=""${item.title}""`)}
+						onClick={() => openSearchTab(`title=""${item.title}""`, title)}
 						className="block max-w-full truncate text-left text-lg font-bold text-text hover:text-primary"
 						title={title}
 					>
@@ -77,13 +77,19 @@ export default function ArtworkResultCard({
 					</button>
 					<button
 						type="button"
-						onClick={() => setSearchQuery(`artist=""${item.artist}""`)}
+						onClick={() => openSearchTab(`artist=""${item.artist}""`, artist)}
 						className="block max-w-full truncate text-left text-sm text-text-secondary hover:text-primary"
 						title={artist}
 					>
 						{artist}
 					</button>
-					<span className="block truncate text-xs text-text-muted">mapped by {item.creator}</span>
+					<button
+						type="button"
+						onClick={() => openSearchTab(`creator=""${item.creator}""`, item.creator)}
+						className="block max-w-full truncate text-left text-xs text-text-muted hover:text-primary"
+					>
+						mapped by {item.creator}
+					</button>
 				</div>
 				<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
 					<span className="inline-flex items-center gap-1">

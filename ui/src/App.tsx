@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
 import QueuePage from "./components/pages/QueuePage";
-import SearchPage from "./components/pages/SearchPage";
+import SearchTabsPage from "./components/pages/SearchTabsPage";
 import SettingsPage from "./components/pages/SettingsPage";
 import { QueueNotificationManager } from "./components/QueueNotificationManager";
 import { ScanProgress } from "./components/ScanProgress";
-import { type SearchFilters } from "./components/search/types";
 import Badge from "./components/ui/Badge";
 import Tabs from "./components/ui/Tabs";
 import { CustomToast } from "./components/ui/Toast";
@@ -17,8 +16,6 @@ import { useDisplayPreferences } from "./hooks/useDisplayPreferences";
 
 function App() {
 	const [notOwnedOnly, setNotOwnedOnly] = useState(false);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
 	const [activeTab, setActiveTab] = useState("search");
 	const { showUnicode, setShowUnicode, cardLayout, setCardLayout } = useDisplayPreferences();
 	const { data: queue } = useQuery<QueueStatus>({
@@ -69,13 +66,9 @@ function App() {
 			label: "Search",
 			icon: <Search className="w-4 h-4" />,
 			content: (
-				<SearchPage
+				<SearchTabsPage
 					notOwnedOnly={notOwnedOnly}
 					setNotOwnedOnly={setNotOwnedOnly}
-					searchQuery={searchQuery}
-					setSearchQuery={setSearchQuery}
-					searchFilters={searchFilters}
-					setSearchFilters={setSearchFilters}
 					showUnicode={showUnicode}
 					setShowUnicode={setShowUnicode}
 					cardLayout={cardLayout}

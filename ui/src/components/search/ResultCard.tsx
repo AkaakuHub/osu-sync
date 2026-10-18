@@ -30,7 +30,7 @@ export type ResultCardProps = {
 	togglePreview: (item: PreviewableItem) => void;
 	triggerDownload: (setId: number) => void;
 	failureMessage?: string | null;
-	setSearchQuery: (value: string) => void;
+	openSearchTab: (query: string, label: string) => void;
 };
 
 // 背景色に基づいてテキスト色（黒or白）を計算する関数
@@ -108,7 +108,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 	togglePreview,
 	triggerDownload,
 	failureMessage,
-	setSearchQuery,
+	openSearchTab,
 }) => {
 	const [isHovered, setIsHovered] = useState(false);
 	const [isHoveringOverPanel, setIsHoveringOverPanel] = useState(false);
@@ -335,7 +335,10 @@ const ResultCard: React.FC<ResultCardProps> = ({
 											type="button"
 											onClick={(e) => {
 												e.stopPropagation();
-												setSearchQuery(`title=""${item.title}""`);
+												openSearchTab(
+													`title=""${item.title}""`,
+													showUnicode && item.title_unicode ? item.title_unicode : item.title,
+												);
 											}}
 											className={`${card.title()} text-left hover:text-primary transition-colors`}
 										>
@@ -346,7 +349,10 @@ const ResultCard: React.FC<ResultCardProps> = ({
 												type="button"
 												onClick={(e) => {
 													e.stopPropagation();
-													setSearchQuery(`artist=""${item.artist}""`);
+													openSearchTab(
+														`artist=""${item.artist}""`,
+														showUnicode && item.artist_unicode ? item.artist_unicode : item.artist,
+													);
 												}}
 												className={`${card.artist()} text-left hover:text-primary transition-colors rounded px-0 py-0 inline-block w-fit`}
 												aria-label={`Search by artist ${item.artist}`}
@@ -357,7 +363,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 												type="button"
 												onClick={(e) => {
 													e.stopPropagation();
-													setSearchQuery(`creator=""${item.creator}""`);
+													openSearchTab(`creator=""${item.creator}""`, item.creator);
 												}}
 												className={`${card.creator()} text-left hover:text-primary transition-colors rounded px-0 py-0 inline-block w-fit`}
 												aria-label={`Search by mapper ${item.creator}`}
