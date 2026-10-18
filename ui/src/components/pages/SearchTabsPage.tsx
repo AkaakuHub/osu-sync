@@ -56,7 +56,13 @@ export default function SearchTabsPage(props: Props) {
 	};
 	const closeTab = (id: number) => {
 		const index = tabs.findIndex((tab) => tab.id === id);
-		if (index < 0 || tabs.length === 1) return;
+		if (index < 0) return;
+		if (tabs.length === 1) {
+			const newId = nextId.current++;
+			setTabs([{ id: newId, label: "Search", query: "", filters: resetFilters() }]);
+			setActiveId(newId);
+			return;
+		}
 		const remaining = tabs.filter((tab) => tab.id !== id);
 		setTabs(remaining);
 		if (activeId === id) setActiveId(remaining[Math.max(0, index - 1)].id);
@@ -72,7 +78,7 @@ export default function SearchTabsPage(props: Props) {
 				{tabs.map((tab) => (
 					<div
 						key={tab.id}
-						className={`group flex max-w-48 shrink-0 items-center rounded-t-lg border-b-2 pl-3 pr-1 text-xs ${activeId === tab.id ? "border-primary bg-surface-variant/70 text-text" : "border-transparent text-text-secondary hover:bg-surface-variant/40"}`}
+						className={`group flex min-w-28 max-w-48 shrink-0 items-center rounded-t-lg border-b-2 pl-3 pr-1 text-xs ${activeId === tab.id ? "border-primary bg-surface-variant/70 text-text" : "border-transparent text-text-secondary hover:bg-surface-variant/40"}`}
 					>
 						<button
 							type="button"
@@ -84,16 +90,14 @@ export default function SearchTabsPage(props: Props) {
 						>
 							{tab.label}
 						</button>
-						{tabs.length > 1 && (
-							<button
-								type="button"
-								onClick={() => closeTab(tab.id)}
-								aria-label={`Close ${tab.label}`}
-								className="rounded p-1 text-text-muted hover:bg-surface hover:text-text"
-							>
-								<X className="h-3.5 w-3.5" />
-							</button>
-						)}
+						<button
+							type="button"
+							onClick={() => closeTab(tab.id)}
+							aria-label={`Close ${tab.label}`}
+							className="rounded p-1 text-text-muted hover:bg-surface hover:text-text"
+						>
+							<X className="h-3.5 w-3.5" />
+						</button>
 					</div>
 				))}
 				<button
