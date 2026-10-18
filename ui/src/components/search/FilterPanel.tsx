@@ -91,8 +91,8 @@ export function FilterPanel({
 		toggleExtra,
 		toggleGeneral,
 		setNsfw,
-		setRankedAfter,
-		setRankedBefore,
+		setDateAfter,
+		setDateBefore,
 		setPlayed,
 		toggleRank,
 		resetAllFilters,
@@ -178,26 +178,26 @@ export function FilterPanel({
 					</div>
 
 					<div className="flex flex-wrap items-center gap-3">
-						<span className="w-20 text-sm font-medium text-text">Ranked date:</span>
+						<span className="w-20 text-sm font-medium text-text">Submitted:</span>
 						<label className="flex items-center gap-2 text-sm text-text-secondary">
 							After
 							<input
-								aria-label="Ranked after"
+								aria-label="Submitted after"
 								type="date"
-								value={filters.rankedAfter}
-								max={filters.rankedBefore || undefined}
-								onChange={(event) => setRankedAfter(event.target.value)}
+								value={filters.dateAfter}
+								max={filters.dateBefore || undefined}
+								onChange={(event) => setDateAfter(event.target.value)}
 								className="rounded-md border border-border bg-surface-variant px-2 py-1 text-text [color-scheme:dark]"
 							/>
 						</label>
 						<label className="flex items-center gap-2 text-sm text-text-secondary">
 							Before
 							<input
-								aria-label="Ranked before"
+								aria-label="Submitted before"
 								type="date"
-								value={filters.rankedBefore}
-								min={filters.rankedAfter || undefined}
-								onChange={(event) => setRankedBefore(event.target.value)}
+								value={filters.dateBefore}
+								min={filters.dateAfter || undefined}
+								onChange={(event) => setDateBefore(event.target.value)}
 								className="rounded-md border border-border bg-surface-variant px-2 py-1 text-text [color-scheme:dark]"
 							/>
 						</label>

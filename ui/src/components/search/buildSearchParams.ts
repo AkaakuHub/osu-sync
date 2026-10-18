@@ -2,12 +2,12 @@ import { DEFAULT_FILTERS, type SearchFilters } from "./types";
 
 export function buildSearchParams(query: string, filters: SearchFilters | null, page = 1) {
 	const active = filters ?? DEFAULT_FILTERS;
-	const beforeExclusive = active.rankedBefore ? new Date(`${active.rankedBefore}T00:00:00Z`) : null;
+	const beforeExclusive = active.dateBefore ? new Date(`${active.dateBefore}T00:00:00Z`) : null;
 	beforeExclusive?.setUTCDate(beforeExclusive.getUTCDate() + 1);
 	const terms = [
 		query.trim(),
-		active.rankedAfter && `ranked>=${active.rankedAfter}`,
-		beforeExclusive && `ranked<${beforeExclusive.toISOString().slice(0, 10)}`,
+		active.dateAfter && `submitted>=${active.dateAfter}`,
+		beforeExclusive && `submitted<${beforeExclusive.toISOString().slice(0, 10)}`,
 	].filter(Boolean);
 	const params = new URLSearchParams({ q: terms.join(" "), page: String(page), limit: "20" });
 

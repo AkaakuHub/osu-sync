@@ -1,5 +1,6 @@
-import { CalendarDays, Download, ExternalLink, Heart, Music4, Pause, Play } from "lucide-react";
-import { defaultCover, difficultyColor, formatDate, formatNumber } from "./helpers";
+import { Download, ExternalLink, Music4, Pause, Play } from "lucide-react";
+import { useBeatmapMetadata } from "./BeatmapMetadata";
+import { defaultCover } from "./helpers";
 import type { ResultCardProps } from "./ResultCard";
 
 export default function ArtworkResultCard({
@@ -16,20 +17,18 @@ export default function ArtworkResultCard({
 }: ResultCardProps) {
 	const title = showUnicode && item.title_unicode ? item.title_unicode : item.title;
 	const artist = showUnicode && item.artist_unicode ? item.artist_unicode : item.artist;
-	const difficulties = [...(item.difficulties ?? [])].sort((a, b) => a.rating - b.rating);
+	const { summary, panel } = useBeatmapMetadata(item);
 
 	return (
-		<article className="group relative m-1.5 overflow-hidden rounded-xl border border-border bg-surface-variant/40 shadow-lg transition-colors hover:border-accent/70">
-			<div className="relative h-56 overflow-hidden bg-surface-variant">
+		<article className="group relative m-1.5 rounded-xl border border-border bg-surface-variant/40 shadow-lg transition-colors hover:border-accent/70">
+			<div className="relative h-56 overflow-hidden rounded-t-xl bg-surface-variant">
 				{item.cover_url ? (
 					<img
 						src={item.cover_url}
 						alt=""
 						className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
 						onError={(event) => {
-							if (event.currentTarget.src !== defaultCover) {
-								event.currentTarget.src = defaultCover;
-							}
+							if (event.currentTarget.src !== defaultCover) event.currentTarget.src = defaultCover;
 						}}
 					/>
 				) : (
@@ -37,10 +36,6 @@ export default function ArtworkResultCard({
 						<Music4 className="h-12 w-12 text-text-muted" />
 					</div>
 				)}
-				<div className="absolute inset-0 bg-gradient-to-t from-surface/60 via-transparent to-transparent" />
-				<div className="absolute left-4 top-4 rounded-md bg-surface/85 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text backdrop-blur-sm">
-					{item.status}
-				</div>
 				<a
 					href={`https://osu.ppy.sh/beatmapsets/${item.set_id}`}
 					target="_blank"
@@ -50,7 +45,23 @@ export default function ArtworkResultCard({
 				>
 					<ExternalLink className="h-4 w-4" />
 				</a>
-				<div className="absolute inset-x-0 bottom-0 bg-surface/55 px-4 py-3 pr-16 text-text backdrop-blur-md">
+				<button
+					type="button"
+					disabled={!item.preview_url || isLoadingPreview}
+					onClick={() => togglePreview(item)}
+					aria-label={isPreviewing ? "Pause preview" : "Play preview"}
+					className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border border-border/70 bg-surface/85 text-text shadow-lg disabled:opacity-40"
+					style={{
+						backgroundImage: `conic-gradient(var(--color-primary) ${playbackProgress * 100}%, transparent 0)`,
+					}}
+				>
+					<span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface">
+						{isPreviewing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+					</span>
+				</button>
+			</div>
+			<div className="space-y-3 px-4 pb-4 pt-3">
+				<div className="min-w-0 text-text">
 					<button
 						type="button"
 						onClick={() => openSearchTab(`title=""${item.title}""`, title)}
@@ -75,57 +86,13 @@ export default function ArtworkResultCard({
 						mapped by {item.creator}
 					</button>
 				</div>
-				<button
-					type="button"
-					disabled={!item.preview_url || isLoadingPreview}
-					onClick={() => togglePreview(item)}
-					aria-label={isPreviewing ? "Pause preview" : "Play preview"}
-					className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border border-border/70 bg-surface/85 text-text shadow-lg disabled:opacity-40"
-					style={{
-						backgroundImage: `conic-gradient(var(--color-primary) ${playbackProgress * 100}%, transparent 0)`,
-					}}
-				>
-					<span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface">
-						{isPreviewing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-					</span>
-				</button>
-			</div>
-			<div className="space-y-3 px-4 pb-4 pt-3">
-				<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
-					<span className="inline-flex items-center gap-1">
-						<Heart className="h-3.5 w-3.5 text-osu-pink" />
-						{formatNumber(item.favourite_count)}
-					</span>
-					<span className="inline-flex items-center gap-1">
-						<Play className="h-3.5 w-3.5 text-success" />
-						{formatNumber(item.play_count)}
-					</span>
-					<span className="inline-flex items-center gap-1">
-						<CalendarDays className="h-3.5 w-3.5 text-primary" />
-						{formatDate(item.ranked_date)}
-					</span>
-				</div>
-				<div className="flex items-end justify-between gap-3 border-t border-border/60 pt-3">
-					<div className="flex min-w-0 flex-wrap gap-1.5">
-						{difficulties.map((difficulty, index) => (
-							<span
-								key={`${difficulty.mode}-${difficulty.label}-${index}`}
-								title={`${difficulty.mode}: ${difficulty.label} ★${difficulty.rating.toFixed(2)}`}
-								className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-surface/80 px-2 py-1 text-[11px] text-text-secondary"
-							>
-								<span
-									className="h-2 w-2 rounded-full"
-									style={{ backgroundColor: difficultyColor(difficulty.rating) }}
-								/>
-								{difficulty.rating.toFixed(2)}★
-							</span>
-						))}
-					</div>
+				{summary}
+				<div className="flex justify-end border-t border-border/60 pt-3">
 					<button
 						type="button"
 						disabled={action.disabled}
 						onClick={() => triggerDownload(item.set_id)}
-						className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:bg-surface-variant disabled:text-text-muted"
+						className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:bg-surface-variant disabled:text-text-muted"
 					>
 						<Download className="h-4 w-4" />
 						{action.label}
@@ -133,6 +100,7 @@ export default function ArtworkResultCard({
 				</div>
 				{failureMessage && <p className="text-xs text-error">Failed: {failureMessage}</p>}
 			</div>
+			{panel}
 		</article>
 	);
 }

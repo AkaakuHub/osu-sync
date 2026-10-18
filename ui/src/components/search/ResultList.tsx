@@ -40,16 +40,16 @@ const ResultList: React.FC<Props> = ({
 	openSearchTab,
 }) => {
 	const virtuosoRef = React.useRef<VirtuosoHandle>(null);
+	const followPreviewRef = React.useRef(true);
+	const focusedIndex = items.findIndex((item) => item.set_id === focusedSetId);
 	React.useEffect(() => {
-		if (focusedSetId === null) return;
-		const index = items.findIndex((item) => item.set_id === focusedSetId);
-		if (index >= 0)
+		if (focusedIndex >= 0 && followPreviewRef.current)
 			virtuosoRef.current?.scrollToIndex({
-				index: Math.floor(index / 2),
+				index: Math.floor(focusedIndex / 2),
 				align: "center",
 				behavior: "smooth",
 			});
-	}, [focusedSetId, items]);
+	}, [focusedIndex]);
 	const Card = cardLayout === "artwork" ? ArtworkResultCard : ResultCard;
 	// Pair items for 2-column layout
 	const pairedItems = items.reduce<
@@ -64,7 +64,23 @@ const ResultList: React.FC<Props> = ({
 	}, []);
 
 	return (
-		<div className="h-full rounded-xl border border-border bg-surface/80 shadow-2xl backdrop-blur-md">
+		<div
+			className="h-full rounded-xl border border-border bg-surface/80 shadow-2xl backdrop-blur-md"
+			onWheelCapture={() => {
+				followPreviewRef.current = false;
+			}}
+			onTouchMoveCapture={() => {
+				followPreviewRef.current = false;
+			}}
+			onPointerDownCapture={(event) => {
+				if (event.clientX >= event.currentTarget.getBoundingClientRect().right - 20)
+					followPreviewRef.current = false;
+			}}
+			onKeyDownCapture={(event) => {
+				if (["PageUp", "PageDown", "Home", "End"].includes(event.key))
+					followPreviewRef.current = false;
+			}}
+		>
 			<Virtuoso
 				ref={virtuosoRef}
 				style={{ height: "100%" }}

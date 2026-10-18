@@ -75,11 +75,11 @@ export function useSearchFilters({ onFiltersChange, initialFilters, searchQuery 
 	const setNsfw = useCallback((nsfw: boolean) => {
 		setFilters((current) => ({ ...current, nsfw }));
 	}, []);
-	const setRankedAfter = useCallback((rankedAfter: string) => {
-		setFilters((current) => ({ ...current, rankedAfter }));
+	const setDateAfter = useCallback((dateAfter: string) => {
+		setFilters((current) => ({ ...current, dateAfter }));
 	}, []);
-	const setRankedBefore = useCallback((rankedBefore: string) => {
-		setFilters((current) => ({ ...current, rankedBefore }));
+	const setDateBefore = useCallback((dateBefore: string) => {
+		setFilters((current) => ({ ...current, dateBefore }));
 	}, []);
 	const setPlayed = useCallback((played: PlayedFilter) => {
 		setFilters((current) => ({ ...current, played }));
@@ -102,8 +102,8 @@ export function useSearchFilters({ onFiltersChange, initialFilters, searchQuery 
 		toggleGenre,
 		toggleLanguage,
 		setNsfw,
-		setRankedAfter,
-		setRankedBefore,
+		setDateAfter,
+		setDateBefore,
 		setPlayed,
 		toggleRank,
 		resetAllFilters,

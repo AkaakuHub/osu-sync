@@ -78,8 +78,8 @@ export interface SearchFilters {
 
 	// ブール値フィルター
 	nsfw: boolean;
-	rankedAfter: string;
-	rankedBefore: string;
+	dateAfter: string;
+	dateBefore: string;
 
 	// サポーター専用フィルター
 	played?: PlayedFilter;
@@ -97,8 +97,8 @@ export const DEFAULT_FILTERS: SearchFilters = {
 	genre: [],
 	language: [],
 	nsfw: false,
-	rankedAfter: "",
-	rankedBefore: "",
+	dateAfter: "",
+	dateBefore: "",
 };
 
 // 利用可能なオプション定数
