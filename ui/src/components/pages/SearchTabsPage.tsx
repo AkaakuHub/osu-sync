@@ -1,5 +1,5 @@
 import { Plus, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import type { SearchFilters } from "../search/types";
 import { resetFilters } from "../search/utils";
@@ -23,11 +23,38 @@ type Props = {
 };
 
 export default function SearchTabsPage(props: Props) {
+	const tabListRef = useRef<HTMLDivElement>(null);
+	const activeTabRef = useRef<HTMLDivElement>(null);
 	const nextId = useRef(2);
 	const [tabs, setTabs] = useState<SearchTab[]>([
 		{ id: 1, label: "Search", query: "", filters: resetFilters() },
 	]);
 	const [activeId, setActiveId] = useState(1);
+
+	useEffect(() => {
+		const tabList = tabListRef.current;
+		if (!tabList) return;
+		const handleWheel = (event: WheelEvent) => {
+			if (event.ctrlKey || tabList.scrollWidth <= tabList.clientWidth) return;
+			const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+			const unit =
+				event.deltaMode === WheelEvent.DOM_DELTA_LINE
+					? tabList.clientHeight
+					: event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+						? tabList.clientWidth
+						: 1;
+			event.preventDefault();
+			tabList.scrollBy({ left: delta * unit });
+		};
+		tabList.addEventListener("wheel", handleWheel, { passive: false });
+		return () => tabList.removeEventListener("wheel", handleWheel);
+	}, []);
+
+	useLayoutEffect(() => {
+		if (props.isActive) {
+			activeTabRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+		}
+	}, [activeId, props.isActive]);
 
 	const openTab = (query = "", label = "New search") => {
 		const id = nextId.current++;
@@ -63,15 +90,17 @@ export default function SearchTabsPage(props: Props) {
 	};
 
 	return (
-		<div className="flex h-full min-h-0 flex-col">
+		<div className="flex h-full min-h-0 min-w-0 flex-col">
 			<div
-				className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border/70 px-2 pb-1"
+				ref={tabListRef}
+				className="flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto border-b border-border/70 px-2 pb-1"
 				role="tablist"
 				aria-label="Search tabs"
 			>
 				{tabs.map((tab) => (
 					<div
 						key={tab.id}
+						ref={activeId === tab.id ? activeTabRef : undefined}
 						className={`group flex min-w-28 max-w-48 shrink-0 items-center rounded-t-lg border-b-2 pl-3 pr-1 text-xs ${activeId === tab.id ? "border-primary bg-surface-variant/70 text-text" : "border-transparent text-text-secondary hover:bg-surface-variant/40"}`}
 					>
 						<button
