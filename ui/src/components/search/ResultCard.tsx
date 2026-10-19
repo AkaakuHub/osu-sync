@@ -17,6 +17,7 @@ type ResultCardProps = {
 	layout: CardLayout;
 	item: SearchResponse["results"][number];
 	showUnicode: boolean;
+	dateField?: "ranked" | "updated";
 	action: ActionState;
 	isPreviewing: boolean;
 	isLoadingPreview: boolean;
@@ -64,6 +65,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 	layout,
 	item,
 	showUnicode,
+	dateField,
 	action,
 	isPreviewing,
 	isLoadingPreview,
@@ -80,7 +82,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 		[layout, item.cover_url],
 	);
 	const cardStyle = buildBackground(coverUrl);
-	const { summary, panel } = useBeatmapMetadata(item, layout);
+	const { summary, panel } = useBeatmapMetadata(item, layout, dateField);
 
 	const buttonVariant =
 		action.variant === "danger"

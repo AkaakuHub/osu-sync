@@ -19,7 +19,7 @@ import {
 } from "./search/previewBridge";
 import type { PreviewableItem } from "./search/ResultCard";
 import ResultList from "./search/ResultList";
-import type { SearchFilters } from "./search/types";
+import { DATE_SEARCH_FIELDS, type SearchFilters } from "./search/types";
 import { hasActiveFilters } from "./search/utils";
 import Button from "./ui/Button";
 import Toggle from "./ui/Toggle";
@@ -427,6 +427,11 @@ const SearchResults: React.FC<Props> = ({
 			) : (
 				<div className="flex-1 min-h-0">
 					<ResultList
+						dateField={
+							searchFilters && (searchFilters.dateAfter || searchFilters.dateBefore)
+								? DATE_SEARCH_FIELDS[searchFilters.status]
+								: undefined
+						}
 						items={filtered}
 						focusedSetId={focusedSetId}
 						cardLayout={cardLayout}

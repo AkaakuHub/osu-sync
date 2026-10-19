@@ -14,6 +14,7 @@ type Props = {
 	focusedSetId: number | null;
 	cardLayout: CardLayout;
 	showUnicode: boolean;
+	dateField?: "ranked" | "updated";
 	previewingId: number | null;
 	isLoadingPreview: boolean;
 	playbackProgress: number;
@@ -31,6 +32,7 @@ const ResultList: React.FC<Props> = ({
 	focusedSetId,
 	cardLayout,
 	showUnicode,
+	dateField,
 	previewingId,
 	isLoadingPreview,
 	playbackProgress,
@@ -107,6 +109,7 @@ const ResultList: React.FC<Props> = ({
 						{row.map((prepared) => (
 							<div className="min-w-0" key={prepared.item.set_id}>
 								<ResultCard
+									dateField={dateField}
 									layout={cardLayout}
 									item={prepared.item}
 									showUnicode={showUnicode}

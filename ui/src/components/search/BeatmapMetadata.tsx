@@ -91,9 +91,19 @@ const modeIcon: Record<string, JSX.Element> = {
 	),
 };
 
-export function useBeatmapMetadata(item: Item, layout: "classic" | "artwork" = "classic") {
+export function useBeatmapMetadata(
+	item: Item,
+	layout: "classic" | "artwork" = "classic",
+	dateField?: "ranked" | "updated",
+) {
 	const [isHovered, setIsHovered] = useState(false);
 	const [isHoveringOverPanel, setIsHoveringOverPanel] = useState(false);
+	const dateKey = dateField
+		? dateField === "updated"
+			? "last_updated"
+			: "ranked_date"
+		: dateFields[item.status];
+	const dateLabel = dateKey === "last_updated" ? "Updated" : "Ranked / Loved";
 
 	const statusKey = item.status;
 	const difficulties = useMemo(
@@ -158,9 +168,12 @@ export function useBeatmapMetadata(item: Item, layout: "classic" | "artwork" = "
 					<Play className="w-4 h-4 text-success" />
 					<span>{formatNumber(item.play_count)}</span>
 				</div>
-				<div className={"flex items-center gap-1.5"}>
+				<div className="flex items-center gap-1.5" title={`${dateLabel} date`}>
 					<CalendarDays className="w-4 h-4 text-primary" />
-					<span>{formatDate(item[dateFields[item.status]])}</span>
+					<span>
+						{dateField && `${dateLabel}: `}
+						{formatDate(item[dateKey])}
+					</span>
 				</div>
 			</div>
 			<div
