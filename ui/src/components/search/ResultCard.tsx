@@ -1,4 +1,4 @@
-import { Download, ExternalLink, Music4, Pause, Play } from "lucide-react";
+import { Download, ExternalLink, Music4, Pause, Play, RotateCcw } from "lucide-react";
 import type React from "react";
 import { memo, useMemo } from "react";
 import { tv } from "tailwind-variants";
@@ -82,6 +82,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 	);
 	const cardStyle = buildBackground(coverUrl);
 	const { summary, panel } = useBeatmapMetadata(item, layout, dateField);
+	const actionLabel = failureMessage ? `${action.label}: ${failureMessage}` : action.label;
 
 	const buttonVariant =
 		action.variant === "danger"
@@ -228,9 +229,6 @@ const ResultCard: React.FC<ResultCardProps> = ({
 								</div>
 
 								{summary}
-								{failureMessage && (
-									<p className="break-words text-xs text-error">{failureMessage}</p>
-								)}
 							</div>
 
 							<div
@@ -241,11 +239,16 @@ const ResultCard: React.FC<ResultCardProps> = ({
 									size="card"
 									className="gap-2 rounded-lg transition-none"
 									disabled={action.disabled}
-									aria-label={action.label}
-									title={action.label}
+									aria-label={actionLabel}
+									title={actionLabel}
 									onClick={() => triggerDownload(item.set_id)}
 								>
-									<Download className="w-4 h-4" />
+									{failureMessage ? (
+										<RotateCcw className="w-4 h-4" />
+									) : (
+										<Download className="w-4 h-4" />
+									)}
+									{failureMessage && <span>{action.label}</span>}
 								</Button>
 							</div>
 						</div>
