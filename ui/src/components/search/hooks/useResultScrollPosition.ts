@@ -11,8 +11,11 @@ export function useResultScrollPosition<T>(columnCount: number) {
 			(item) => item.offset + item.size > scrollTop.current,
 		);
 		if (!firstVisible) return;
+		const rowStart = firstVisible.index * columnCount;
+		const previousItem = position.current.itemIndex;
 		position.current = {
-			itemIndex: firstVisible.index * columnCount,
+			itemIndex:
+				previousItem >= rowStart && previousItem < rowStart + columnCount ? previousItem : rowStart,
 			offset: scrollTop.current - firstVisible.offset,
 		};
 	};
