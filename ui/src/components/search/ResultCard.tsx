@@ -45,7 +45,7 @@ const cardStyles = tv({
 	variants: {
 		playing: {
 			true: {
-				base: "ring-2 ring-primary/60 shadow-[0_0_14px] shadow-primary/25",
+				base: "ring-2 ring-primary/60 shadow-[0_0_24px_3px] shadow-primary/25",
 			},
 		},
 		layout: {
