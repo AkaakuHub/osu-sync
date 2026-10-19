@@ -37,17 +37,20 @@ const ResultList: React.FC<Props> = ({
 }) => {
 	const virtuosoRef = React.useRef<VirtuosoHandle>(null);
 	const { containerRef, columnCount } = useResultColumns();
-	const scrollPosition = useResultScrollPosition<PreparedItem[]>();
+	const scrollPosition = useResultScrollPosition<PreparedItem[]>(columnCount);
 	const followPreviewRef = React.useRef(true);
+	const previousFocusedId = React.useRef<number | null>(null);
 	const focusedIndex = items.findIndex((item) => item.set_id === focusedSetId);
 	const focusedRow = focusedIndex < 0 ? -1 : Math.floor(focusedIndex / columnCount);
 	React.useEffect(() => {
+		if (previousFocusedId.current === focusedSetId) return;
+		previousFocusedId.current = focusedSetId;
 		if (focusedRow >= 0 && followPreviewRef.current)
 			virtuosoRef.current?.scrollIntoView({
 				index: focusedRow,
 				behavior: "smooth",
 			});
-	}, [focusedRow]);
+	}, [focusedSetId, focusedRow]);
 	const rows = React.useMemo(() => {
 		const result: PreparedItem[][] = [];
 		for (const item of items) {
@@ -88,7 +91,7 @@ const ResultList: React.FC<Props> = ({
 			}}
 		>
 			<Virtuoso
-				key={cardLayout}
+				key={`${cardLayout}-${columnCount}`}
 				{...scrollPosition}
 				ref={virtuosoRef}
 				style={{ height: "100%" }}

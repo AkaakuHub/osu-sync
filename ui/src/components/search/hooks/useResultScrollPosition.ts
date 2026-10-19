@@ -1,10 +1,10 @@
 import { type UIEvent, useRef } from "react";
-import type { IndexLocationWithAlign, ListItem } from "react-virtuoso";
+import type { ListItem } from "react-virtuoso";
 
-export function useResultScrollPosition<T>() {
+export function useResultScrollPosition<T>(columnCount: number) {
 	const renderedItems = useRef<ListItem<T>[]>([]);
 	const scrollTop = useRef(0);
-	const position = useRef<IndexLocationWithAlign>({ index: 0, align: "start" });
+	const position = useRef({ itemIndex: 0, offset: 0 });
 
 	const updatePosition = () => {
 		const firstVisible = renderedItems.current.find(
@@ -12,14 +12,17 @@ export function useResultScrollPosition<T>() {
 		);
 		if (!firstVisible) return;
 		position.current = {
-			index: firstVisible.index,
-			align: "start",
+			itemIndex: firstVisible.index * columnCount,
 			offset: scrollTop.current - firstVisible.offset,
 		};
 	};
 
 	return {
-		initialTopMostItemIndex: position.current,
+		initialTopMostItemIndex: {
+			index: Math.floor(position.current.itemIndex / columnCount),
+			align: "start" as const,
+			offset: position.current.offset,
+		},
 		itemsRendered: (items: ListItem<T>[]) => {
 			renderedItems.current = items;
 			updatePosition();
