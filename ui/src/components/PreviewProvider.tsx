@@ -3,9 +3,17 @@ import { Howl } from "howler";
 import React from "react";
 import { apiClient, type Settings } from "../hooks/useApiClient";
 import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
-import { PREVIEW_ENDED_EVENT, type PreviewableItem, PreviewContext } from "./search/previewBridge";
+import {
+	PREVIEW_ENDED_EVENT,
+	type PreviewableItem,
+	PreviewContext,
+	type PreviewRevealRequest,
+} from "./search/previewBridge";
 
-const PreviewProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+const PreviewProvider: React.FC<React.PropsWithChildren<{ onRevealTrack: () => void }>> = ({
+	children,
+	onRevealTrack,
+}) => {
 	const { data: settings } = useQuery<Settings>({
 		queryKey: ["settings"],
 		queryFn: () => apiClient.get<Settings>("/settings"),
@@ -24,6 +32,8 @@ const PreviewProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
 	const howlRef = React.useRef<Howl | null>(null);
 	const progressTimer = React.useRef<number | null>(null);
 	const queuedPreviewRef = React.useRef<PreviewableItem | null>(null);
+	const sourceTabIdRef = React.useRef<number | null>(null);
+	const [revealRequest, setRevealRequest] = React.useState<PreviewRevealRequest | null>(null);
 
 	React.useEffect(() => {
 		if (!settings) return;
@@ -49,8 +59,9 @@ const PreviewProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
 	}, []);
 
 	const togglePreview = React.useCallback(
-		(item: PreviewableItem) => {
+		(item: PreviewableItem, tabId?: number) => {
 			if (!item.preview_url) return;
+			if (tabId !== undefined) sourceTabIdRef.current = tabId;
 			if (!settings) {
 				queuedPreviewRef.current = item;
 				return;
@@ -188,8 +199,22 @@ const PreviewProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
 	}, [currentTrack, togglePreview]);
 
 	const preview = React.useMemo(
-		() => ({ previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress, togglePreview }),
-		[previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress, togglePreview],
+		() => ({
+			previewingId,
+			isLoadingPreview,
+			isActuallyPlaying,
+			playbackProgress,
+			togglePreview,
+			revealRequest,
+		}),
+		[
+			previewingId,
+			isLoadingPreview,
+			isActuallyPlaying,
+			playbackProgress,
+			togglePreview,
+			revealRequest,
+		],
 	);
 
 	return (
@@ -204,6 +229,15 @@ const PreviewProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
 					volume={volume}
 					isMuted={isMuted}
 					onToggle={handlePlayerToggle}
+					onReveal={() => {
+						if (previewingId === null) return;
+						onRevealTrack();
+						setRevealRequest((current) => ({
+							setId: previewingId,
+							tabId: sourceTabIdRef.current,
+							sequence: (current?.sequence ?? 0) + 1,
+						}));
+					}}
 					onSeek={seekTo}
 					onVolumeChange={handleVolumeChange}
 					onToggleMute={handleToggleMute}

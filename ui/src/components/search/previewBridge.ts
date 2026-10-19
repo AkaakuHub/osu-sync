@@ -15,8 +15,15 @@ type PreviewState = {
 	isActuallyPlaying: boolean;
 };
 
+export type PreviewRevealRequest = {
+	setId: number;
+	tabId: number | null;
+	sequence: number;
+};
+
 type PreviewContextValue = PreviewState & {
-	togglePreview: (item: PreviewableItem) => void;
+	togglePreview: (item: PreviewableItem, tabId?: number) => void;
+	revealRequest: PreviewRevealRequest | null;
 };
 
 export const PreviewContext = createContext<PreviewContextValue | null>(null);

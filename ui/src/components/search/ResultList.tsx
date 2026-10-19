@@ -5,12 +5,14 @@ import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import type { ActionState, QueueDerivedState } from "./helpers";
 import { useResultColumns } from "./hooks/useResultColumns";
 import { useResultScrollPosition } from "./hooks/useResultScrollPosition";
+import type { PreviewRevealRequest } from "./previewBridge";
 import ResultCard from "./ResultCard";
 
 type Item = SearchResponse["results"][number];
 type PreparedItem = { item: Item; action: ActionState; failureMessage?: string | null };
 
 type Props = {
+	revealRequest: PreviewRevealRequest | null;
 	items: Item[];
 	focusedSetId: number | null;
 	cardLayout: CardLayout;
@@ -24,6 +26,7 @@ type Props = {
 };
 
 const ResultList: React.FC<Props> = ({
+	revealRequest,
 	items,
 	focusedSetId,
 	cardLayout,
@@ -40,6 +43,15 @@ const ResultList: React.FC<Props> = ({
 	const scrollPosition = useResultScrollPosition<PreparedItem[]>(columnCount);
 	const followPreviewRef = React.useRef(true);
 	const previousFocusedId = React.useRef<number | null>(null);
+	const handledReveal = React.useRef(0);
+	const revealIndex = items.findIndex((item) => item.set_id === revealRequest?.setId);
+	const revealRow = revealIndex < 0 ? -1 : Math.floor(revealIndex / columnCount);
+	React.useEffect(() => {
+		if (!revealRequest || revealRow < 0 || handledReveal.current === revealRequest.sequence) return;
+		handledReveal.current = revealRequest.sequence;
+		followPreviewRef.current = true;
+		virtuosoRef.current?.scrollToIndex({ index: revealRow, align: "center", behavior: "smooth" });
+	}, [revealRequest, revealRow]);
 	const focusedIndex = items.findIndex((item) => item.set_id === focusedSetId);
 	const focusedRow = focusedIndex < 0 ? -1 : Math.floor(focusedIndex / columnCount);
 	React.useEffect(() => {

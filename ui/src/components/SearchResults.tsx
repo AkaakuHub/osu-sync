@@ -405,6 +405,7 @@ const SearchResults: React.FC<Props> = ({
 			) : (
 				<div className="flex-1 min-h-0">
 					<ResultList
+						revealRequest={isActive ? previewState.revealRequest : null}
 						dateField={
 							searchFilters && (searchFilters.dateAfter || searchFilters.dateBefore)
 								? getDateSearchField(searchFilters.sortField)

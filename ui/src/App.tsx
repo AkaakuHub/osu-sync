@@ -14,9 +14,14 @@ import { CustomToast } from "./components/ui/Toast";
 import { apiClient, type QueueStatus, type UpdateStatus } from "./hooks/useApiClient";
 import { useDisplayPreferences } from "./hooks/useDisplayPreferences";
 
-function App() {
+function AppContent({
+	activeTab,
+	setActiveTab,
+}: {
+	activeTab: string;
+	setActiveTab: (tab: string) => void;
+}) {
 	const [notOwnedOnly, setNotOwnedOnly] = useState(false);
-	const [activeTab, setActiveTab] = useState("search");
 	const { showUnicode, setShowUnicode, cardLayout, setCardLayout } = useDisplayPreferences();
 	const { data: queue } = useQuery<QueueStatus>({
 		queryKey: ["queue"],
@@ -106,24 +111,29 @@ function App() {
 	];
 
 	return (
-		<PreviewProvider>
-			<div className="min-h-screen w-full overflow-hidden bg-surface">
-				{/* Background Managers */}
-				<ScanProgress />
-				<QueueNotificationManager showUnicode={showUnicode} />
+		<div className="min-h-screen w-full overflow-hidden bg-surface">
+			{/* Background Managers */}
+			<ScanProgress />
+			<QueueNotificationManager showUnicode={showUnicode} />
 
-				<div className="h-screen flex flex-col p-2">
-					{/* Tab Navigation */}
-					<div className="flex-1 min-h-0">
-						<Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-					</div>
+			<div className="h-screen flex flex-col p-2">
+				{/* Tab Navigation */}
+				<div className="flex-1 min-h-0">
+					<Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 				</div>
-
-				{/* Global Components */}
-				<CustomToast />
 			</div>
-		</PreviewProvider>
+
+			{/* Global Components */}
+			<CustomToast />
+		</div>
 	);
 }
 
-export default App;
+export default function App() {
+	const [activeTab, setActiveTab] = useState("search");
+	return (
+		<PreviewProvider onRevealTrack={() => setActiveTab("search")}>
+			<AppContent activeTab={activeTab} setActiveTab={setActiveTab} />
+		</PreviewProvider>
+	);
+}

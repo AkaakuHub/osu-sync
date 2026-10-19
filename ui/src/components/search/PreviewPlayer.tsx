@@ -17,6 +17,7 @@ type Props = {
 	volume: number;
 	isMuted: boolean;
 	onToggle: () => void;
+	onReveal: () => void;
 	onSeek: (fraction: number) => void;
 	onVolumeChange: (volume: number) => void;
 	onToggleMute: () => void;
@@ -32,6 +33,7 @@ const PreviewPlayer: React.FC<Props> = ({
 	volume,
 	isMuted,
 	onToggle,
+	onReveal,
 	onSeek,
 	onVolumeChange,
 	onToggleMute,
@@ -186,12 +188,19 @@ const PreviewPlayer: React.FC<Props> = ({
 									<Play className="w-3 h-3" fill="currentColor" />
 								)}
 							</button>
-							<div className="flex-1 min-w-0">
+							<button
+								type="button"
+								onClick={onReveal}
+								disabled={!hasTrack}
+								title="Show in search results"
+								aria-label={`Show ${title} in search results`}
+								className="flex-1 min-w-0 rounded text-left hover:bg-surface-variant/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none"
+							>
 								<div className="text-xs font-medium text-surface-foreground truncate">{title}</div>
 								<div className="text-[10px] text-text-secondary truncate">
 									{artist || (hasTrack ? "" : "No preview playing")}
 								</div>
-							</div>
+							</button>
 						</div>
 						{/* Mini Progress Bar */}
 						<div

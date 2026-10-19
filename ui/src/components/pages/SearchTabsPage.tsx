@@ -1,6 +1,7 @@
 import { Plus, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CardLayout } from "../../hooks/useDisplayPreferences";
+import { PreviewContext, usePreview } from "../search/previewBridge";
 import type { SearchFilters } from "../search/types";
 import { resetFilters } from "../search/utils";
 import SearchPage from "./SearchPage";
@@ -23,6 +24,8 @@ type Props = {
 };
 
 export default function SearchTabsPage(props: Props) {
+	const preview = usePreview();
+	const handledReveal = useRef(0);
 	const tabListRef = useRef<HTMLDivElement>(null);
 	const activeTabRef = useRef<HTMLDivElement>(null);
 	const nextId = useRef(2);
@@ -61,6 +64,14 @@ export default function SearchTabsPage(props: Props) {
 		setTabs((current) => [...current, { id, label, query, filters: resetFilters() }]);
 		setActiveId(id);
 	};
+
+	useEffect(() => {
+		const request = preview.revealRequest;
+		if (!request || handledReveal.current === request.sequence) return;
+		handledReveal.current = request.sequence;
+		const target = tabs.find((tab) => tab.id === request.tabId);
+		if (target) setActiveId(target.id);
+	}, [preview.revealRequest, tabs]);
 	const updateTab = (id: number, change: Partial<Pick<SearchTab, "query" | "filters">>) => {
 		setTabs((current) =>
 			current.some(
@@ -137,15 +148,19 @@ export default function SearchTabsPage(props: Props) {
 			<div className="min-h-0 flex-1">
 				{tabs.map((tab) => (
 					<div key={tab.id} role="tabpanel" hidden={activeId !== tab.id} className="h-full">
-						<SearchPage
-							{...props}
-							isActive={props.isActive && activeId === tab.id}
-							searchQuery={tab.query}
-							setSearchQuery={(query) => updateTab(tab.id, { query })}
-							searchFilters={tab.filters}
-							setSearchFilters={(filters) => updateTab(tab.id, { filters })}
-							openSearchTab={(query, label) => openTab(query, label)}
-						/>
+						<PreviewContext.Provider
+							value={{ ...preview, togglePreview: (item) => preview.togglePreview(item, tab.id) }}
+						>
+							<SearchPage
+								{...props}
+								isActive={props.isActive && activeId === tab.id}
+								searchQuery={tab.query}
+								setSearchQuery={(query) => updateTab(tab.id, { query })}
+								searchFilters={tab.filters}
+								setSearchFilters={(filters) => updateTab(tab.id, { filters })}
+								openSearchTab={(query, label) => openTab(query, label)}
+							/>
+						</PreviewContext.Provider>
 					</div>
 				))}
 			</div>
