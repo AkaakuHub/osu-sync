@@ -13,12 +13,7 @@ import { triggerDownload } from "../utils/downloadUtils";
 import { buildSearchParams } from "./search/buildSearchParams";
 import { getDateSearchField } from "./search/dateSearch";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
-import {
-	PREVIEW_ENDED_EVENT,
-	PREVIEW_STATE_EVENT,
-	type PreviewState,
-} from "./search/previewBridge";
-import type { PreviewableItem } from "./search/ResultCard";
+import { PREVIEW_ENDED_EVENT, usePreview } from "./search/previewBridge";
 import ResultList from "./search/ResultList";
 import type { SearchFilters } from "./search/types";
 import { hasActiveFilters } from "./search/utils";
@@ -196,28 +191,10 @@ const SearchResults: React.FC<Props> = ({
 		[allResults, data?.total, internalCurrentPage, client, onQueueUpdate],
 	);
 
-	// GlobalPreviewPlayerからグローバル関数を取得
-	const togglePreview = React.useCallback((item: PreviewableItem) => {
-		window.togglePreview?.(item);
-	}, []);
-
-	const [previewState, setPreviewState] = React.useState<PreviewState>({
-		previewingId: null,
-		isLoadingPreview: false,
-		playbackProgress: 0,
-		isActuallyPlaying: false,
-	});
+	const previewState = usePreview();
+	const { togglePreview } = previewState;
 	const navigationIdRef = React.useRef<number | null>(null);
 	const [focusedSetId, setFocusedSetId] = React.useState<number | null>(null);
-
-	React.useEffect(() => {
-		const updatePreviewState = () => {
-			if (window.previewPlayerState) setPreviewState(window.previewPlayerState);
-		};
-		updatePreviewState();
-		window.addEventListener(PREVIEW_STATE_EVENT, updatePreviewState);
-		return () => window.removeEventListener(PREVIEW_STATE_EVENT, updatePreviewState);
-	}, []);
 
 	React.useEffect(() => {
 		if (previewState.previewingId !== null) navigationIdRef.current = previewState.previewingId;
@@ -243,7 +220,7 @@ const SearchResults: React.FC<Props> = ({
 				const current = filtered.find((item) => item.set_id === previewState.previewingId);
 				if (!current) return;
 				event.preventDefault();
-				window.togglePreview?.(current);
+				togglePreview(current);
 				return;
 			}
 			const currentId = navigationIdRef.current;
@@ -264,11 +241,11 @@ const SearchResults: React.FC<Props> = ({
 			event.preventDefault();
 			navigationIdRef.current = next.set_id;
 			setFocusedSetId(next.set_id);
-			window.togglePreview?.(next);
+			togglePreview(next);
 		};
 		window.addEventListener("keydown", handlePreviewKey);
 		return () => window.removeEventListener("keydown", handlePreviewKey);
-	}, [isActive, filtered, previewState.previewingId, previewState.isLoadingPreview]);
+	}, [isActive, filtered, previewState.previewingId, previewState.isLoadingPreview, togglePreview]);
 
 	React.useEffect(() => {
 		if (!isActive) return;
@@ -282,11 +259,11 @@ const SearchResults: React.FC<Props> = ({
 			event.preventDefault();
 			navigationIdRef.current = next.set_id;
 			setFocusedSetId(next.set_id);
-			window.togglePreview?.(next);
+			togglePreview(next);
 		};
 		window.addEventListener(PREVIEW_ENDED_EVENT, handlePreviewEnded);
 		return () => window.removeEventListener(PREVIEW_ENDED_EVENT, handlePreviewEnded);
-	}, [isActive, filtered]);
+	}, [isActive, filtered, togglePreview]);
 
 	const getActionState = React.useCallback(
 		(setId: number, baseOwned: boolean): ActionState => {
@@ -437,12 +414,7 @@ const SearchResults: React.FC<Props> = ({
 						focusedSetId={focusedSetId}
 						cardLayout={cardLayout}
 						showUnicode={showUnicode}
-						previewingId={previewState.previewingId || null}
-						isLoadingPreview={previewState.isLoadingPreview || false}
-						playbackProgress={previewState.playbackProgress || 0}
-						isActuallyPlaying={previewState.isActuallyPlaying || false}
 						queueState={queueState}
-						togglePreview={togglePreview}
 						triggerDownload={handleDownload}
 						getActionState={getActionState}
 						endReached={handleLoadMore}

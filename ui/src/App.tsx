@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, Search, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import GlobalPreviewPlayer from "./components/GlobalPreviewPlayer";
+import PreviewProvider from "./components/PreviewProvider";
 import QueuePage from "./components/pages/QueuePage";
 import SearchTabsPage from "./components/pages/SearchTabsPage";
 import SettingsPage from "./components/pages/SettingsPage";
@@ -106,22 +106,23 @@ function App() {
 	];
 
 	return (
-		<div className="min-h-screen w-full overflow-hidden bg-surface">
-			{/* Background Managers */}
-			<ScanProgress />
-			<QueueNotificationManager showUnicode={showUnicode} />
+		<PreviewProvider>
+			<div className="min-h-screen w-full overflow-hidden bg-surface">
+				{/* Background Managers */}
+				<ScanProgress />
+				<QueueNotificationManager showUnicode={showUnicode} />
 
-			<div className="h-screen flex flex-col p-2">
-				{/* Tab Navigation */}
-				<div className="flex-1 min-h-0">
-					<Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+				<div className="h-screen flex flex-col p-2">
+					{/* Tab Navigation */}
+					<div className="flex-1 min-h-0">
+						<Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+					</div>
 				</div>
-			</div>
 
-			{/* Global Components */}
-			<GlobalPreviewPlayer />
-			<CustomToast />
-		</div>
+				{/* Global Components */}
+				<CustomToast />
+			</div>
+		</PreviewProvider>
 	);
 }
 

@@ -3,10 +3,9 @@ import { Howl } from "howler";
 import React from "react";
 import { apiClient, type Settings } from "../hooks/useApiClient";
 import PreviewPlayer, { type CurrentTrack } from "./search/PreviewPlayer";
-import { PREVIEW_ENDED_EVENT, PREVIEW_STATE_EVENT } from "./search/previewBridge";
-import type { PreviewableItem } from "./search/ResultCard";
+import { PREVIEW_ENDED_EVENT, type PreviewableItem, PreviewContext } from "./search/previewBridge";
 
-const GlobalPreviewPlayer: React.FC = () => {
+const PreviewProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
 	const { data: settings } = useQuery<Settings>({
 		queryKey: ["settings"],
 		queryFn: () => apiClient.get<Settings>("/settings"),
@@ -188,47 +187,32 @@ const GlobalPreviewPlayer: React.FC = () => {
 		});
 	}, [currentTrack, togglePreview]);
 
-	React.useEffect(() => {
-		window.togglePreview = togglePreview;
-		return () => {
-			delete window.togglePreview;
-		};
-	}, [togglePreview]);
-
-	React.useEffect(() => {
-		window.previewPlayerState = {
-			previewingId,
-			isLoadingPreview,
-			isActuallyPlaying,
-			playbackProgress,
-		};
-		window.dispatchEvent(new Event(PREVIEW_STATE_EVENT));
-	}, [previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress]);
-
-	React.useEffect(
-		() => () => {
-			delete window.previewPlayerState;
-		},
-		[],
+	const preview = React.useMemo(
+		() => ({ previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress, togglePreview }),
+		[previewingId, isLoadingPreview, isActuallyPlaying, playbackProgress, togglePreview],
 	);
 
-	if (!settings) return null;
 	return (
-		<PreviewPlayer
-			currentTrack={currentTrack}
-			previewingId={previewingId}
-			playbackProgress={playbackProgress}
-			isActuallyPlaying={isActuallyPlaying}
-			volume={volume}
-			isMuted={isMuted}
-			onToggle={handlePlayerToggle}
-			onSeek={seekTo}
-			onVolumeChange={handleVolumeChange}
-			onToggleMute={handleToggleMute}
-			isMinimized={isMinimized}
-			onToggleMinimize={() => setIsMinimized((value) => !value)}
-		/>
+		<PreviewContext.Provider value={preview}>
+			{children}
+			{settings && (
+				<PreviewPlayer
+					currentTrack={currentTrack}
+					previewingId={previewingId}
+					playbackProgress={playbackProgress}
+					isActuallyPlaying={isActuallyPlaying}
+					volume={volume}
+					isMuted={isMuted}
+					onToggle={handlePlayerToggle}
+					onSeek={seekTo}
+					onVolumeChange={handleVolumeChange}
+					onToggleMute={handleToggleMute}
+					isMinimized={isMinimized}
+					onToggleMinimize={() => setIsMinimized((value) => !value)}
+				/>
+			)}
+		</PreviewContext.Provider>
 	);
 };
 
-export default GlobalPreviewPlayer;
+export default PreviewProvider;

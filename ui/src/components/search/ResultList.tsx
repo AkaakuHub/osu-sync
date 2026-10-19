@@ -5,7 +5,7 @@ import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import type { ActionState, QueueDerivedState } from "./helpers";
 import { useResultColumns } from "./hooks/useResultColumns";
 import { useResultScrollPosition } from "./hooks/useResultScrollPosition";
-import ResultCard, { type PreviewableItem } from "./ResultCard";
+import ResultCard from "./ResultCard";
 
 type Item = SearchResponse["results"][number];
 type PreparedItem = { item: Item; action: ActionState; failureMessage?: string | null };
@@ -16,12 +16,7 @@ type Props = {
 	cardLayout: CardLayout;
 	showUnicode: boolean;
 	dateField?: "ranked" | "updated";
-	previewingId: number | null;
-	isLoadingPreview: boolean;
-	playbackProgress: number;
-	isActuallyPlaying: boolean;
 	queueState: QueueDerivedState;
-	togglePreview: (item: PreviewableItem) => void;
 	triggerDownload: (setId: number) => void;
 	getActionState: (setId: number, baseOwned: boolean) => ActionState;
 	endReached?: () => void;
@@ -34,12 +29,7 @@ const ResultList: React.FC<Props> = ({
 	cardLayout,
 	showUnicode,
 	dateField,
-	previewingId,
-	isLoadingPreview,
-	playbackProgress,
-	isActuallyPlaying,
 	queueState,
-	togglePreview,
 	triggerDownload,
 	getActionState,
 	endReached,
@@ -118,10 +108,6 @@ const ResultList: React.FC<Props> = ({
 									item={prepared.item}
 									showUnicode={showUnicode}
 									action={prepared.action}
-									isPreviewing={previewingId === prepared.item.set_id && isActuallyPlaying}
-									isLoadingPreview={previewingId === prepared.item.set_id && isLoadingPreview}
-									playbackProgress={previewingId === prepared.item.set_id ? playbackProgress : 0}
-									togglePreview={togglePreview}
 									triggerDownload={triggerDownload}
 									failureMessage={prepared.failureMessage}
 									openSearchTab={openSearchTab}

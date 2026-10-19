@@ -7,11 +7,7 @@ import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import Button from "../ui/Button";
 import { useBeatmapMetadata } from "./BeatmapMetadata";
 import { type ActionState, artworkCoverUrl, buildBackground, defaultCover } from "./helpers";
-
-export type PreviewableItem = Pick<
-	SearchResponse["results"][number],
-	"set_id" | "title" | "artist" | "preview_url" | "cover_url"
->;
+import { usePreview } from "./previewBridge";
 
 type ResultCardProps = {
 	layout: CardLayout;
@@ -19,10 +15,6 @@ type ResultCardProps = {
 	showUnicode: boolean;
 	dateField?: "ranked" | "updated";
 	action: ActionState;
-	isPreviewing: boolean;
-	isLoadingPreview: boolean;
-	playbackProgress: number;
-	togglePreview: (item: PreviewableItem) => void;
 	triggerDownload: (setId: number) => void;
 	failureMessage?: string | null;
 	openSearchTab: (query: string, label: string) => void;
@@ -72,14 +64,16 @@ const ResultCard: React.FC<ResultCardProps> = ({
 	showUnicode,
 	dateField,
 	action,
-	isPreviewing,
-	isLoadingPreview,
-	playbackProgress,
-	togglePreview,
 	triggerDownload,
 	failureMessage,
 	openSearchTab,
 }) => {
+	const preview = usePreview();
+	const isCurrentTrack = preview.previewingId === item.set_id;
+	const isPreviewing = isCurrentTrack && preview.isActuallyPlaying;
+	const isLoadingPreview = isCurrentTrack && preview.isLoadingPreview;
+	const playbackProgress = isCurrentTrack ? preview.playbackProgress : 0;
+	const { togglePreview } = preview;
 	const card = cardStyles({ layout, playing: isPreviewing });
 	const coverUrl = useMemo(
 		() =>
