@@ -31,7 +31,7 @@ type ResultCardProps = {
 const cardStyles = tv({
 	slots: {
 		wrapper: "relative m-1.5 p-1 group",
-		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-xs",
+		base: "group relative rounded-xl bg-surface/80 shadow-lg backdrop-blur-xs transition-shadow duration-200",
 		banner: "relative flex gap-3",
 		thumbnail: "rounded-lg object-cover ring-2 ring-border/70 shadow-xl shrink-0",
 		content: "flex-1 min-w-0 px-2 py-2 grid grid-cols-[1fr_auto] gap-3",
@@ -43,6 +43,11 @@ const cardStyles = tv({
 		creator: "max-w-full text-xs text-text-muted leading-tight truncate",
 	},
 	variants: {
+		playing: {
+			true: {
+				base: "ring-1 ring-primary/60 shadow-[0_0_14px] shadow-primary/25",
+			},
+		},
 		layout: {
 			classic: {},
 			artwork: {
@@ -75,7 +80,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 	failureMessage,
 	openSearchTab,
 }) => {
-	const card = cardStyles({ layout });
+	const card = cardStyles({ layout, playing: isPreviewing });
 	const coverUrl = useMemo(
 		() =>
 			layout === "artwork" && item.cover_url ? artworkCoverUrl(item.cover_url) : item.cover_url,
