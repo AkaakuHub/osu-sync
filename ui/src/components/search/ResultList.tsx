@@ -4,6 +4,7 @@ import type { SearchResponse } from "../../hooks/useApiClient";
 import type { CardLayout } from "../../hooks/useDisplayPreferences";
 import type { ActionState, QueueDerivedState } from "./helpers";
 import { useResultColumns } from "./hooks/useResultColumns";
+import { useResultScrollPosition } from "./hooks/useResultScrollPosition";
 import ResultCard, { type PreviewableItem } from "./ResultCard";
 
 type Item = SearchResponse["results"][number];
@@ -46,6 +47,7 @@ const ResultList: React.FC<Props> = ({
 }) => {
 	const virtuosoRef = React.useRef<VirtuosoHandle>(null);
 	const { containerRef, columnCount } = useResultColumns();
+	const scrollPosition = useResultScrollPosition<PreparedItem[]>();
 	const followPreviewRef = React.useRef(true);
 	const focusedIndex = items.findIndex((item) => item.set_id === focusedSetId);
 	const focusedRow = focusedIndex < 0 ? -1 : Math.floor(focusedIndex / columnCount);
@@ -96,6 +98,8 @@ const ResultList: React.FC<Props> = ({
 			}}
 		>
 			<Virtuoso
+				key={cardLayout}
+				{...scrollPosition}
 				ref={virtuosoRef}
 				style={{ height: "100%" }}
 				data={rows}
