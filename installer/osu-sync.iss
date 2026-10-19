@@ -1,6 +1,6 @@
 [Setup]
 AppName=osu-sync
-AppVersion=1.1.2
+AppVersion=1.1.3
 DefaultDirName={pf}\osu-sync
 DefaultGroupName=osu-sync
 OutputBaseFilename=osu-sync-installer
