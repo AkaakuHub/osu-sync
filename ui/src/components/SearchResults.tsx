@@ -11,6 +11,7 @@ import {
 import type { CardLayout } from "../hooks/useDisplayPreferences";
 import { triggerDownload } from "../utils/downloadUtils";
 import { buildSearchParams } from "./search/buildSearchParams";
+import { getDateSearchField } from "./search/dateSearch";
 import type { ActionState, QueueDerivedState } from "./search/helpers";
 import {
 	PREVIEW_ENDED_EVENT,
@@ -19,7 +20,7 @@ import {
 } from "./search/previewBridge";
 import type { PreviewableItem } from "./search/ResultCard";
 import ResultList from "./search/ResultList";
-import { DATE_SEARCH_FIELDS, type SearchFilters } from "./search/types";
+import type { SearchFilters } from "./search/types";
 import { hasActiveFilters } from "./search/utils";
 import Button from "./ui/Button";
 import Toggle from "./ui/Toggle";
@@ -429,7 +430,7 @@ const SearchResults: React.FC<Props> = ({
 					<ResultList
 						dateField={
 							searchFilters && (searchFilters.dateAfter || searchFilters.dateBefore)
-								? DATE_SEARCH_FIELDS[searchFilters.status]
+								? getDateSearchField(searchFilters.sortField)
 								: undefined
 						}
 						items={filtered}

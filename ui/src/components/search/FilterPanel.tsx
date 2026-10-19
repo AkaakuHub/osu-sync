@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { tv } from "tailwind-variants";
+import { getDateSearchField } from "./dateSearch";
 import {
 	ArrayFilterControls,
 	ModeControls,
@@ -19,7 +20,6 @@ import {
 	AVAILABLE_RANKS,
 	AVAILABLE_SORT_FIELDS,
 	AVAILABLE_STATUSES,
-	DATE_SEARCH_FIELDS,
 	GAME_MODES,
 	type PlayedFilter,
 	type SearchFilters,
@@ -184,7 +184,7 @@ export function FilterPanel({
 						key={dateResetKey}
 						after={filters.dateAfter}
 						before={filters.dateBefore}
-						field={DATE_SEARCH_FIELDS[filters.status]}
+						field={getDateSearchField(filters.sortField)}
 						onApply={setDateRange}
 					/>
 

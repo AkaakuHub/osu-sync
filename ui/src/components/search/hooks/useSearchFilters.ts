@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getDateSearchField } from "../dateSearch";
 import {
 	DEFAULT_FILTERS,
 	type ExtraFilter,
@@ -76,7 +77,14 @@ export function useSearchFilters({ onFiltersChange, initialFilters, searchQuery 
 		setFilters((current) => ({ ...current, nsfw }));
 	}, []);
 	const setDateRange = useCallback((dateAfter: string, dateBefore: string) => {
-		setFilters((current) => ({ ...current, dateAfter, dateBefore }));
+		setFilters((current) => ({
+			...current,
+			dateAfter,
+			dateBefore,
+			sortField:
+				dateAfter || dateBefore ? getDateSearchField(current.sortField) : current.sortField,
+			sortOrder: dateAfter || dateBefore ? "desc" : current.sortOrder,
+		}));
 	}, []);
 	const setPlayed = useCallback((played: PlayedFilter) => {
 		setFilters((current) => ({ ...current, played }));

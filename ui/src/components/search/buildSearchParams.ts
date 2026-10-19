@@ -1,8 +1,9 @@
-import { DATE_SEARCH_FIELDS, DEFAULT_FILTERS, type SearchFilters } from "./types";
+import { getDateSearchField } from "./dateSearch";
+import { DEFAULT_FILTERS, type SearchFilters } from "./types";
 
 export function buildSearchParams(query: string, filters: SearchFilters | null, page = 1) {
 	const active = filters ?? DEFAULT_FILTERS;
-	const dateField = DATE_SEARCH_FIELDS[active.status];
+	const dateField = getDateSearchField(active.sortField);
 	const terms = [
 		query.trim(),
 		active.dateAfter && `${dateField}>=${active.dateAfter}`,
