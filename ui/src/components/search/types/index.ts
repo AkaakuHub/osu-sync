@@ -90,7 +90,7 @@ export interface SearchFilters {
 export const DEFAULT_FILTERS: SearchFilters = {
 	sortField: "ranked",
 	sortOrder: "desc",
-	status: "any",
+	status: "leaderboard",
 	mode: "null",
 	extra: [],
 	general: [],
