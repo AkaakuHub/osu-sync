@@ -54,6 +54,8 @@ class Settings:
             "max_concurrency": 3,
             "requests_per_minute": 60,
             "player_volume": 0.7,
+            "show_unicode": False,
+            "card_layout": "classic",
         }
 
         file_existed = self.store.path.exists()
@@ -95,6 +97,8 @@ class Settings:
         self.player_volume: float = float(
             os.getenv("OSU_PLAYER_VOLUME", data.get("player_volume"))
         )
+        self.show_unicode: bool = data["show_unicode"]
+        self.card_layout: str = data["card_layout"]
 
         # リスキャン対象拡張子
         self.scan_extensions = [".osu", ".osz"]

@@ -513,6 +513,8 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             "max_concurrency": settings.max_concurrency,
             "requests_per_minute": settings.requests_per_minute,
             "player_volume": settings.player_volume,
+            "show_unicode": settings.show_unicode,
+            "card_layout": settings.card_layout,
         }
 
     @api.post("/settings")
@@ -526,6 +528,8 @@ def create_app(dist_dir: Path | None = None) -> FastAPI:
             "max_concurrency",
             "requests_per_minute",
             "player_volume",
+            "show_unicode",
+            "card_layout",
         }
         filtered = {k: v for k, v in payload.items() if k in allowed}
         prev_values = {

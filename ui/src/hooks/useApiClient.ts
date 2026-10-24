@@ -128,6 +128,8 @@ export interface Settings {
 	max_concurrency: number;
 	requests_per_minute: number;
 	player_volume: number;
+	show_unicode: boolean;
+	card_layout: "classic" | "artwork";
 }
 
 export interface UpdateStatus {

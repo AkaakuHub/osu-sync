@@ -1,41 +1,40 @@
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { apiClient, type Settings } from "./useApiClient";
 
-export type CardLayout = "classic" | "artwork";
+export type CardLayout = Settings["card_layout"];
 
-type DisplayPreferences = {
-	cardLayout: CardLayout;
-	showUnicode: boolean;
-};
-
-const storageKey = "osu-sync.display";
-const defaults: DisplayPreferences = { cardLayout: "classic", showUnicode: false };
-
-function readPreferences(): DisplayPreferences {
-	try {
-		const stored: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "null");
-		if (typeof stored !== "object" || stored === null) return defaults;
-		const values = stored as Record<string, unknown>;
-		return {
-			cardLayout: values.cardLayout === "artwork" ? "artwork" : "classic",
-			showUnicode: values.showUnicode === true,
-		};
-	} catch {
-		return defaults;
-	}
-}
+type DisplayPreferences = Pick<Settings, "card_layout" | "show_unicode">;
 
 export function useDisplayPreferences() {
-	const [preferences, setPreferences] = useState(readPreferences);
-
-	useEffect(() => {
-		localStorage.setItem(storageKey, JSON.stringify(preferences));
-	}, [preferences]);
+	const client = useQueryClient();
+	const { data } = useQuery({
+		queryKey: ["settings"],
+		queryFn: () => apiClient.get<Settings>("/settings"),
+	});
+	const mutation = useMutation({
+		mutationKey: ["display-preferences"],
+		scope: { id: "display-preferences" },
+		mutationFn: (preferences: Partial<DisplayPreferences>) =>
+			apiClient.post("/settings", preferences),
+		onSuccess: (_, preferences) => {
+			client.setQueryData<Settings>(["settings"], (current) =>
+				current ? { ...current, ...preferences } : current,
+			);
+		},
+		onError: () => toast.error("Failed to save display settings."),
+		onSettled: () => {
+			if (client.isMutating({ mutationKey: ["display-preferences"] }) === 1) {
+				return client.invalidateQueries({ queryKey: ["settings"] });
+			}
+		},
+	});
+	const pending = mutation.isPending ? mutation.variables : undefined;
 
 	return {
-		...preferences,
-		setCardLayout: (cardLayout: CardLayout) =>
-			setPreferences((current) => ({ ...current, cardLayout })),
-		setShowUnicode: (showUnicode: boolean) =>
-			setPreferences((current) => ({ ...current, showUnicode })),
+		cardLayout: pending?.card_layout ?? data?.card_layout ?? "classic",
+		showUnicode: pending?.show_unicode ?? data?.show_unicode ?? false,
+		setCardLayout: (card_layout: CardLayout) => mutation.mutate({ card_layout }),
+		setShowUnicode: (show_unicode: boolean) => mutation.mutate({ show_unicode }),
 	};
 }
