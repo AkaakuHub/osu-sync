@@ -5,7 +5,7 @@ export function activeFilterFlags(filters: Partial<SearchFilters>) {
 		sort:
 			(filters.sortField ?? DEFAULT_FILTERS.sortField) !== DEFAULT_FILTERS.sortField ||
 			(filters.sortOrder ?? DEFAULT_FILTERS.sortOrder) !== DEFAULT_FILTERS.sortOrder,
-		status: Boolean(filters.status && filters.status !== "any"),
+		status: (filters.status ?? DEFAULT_FILTERS.status) !== DEFAULT_FILTERS.status,
 		mode: Boolean(filters.mode && filters.mode !== "null"),
 		extra: Boolean(filters.extra?.length),
 		general: Boolean(filters.general?.length),

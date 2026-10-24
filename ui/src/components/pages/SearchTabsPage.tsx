@@ -13,6 +13,10 @@ type SearchTab = {
 	filters: SearchFilters;
 };
 
+function createSearchTab(id: number, query = "", label = "Search"): SearchTab {
+	return { id, label, query, filters: resetFilters() };
+}
+
 type Props = {
 	isActive: boolean;
 	notOwnedOnly: boolean;
@@ -29,9 +33,7 @@ export default function SearchTabsPage(props: Props) {
 	const tabListRef = useRef<HTMLDivElement>(null);
 	const activeTabRef = useRef<HTMLDivElement>(null);
 	const nextId = useRef(2);
-	const [tabs, setTabs] = useState<SearchTab[]>([
-		{ id: 1, label: "Search", query: "", filters: resetFilters() },
-	]);
+	const [tabs, setTabs] = useState<SearchTab[]>(() => [createSearchTab(1)]);
 	const [activeId, setActiveId] = useState(1);
 
 	useEffect(() => {
@@ -61,7 +63,7 @@ export default function SearchTabsPage(props: Props) {
 
 	const openTab = (query = "", label = "New search") => {
 		const id = nextId.current++;
-		setTabs((current) => [...current, { id, label, query, filters: resetFilters() }]);
+		setTabs((current) => [...current, createSearchTab(id, query, label)]);
 		setActiveId(id);
 	};
 
