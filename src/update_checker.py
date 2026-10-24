@@ -142,7 +142,7 @@ async def download_and_run_installer(url: str) -> str:
             "/SUPPRESSMSGBOXES",
             "/NORESTART",
             "/CLOSEAPPLICATIONS",
-            "/RESTARTAPPLICATIONS",
+            "/NORESTARTAPPLICATIONS",
             "/FORCECLOSEAPPLICATIONS",
             "/NOCANCEL",
             f"/LOG={log_path}",

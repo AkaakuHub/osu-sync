@@ -47,7 +47,9 @@ export default function SettingsPanel() {
 		try {
 			const res = await apiClient.post<{ status: string }>("/update/start", {});
 			if (res.status === "started") {
-				toast.success("Downloading updater…", { id: "update-started" });
+				toast.success("Installing update. The app will restart automatically.", {
+					id: "update-started",
+				});
 				// Request backend to quit so installer can replace files
 				await apiClient.post("/update/quit", {});
 				// Close frontend window after a short delay (dev mode uvicorn --reload is separate process)
@@ -190,8 +192,8 @@ export default function SettingsPanel() {
 			{showConfirm && (
 				<Modal
 					title="Install update now?"
-					body={"The app will close to let the installer run.\nProceed?"}
-					confirmLabel="Install & Quit"
+					body="The app will close to install the update and restart automatically."
+					confirmLabel="Install & Restart"
 					cancelLabel="Cancel"
 					onConfirm={() => {
 						setShowConfirm(false);

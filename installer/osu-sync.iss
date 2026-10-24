@@ -19,4 +19,4 @@ Name: "{commondesktop}\osu-sync"; Filename: "{app}\osu-sync.exe"; Tasks: desktop
 Name: "desktopicon"; Description: "Create a desktop icon"; GroupDescription: "Additional icons:"
 
 [Run]
-Filename: "{app}\osu-sync.exe"; Description: "Launch osu-sync"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\osu-sync.exe"; Description: "Launch osu-sync"; Flags: nowait postinstall
