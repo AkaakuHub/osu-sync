@@ -238,7 +238,7 @@ const SearchPage: React.FC<Props> = ({
 					<div className="flex-shrink-0">
 						<FilterPanel
 							onFiltersChange={handleFiltersChange}
-							initialFilters={searchFilters}
+							filters={searchFilters}
 							searchQuery={searchQuery}
 						/>
 					</div>

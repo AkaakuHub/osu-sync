@@ -65,9 +65,9 @@ const LANGUAGES = [
 ];
 
 interface FilterPanelProps {
-	onFiltersChange?: (filters: SearchFilters) => void;
+	onFiltersChange: (filters: SearchFilters) => void;
 	className?: string;
-	initialFilters?: SearchFilters | null;
+	filters: SearchFilters;
 	searchQuery?: string;
 }
 
@@ -80,14 +80,13 @@ const PLAYED_OPTIONS: { value: PlayedFilter; label: string }[] = [
 export function FilterPanel({
 	onFiltersChange,
 	className = "",
-	initialFilters,
+	filters,
 	searchQuery,
 }: FilterPanelProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [dateResetKey, setDateResetKey] = useState(0);
 
 	const {
-		filters,
 		setSort,
 		setStatus,
 		setMode,
@@ -100,7 +99,7 @@ export function FilterPanel({
 		resetAllFilters,
 		toggleGenre,
 		toggleLanguage,
-	} = useSearchFilters({ onFiltersChange, initialFilters, searchQuery });
+	} = useSearchFilters({ onFiltersChange, filters, searchQuery });
 
 	const activeFilterCount = Object.values(activeFilterFlags(filters)).filter(Boolean).length;
 

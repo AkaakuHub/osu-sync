@@ -31,7 +31,7 @@ type Props = {
 	scanRevision: number;
 	isLoading?: boolean;
 	searchQuery: string;
-	searchFilters: SearchFilters | null;
+	searchFilters: SearchFilters;
 	showUnicode: boolean;
 	setShowUnicode: (v: boolean) => void;
 	cardLayout: CardLayout;
@@ -169,7 +169,6 @@ const SearchResults: React.FC<Props> = ({
 		[allResults, isOwned, notOwnedOnly],
 	);
 	const filtersActive = React.useMemo(() => {
-		if (!searchFilters) return notOwnedOnly || !!searchQuery?.trim();
 		return hasActiveFilters(searchFilters) || notOwnedOnly || !!searchQuery?.trim();
 	}, [notOwnedOnly, searchFilters, searchQuery]);
 
